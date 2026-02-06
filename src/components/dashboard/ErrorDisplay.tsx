@@ -2,6 +2,8 @@
  * Error Display Component
  */
 
+import { AlertTriangle, CircleX } from "lucide-react";
+
 interface ErrorDisplayProps {
   error: unknown;
   title?: string;
@@ -25,7 +27,7 @@ export function ErrorDisplay({
   return (
     <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10">
       <div className="flex items-start gap-3">
-        <span className="text-red-400 text-xl">❌</span>
+        <CircleX className="size-5 text-red-400 shrink-0 mt-0.5" />
         <div className="flex-1">
           <h3 className="font-medium text-red-300">{title}</h3>
           <p className="text-sm text-red-400/80 mt-1">{message}</p>
@@ -52,7 +54,7 @@ export function InlineError({ message }: { message?: string }) {
 
   return (
     <p className="text-sm text-red-400 mt-1 flex items-center gap-1">
-      <span>⚠</span>
+      <AlertTriangle className="size-3.5" />
       {message}
     </p>
   );

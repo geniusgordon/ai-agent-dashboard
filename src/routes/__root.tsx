@@ -36,7 +36,7 @@ function RootComponent() {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-slate-900 text-slate-100">
+      <body className="bg-background text-foreground">
         <Provider queryClient={queryClient}>
           <Outlet />
         </Provider>

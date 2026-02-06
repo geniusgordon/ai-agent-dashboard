@@ -4,6 +4,25 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  AlertTriangle,
+  ArrowDownToLine,
+  ArrowLeft,
+  Brain,
+  CheckCircle2,
+  ClipboardList,
+  Inbox,
+  Loader2,
+  MessageSquare,
+  Pause,
+  Pencil,
+  Send,
+  Square,
+  Trash2,
+  User,
+  Wrench,
+  XCircle,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AgentBadge, StatusBadge } from "../../../components/dashboard";
 import { useAgentEvents } from "../../../hooks/useAgentEvents";
@@ -92,7 +111,6 @@ function SessionDetailPage() {
           const newPayload = event.payload as Record<string, unknown>;
 
           // Only merge if same type, same session, and same sender (user vs agent)
-          // User messages have isUser=true, agent messages have isUser undefined/false
           const lastIsUser = lastPayload.isUser === true;
           const newIsUser = newPayload.isUser === true;
           const canMerge =
@@ -105,7 +123,6 @@ function SessionDetailPage() {
             const lastContent = extractContent(lastPayload);
             const newContent = extractContent(newPayload);
 
-            // Merge contents
             const merged = {
               ...last,
               payload: { ...lastPayload, content: lastContent + newContent },
@@ -151,7 +168,6 @@ function SessionDetailPage() {
   const approveMutation = useMutation(
     trpc.approvals.approve.mutationOptions({
       onMutate: () => {
-        // Immediately hide the banner
         setPendingApproval(null);
       },
       onSuccess: () => {
@@ -168,7 +184,6 @@ function SessionDetailPage() {
   const denyMutation = useMutation(
     trpc.approvals.deny.mutationOptions({
       onMutate: () => {
-        // Immediately hide the banner
         setPendingApproval(null);
       },
       onSuccess: () => {
@@ -252,8 +267,8 @@ function SessionDetailPage() {
   if (sessionQuery.isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin w-8 h-8 border-2 border-slate-600 border-t-green-500 rounded-full mx-auto mb-4" />
-        <p className="text-slate-400">Loading session...</p>
+        <Loader2 className="size-8 animate-spin text-primary mx-auto mb-4" />
+        <p className="text-muted-foreground">Loading session...</p>
       </div>
     );
   }
@@ -261,54 +276,46 @@ function SessionDetailPage() {
   if (!session) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-400 mb-2">Session not found</p>
-        <p className="text-sm text-slate-500 font-mono">{sessionId}</p>
+        <p className="text-muted-foreground mb-2">Session not found</p>
+        <p className="text-sm text-muted-foreground font-mono">{sessionId}</p>
         <Link
           to="/dashboard/sessions"
-          className="mt-4 inline-block text-green-400 hover:text-green-300"
+          className="mt-4 inline-flex items-center gap-1.5 text-primary hover:text-primary/80"
         >
-          ← Back to sessions
+          <ArrowLeft className="size-4" />
+          Back to sessions
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-10rem)] flex flex-col">
+    <div className="h-[calc(100vh-6rem)] sm:h-[calc(100vh-10rem)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Link
             to="/dashboard/sessions"
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer shrink-0"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ArrowLeft className="size-4 sm:size-5" />
           </Link>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               <AgentBadge type={session.agentType} size="sm" />
               <StatusBadge status={session.status} />
-              {sendMessageMutation.isPending && (
-                <span className="text-xs text-yellow-400 animate-pulse">
-                  Processing...
-                </span>
-              )}
               {connected ? (
-                <span className="text-xs text-green-400">● Live</span>
+                <span className="text-xs text-green-400 flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                  </span>
+                  Live
+                </span>
               ) : (
-                <span className="text-xs text-slate-500">○ Connecting...</span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="size-3 animate-spin" />
+                </span>
               )}
             </div>
             {/* Editable Session Name */}
@@ -324,7 +331,7 @@ function SessionDetailPage() {
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="px-2 py-1 text-sm bg-slate-700 border border-slate-600 rounded text-white"
+                  className="px-2 py-1 text-sm bg-card border border-input rounded text-foreground"
                   autoFocus
                 />
                 <button
@@ -336,14 +343,14 @@ function SessionDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsEditingName(false)}
-                  className="text-xs text-slate-400 hover:text-slate-300"
+                  className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </button>
               </form>
             ) : (
               <p
-                className="font-mono text-sm text-slate-400 mt-1 cursor-pointer hover:text-slate-300"
+                className="font-mono text-sm text-muted-foreground mt-1 cursor-pointer hover:text-foreground inline-flex items-center gap-1.5"
                 onClick={() => {
                   setEditName(session.name || "");
                   setIsEditingName(true);
@@ -351,33 +358,43 @@ function SessionDetailPage() {
                 title="Click to rename"
               >
                 {session.name || session.id.slice(0, 8)}
-                <span className="text-slate-600 ml-2">✏️</span>
+                <Pencil className="size-3 text-muted-foreground/50" />
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             type="button"
             onClick={() => setEvents([])}
-            className="px-3 py-1.5 rounded-lg text-sm bg-slate-700/50 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            title="Clear logs"
           >
-            Clear
+            <Trash2 className="size-3.5" />
+            <span className="hidden sm:inline">Clear</span>
           </button>
           <button
             type="button"
             onClick={() => setAutoScroll(!autoScroll)}
             className={`
-              px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer
+              p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm transition-colors cursor-pointer inline-flex items-center gap-1.5
               ${
                 autoScroll
                   ? "bg-green-500/20 text-green-400"
-                  : "bg-slate-700/50 text-slate-400"
+                  : "bg-secondary/50 text-muted-foreground"
               }
             `}
+            title={`Auto-scroll ${autoScroll ? "ON" : "OFF"}`}
           >
-            Auto-scroll {autoScroll ? "ON" : "OFF"}
+            {autoScroll ? (
+              <ArrowDownToLine className="size-3.5" />
+            ) : (
+              <Pause className="size-3.5" />
+            )}
+            <span className="hidden sm:inline">
+              Auto-scroll {autoScroll ? "ON" : "OFF"}
+            </span>
           </button>
           {session.status !== "completed" && session.status !== "killed" && (
             <button
@@ -388,9 +405,13 @@ function SessionDetailPage() {
                 }
               }}
               disabled={killSessionMutation.isPending}
-              className="px-3 py-1.5 rounded-lg text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors cursor-pointer disabled:opacity-50"
+              className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+              title="Kill session"
             >
-              {killSessionMutation.isPending ? "Killing..." : "Kill"}
+              <Square className="size-3.5" />
+              <span className="hidden sm:inline">
+                {killSessionMutation.isPending ? "Killing..." : "Kill"}
+              </span>
             </button>
           )}
         </div>
@@ -398,16 +419,16 @@ function SessionDetailPage() {
 
       {/* Pending Approval Banner */}
       {pendingApproval && (
-        <div className="mb-4 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 animate-pulse">
+        <div className="mb-4 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10">
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-amber-400">⚠️</span>
+                <AlertTriangle className="size-5 text-amber-400 animate-pulse" />
                 <span className="font-medium text-amber-200">
                   {pendingApproval.toolCall.title}
                 </span>
               </div>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 Kind: {pendingApproval.toolCall.kind}
               </p>
             </div>
@@ -440,7 +461,7 @@ function SessionDetailPage() {
                           ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
                           : isAllow
                             ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                            : "bg-slate-700/50 text-slate-300 hover:bg-slate-700"
+                            : "bg-secondary text-foreground hover:bg-secondary/80"
                       }
                     `}
                   >
@@ -454,33 +475,46 @@ function SessionDetailPage() {
       )}
 
       {/* Logs Container */}
-      <div className="flex-1 overflow-y-auto rounded-xl border border-slate-700/50 bg-slate-900/50 p-4 font-mono text-sm">
-        {events.length === 0 ? (
-          <div className="text-slate-500 text-center py-8">
-            <p>No messages yet.</p>
-            <p className="text-xs mt-2">
-              Send a message below to start the conversation.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {events.map((event, i) => (
-              <LogEntry
-                key={`${event.timestamp.toString()}-${i}`}
-                event={event}
-              />
-            ))}
-            <div ref={logsEndRef} />
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-background/50 font-mono text-sm relative">
+        {/* Sticky log header */}
+        <div className="sticky top-0 z-10 px-4 py-2 bg-background/80 backdrop-blur-sm border-b border-border flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground">
+            Session Log
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {events.length} events
+          </span>
+        </div>
+
+        <div className="p-4">
+          {events.length === 0 ? (
+            <div className="text-muted-foreground text-center py-8">
+              <MessageSquare className="size-8 mx-auto mb-3 text-muted-foreground/50" />
+              <p>No messages yet.</p>
+              <p className="text-xs mt-2">
+                Send a message below to start the conversation.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {events.map((event, i) => (
+                <LogEntry
+                  key={`${event.timestamp.toString()}-${i}`}
+                  event={event}
+                />
+              ))}
+              <div ref={logsEndRef} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input */}
       {session.status !== "completed" &&
         session.status !== "killed" &&
         session.status !== "error" && (
-          <form onSubmit={handleSendMessage} className="mt-4">
-            <div className="flex gap-2">
+          <form onSubmit={handleSendMessage} className="mt-2 sm:mt-4 shrink-0">
+            <div className="flex gap-2 p-2 rounded-xl border border-border bg-card">
               <input
                 type="text"
                 value={inputMessage}
@@ -492,12 +526,12 @@ function SessionDetailPage() {
                 }
                 disabled={sendMessageMutation.isPending || !!pendingApproval}
                 className="
-                flex-1 px-4 py-3 rounded-lg
-                bg-slate-800 border border-slate-700
-                text-slate-100 placeholder-slate-500
-                focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50
-                disabled:opacity-50
-              "
+                  flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base
+                  bg-transparent border-none
+                  text-foreground placeholder-muted-foreground
+                  focus:outline-none
+                  disabled:opacity-50
+                "
               />
               <button
                 type="submit"
@@ -507,14 +541,19 @@ function SessionDetailPage() {
                   !!pendingApproval
                 }
                 className="
-                px-6 py-3 rounded-lg font-medium
-                bg-green-600 text-white
-                hover:bg-green-500 transition-colors
-                disabled:opacity-50 disabled:cursor-not-allowed
-                cursor-pointer
-              "
+                  px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base
+                  bg-green-600 text-white
+                  hover:bg-green-500 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  cursor-pointer shrink-0 inline-flex items-center gap-2
+                "
               >
-                {sendMessageMutation.isPending ? "..." : "Send"}
+                {sendMessageMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+                <span className="hidden sm:inline">Send</span>
               </button>
             </div>
           </form>
@@ -532,29 +571,69 @@ function formatTime(date: Date): string {
   });
 }
 
+const eventConfig: Record<
+  string,
+  { icon: typeof Brain; color: string; borderColor: string }
+> = {
+  thinking: {
+    icon: Brain,
+    color: "text-purple-400",
+    borderColor: "border-l-purple-500/50",
+  },
+  message: {
+    icon: MessageSquare,
+    color: "text-foreground",
+    borderColor: "border-l-blue-500/50",
+  },
+  "tool-call": {
+    icon: Wrench,
+    color: "text-blue-400",
+    borderColor: "border-l-blue-500/50",
+  },
+  "tool-update": {
+    icon: Wrench,
+    color: "text-blue-300",
+    borderColor: "border-l-blue-500/50",
+  },
+  plan: {
+    icon: ClipboardList,
+    color: "text-yellow-400",
+    borderColor: "border-l-yellow-500/50",
+  },
+  complete: {
+    icon: CheckCircle2,
+    color: "text-green-400",
+    borderColor: "border-l-green-500/50",
+  },
+  error: {
+    icon: XCircle,
+    color: "text-red-400",
+    borderColor: "border-l-red-500/50",
+  },
+};
+
+const defaultConfig = {
+  icon: Inbox,
+  color: "text-muted-foreground",
+  borderColor: "border-l-border",
+};
+
 function LogEntry({ event }: { event: AgentEvent }) {
-  const config: Record<string, { prefix: string; color: string }> = {
-    thinking: { prefix: "💭", color: "text-purple-400" },
-    message: { prefix: "💬", color: "text-slate-100" },
-    "tool-call": { prefix: "🔧", color: "text-blue-400" },
-    "tool-update": { prefix: "🔧", color: "text-blue-300" },
-    plan: { prefix: "📋", color: "text-yellow-400" },
-    complete: { prefix: "✅", color: "text-green-400" },
-    error: { prefix: "❌", color: "text-red-400" },
-  };
-
-  const { prefix, color } = config[event.type] ?? {
-    prefix: "📨",
-    color: "text-slate-400",
-  };
   const payload = event.payload as Record<string, unknown>;
+  const isUser = payload.isUser === true;
 
-  // Extract content - handle nested objects from ACP
+  const config = isUser
+    ? { icon: User, color: "text-cyan-400", borderColor: "border-l-primary" }
+    : (eventConfig[event.type] ?? defaultConfig);
+
+  const isThinking = event.type === "thinking";
+  const isError = event.type === "error";
+
+  // Extract content
   let content: string;
   if (typeof payload.content === "string") {
     content = payload.content;
   } else if (typeof payload.content === "object" && payload.content !== null) {
-    // ACP format: { type: "text", text: "..." }
     const nested = payload.content as Record<string, unknown>;
     content = (nested.text as string) ?? JSON.stringify(nested);
   } else if (typeof payload.stopReason === "string") {
@@ -565,14 +644,22 @@ function LogEntry({ event }: { event: AgentEvent }) {
     content = JSON.stringify(payload);
   }
 
-  const isUser = payload.isUser === true;
+  const Icon = config.icon;
 
   return (
-    <div className={`flex gap-2 ${isUser ? "text-cyan-400" : color}`}>
-      <span className="shrink-0 text-slate-600 text-xs font-mono w-16">
+    <div
+      className={`
+        flex gap-2 py-2 px-3 rounded-lg border-l-2
+        ${config.borderColor}
+        ${isUser ? "bg-primary/5" : isError ? "bg-destructive/5" : ""}
+        ${isThinking ? "opacity-80" : ""}
+        ${config.color}
+      `}
+    >
+      <span className="shrink-0 text-muted-foreground text-xs font-mono w-16 pt-0.5">
         {formatTime(event.timestamp)}
       </span>
-      <span className="shrink-0">{isUser ? "👤" : prefix}</span>
+      <Icon className="size-4 shrink-0 mt-0.5" />
       <span className="whitespace-pre-wrap break-words flex-1">{content}</span>
     </div>
   );

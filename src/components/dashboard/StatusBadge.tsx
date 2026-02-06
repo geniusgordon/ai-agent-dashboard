@@ -12,7 +12,7 @@ const statusConfig: Record<
 > = {
   idle: {
     label: "Idle",
-    color: "bg-slate-500/20 text-slate-400",
+    color: "bg-muted text-muted-foreground",
   },
   starting: {
     label: "Starting",
@@ -39,7 +39,7 @@ const statusConfig: Record<
   },
   killed: {
     label: "Killed",
-    color: "bg-slate-500/20 text-slate-500",
+    color: "bg-muted text-muted-foreground",
   },
   ready: {
     label: "Ready",
@@ -47,7 +47,7 @@ const statusConfig: Record<
   },
   stopped: {
     label: "Stopped",
-    color: "bg-slate-500/20 text-slate-500",
+    color: "bg-muted text-muted-foreground",
   },
 };
 

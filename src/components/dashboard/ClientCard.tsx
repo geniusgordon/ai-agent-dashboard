@@ -2,6 +2,7 @@
  * Client Card Component
  */
 
+import { FolderOpen, Plus, X } from "lucide-react";
 import type { AgentClient } from "../../lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -14,6 +15,12 @@ interface ClientCardProps {
   isCreatingSession?: boolean;
 }
 
+const agentAccentBorder: Record<string, string> = {
+  gemini: "border-t-blue-500",
+  "claude-code": "border-t-amber-500",
+  codex: "border-t-emerald-500",
+};
+
 export function ClientCard({
   client,
   sessionCount,
@@ -23,9 +30,10 @@ export function ClientCard({
 }: ClientCardProps) {
   return (
     <div
-      className="
-      p-4 rounded-lg border border-slate-700/50 bg-slate-800/50
-    "
+      className={`
+        p-5 rounded-xl border border-border bg-card/50 shadow-sm hover:shadow-md transition-shadow
+        border-t-2 ${agentAccentBorder[client.agentType] ?? "border-t-border"}
+      `}
     >
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
@@ -37,40 +45,28 @@ export function ClientCard({
           <button
             type="button"
             onClick={onStop}
-            className="
-              p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-500/10
-              transition-colors cursor-pointer
-            "
+            className="p-1.5 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
             title="Stop client"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="size-4" />
           </button>
         )}
       </div>
 
       {/* Client ID */}
-      <p className="font-mono text-xs text-slate-500 truncate mb-2">
+      <p className="font-mono text-xs text-muted-foreground truncate mb-2">
         {client.id}
       </p>
 
       {/* CWD */}
-      <p className="text-sm text-slate-400 truncate mb-3">📁 {client.cwd}</p>
+      <p className="text-sm text-muted-foreground truncate mb-3 flex items-center gap-1.5">
+        <FolderOpen className="size-3.5 shrink-0" />
+        {client.cwd}
+      </p>
 
       {/* Stats */}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-slate-500">
+        <span className="text-muted-foreground">
           {sessionCount} session{sessionCount !== 1 ? "s" : ""}
         </span>
 
@@ -84,9 +80,11 @@ export function ClientCard({
               bg-green-500/20 text-green-400 border border-green-500/30
               hover:bg-green-500/30 transition-colors cursor-pointer
               disabled:opacity-50 disabled:cursor-not-allowed
+              inline-flex items-center gap-1.5
             "
           >
-            {isCreatingSession ? "Creating..." : "+ New Session"}
+            <Plus className="size-3" />
+            {isCreatingSession ? "Creating..." : "New Session"}
           </button>
         )}
       </div>

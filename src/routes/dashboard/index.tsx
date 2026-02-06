@@ -4,6 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Monitor, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   AgentBadge,
@@ -129,17 +130,22 @@ function DashboardOverview() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-slate-400 mt-1">Manage your AI coding agents</p>
+          <p className="text-muted-foreground mt-1">
+            Manage your AI coding agents
+          </p>
         </div>
       </div>
 
       {/* Quick Spawn */}
-      <div className="p-6 rounded-xl border border-slate-700/50 bg-slate-800/30">
+      <div className="p-6 rounded-xl border border-border bg-card/30">
         <h2 className="text-lg font-semibold mb-4">Spawn Agent</h2>
 
         {/* CWD Input */}
         <div className="mb-4">
-          <label htmlFor="cwd" className="block text-sm text-slate-400 mb-2">
+          <label
+            htmlFor="cwd"
+            className="block text-sm text-muted-foreground mb-2"
+          >
             Working Directory
           </label>
           <input
@@ -149,9 +155,9 @@ function DashboardOverview() {
             onChange={(e) => setSelectedCwd(e.target.value)}
             className="
               w-full px-4 py-2 rounded-lg
-              bg-slate-900 border border-slate-700
-              text-slate-100 font-mono text-sm
-              focus:outline-none focus:ring-2 focus:ring-green-500/50
+              bg-background border border-input
+              text-foreground font-mono text-sm
+              focus:outline-none focus:ring-2 focus:ring-primary/50
             "
           />
         </div>
@@ -166,15 +172,15 @@ function DashboardOverview() {
                 onClick={() => handleSpawnClient(type)}
                 disabled={spawningType !== null}
                 className="
-                  px-4 py-2.5 rounded-lg border border-slate-600/50 bg-slate-700/50
-                  hover:bg-slate-700 hover:border-slate-500/50
+                  px-4 py-2.5 rounded-lg border border-border bg-secondary/50
+                  hover:bg-secondary hover:border-border
                   transition-all cursor-pointer
                   disabled:opacity-50 disabled:cursor-not-allowed
                   flex items-center gap-2
                 "
               >
                 <AgentBadge type={type} size="sm" />
-                <span className="text-sm text-slate-300">
+                <span className="text-sm text-muted-foreground">
                   {isSpawning ? "Starting..." : "Start"}
                 </span>
               </button>
@@ -210,32 +216,33 @@ function DashboardOverview() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">
             Active Clients
-            <span className="ml-2 text-sm text-slate-500 font-normal">
+            <span className="ml-2 text-sm text-muted-foreground font-normal">
               ({clients.length})
             </span>
             {clientsQuery.isLoading && (
-              <span className="ml-2 text-sm text-slate-500">Loading...</span>
+              <span className="ml-2 text-sm text-muted-foreground">
+                Loading...
+              </span>
             )}
           </h2>
           <button
             type="button"
             onClick={() => cleanupMutation.mutate()}
             disabled={cleanupMutation.isPending}
-            className="px-3 py-1.5 text-sm rounded-lg bg-slate-700/50 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 text-sm rounded-lg bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
           >
-            {cleanupMutation.isPending ? "Cleaning..." : "🧹 Cleanup"}
+            <Trash2 className="size-3.5" />
+            {cleanupMutation.isPending ? "Cleaning..." : "Cleanup"}
           </button>
         </div>
 
         {clients.length === 0 ? (
-          <div
-            className="
-            p-8 rounded-xl border border-dashed border-slate-700
-            text-center text-slate-500
-          "
-          >
-            <p>No active clients</p>
-            <p className="text-sm mt-1">Spawn an agent above to get started</p>
+          <div className="p-12 rounded-xl border border-dashed border-border text-center">
+            <Monitor className="size-12 text-muted-foreground/50 mx-auto mb-4" />
+            <p className="text-muted-foreground">No active clients</p>
+            <p className="text-sm text-muted-foreground/70 mt-1">
+              Spawn an agent above to get started
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -262,20 +269,16 @@ function DashboardOverview() {
       <div>
         <h2 className="text-lg font-semibold mb-4">
           Recent Sessions
-          <span className="ml-2 text-sm text-slate-500 font-normal">
+          <span className="ml-2 text-sm text-muted-foreground font-normal">
             ({sessions.length})
           </span>
         </h2>
 
         {sessions.length === 0 ? (
-          <div
-            className="
-            p-8 rounded-xl border border-dashed border-slate-700
-            text-center text-slate-500
-          "
-          >
-            <p>No sessions yet</p>
-            <p className="text-sm mt-1">
+          <div className="p-12 rounded-xl border border-dashed border-border text-center">
+            <Monitor className="size-12 text-muted-foreground/50 mx-auto mb-4" />
+            <p className="text-muted-foreground">No sessions yet</p>
+            <p className="text-sm text-muted-foreground/70 mt-1">
               Create a session from an active client
             </p>
           </div>

@@ -3,6 +3,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 import type { AgentSession } from "../../lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -10,6 +11,16 @@ import { StatusBadge } from "./StatusBadge";
 interface SessionCardProps {
   session: AgentSession;
 }
+
+const statusLeftBorder: Record<string, string> = {
+  running: "border-l-green-500",
+  "waiting-approval": "border-l-amber-500",
+  starting: "border-l-yellow-500",
+  completed: "border-l-blue-500",
+  error: "border-l-red-500",
+  killed: "border-l-muted-foreground",
+  idle: "border-l-muted-foreground",
+};
 
 export function SessionCard({ session }: SessionCardProps) {
   const timeAgo = getTimeAgo(session.createdAt);
@@ -20,11 +31,13 @@ export function SessionCard({ session }: SessionCardProps) {
       to="/dashboard/sessions/$sessionId"
       params={{ sessionId: session.id }}
       className={`
-        block p-4 rounded-lg border transition-all duration-200 cursor-pointer group
+        block p-5 rounded-xl border transition-all duration-200 cursor-pointer group
+        border-l-2 shadow-sm
+        ${statusLeftBorder[session.status] ?? "border-l-muted-foreground"}
         ${
           isInactive
-            ? "border-slate-700/30 bg-slate-900/30 opacity-60"
-            : "border-slate-700/50 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600/50"
+            ? "border-border/30 bg-card/30 opacity-60"
+            : "border-border bg-card/50 hover:bg-card hover:border-primary/20 hover:shadow-md"
         }
       `}
     >
@@ -35,50 +48,40 @@ export function SessionCard({ session }: SessionCardProps) {
             <AgentBadge type={session.agentType} size="sm" />
             <StatusBadge status={session.status} />
             {isInactive && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-500">
+              <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
                 History
               </span>
             )}
           </div>
 
           {/* Session Name or ID */}
-          <p className="font-mono text-sm text-slate-300 truncate mb-1">
+          <p className="font-mono text-sm text-foreground truncate mb-1">
             {session.name || session.id.slice(0, 8)}
           </p>
 
           {/* CWD */}
-          <p className="text-xs text-slate-500 truncate">{session.cwd}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {session.cwd}
+          </p>
         </div>
 
         {/* Time */}
         <div className="text-right shrink-0">
-          <p className="text-xs text-slate-500">{timeAgo}</p>
+          <p className="text-xs text-muted-foreground">{timeAgo}</p>
         </div>
       </div>
 
       {/* Hover indicator */}
       <div
         className="
-        mt-3 pt-3 border-t border-slate-700/50
+        mt-3 pt-3 border-t border-border
         flex items-center justify-end
         opacity-0 group-hover:opacity-100 transition-opacity
       "
       >
-        <span className="text-xs text-slate-400 flex items-center gap-1">
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
           View logs
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
+          <ChevronRight className="size-4" />
         </span>
       </div>
     </Link>

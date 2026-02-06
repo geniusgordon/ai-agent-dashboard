@@ -4,6 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
 import { useAgentEvents } from "../../hooks/useAgentEvents";
 import { useTRPC } from "../../integrations/trpc/react";
 import type { ApprovalRequest } from "../../lib/agents/types";
@@ -63,22 +64,32 @@ function ApprovalsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Approvals</h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Review and respond to permission requests
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {connected ? (
-            <span className="text-xs text-green-400">● Live</span>
+            <span className="text-xs text-green-400 flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+              </span>
+              Live
+            </span>
           ) : (
-            <span className="text-xs text-slate-500">○ Connecting...</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Loader2 className="size-3 animate-spin" />
+              Connecting...
+            </span>
           )}
           {approvalsQuery.isLoading && (
-            <span className="text-sm text-slate-500">Loading...</span>
+            <span className="text-sm text-muted-foreground">Loading...</span>
           )}
           {approvals.length > 0 && (
-            <div className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium animate-pulse">
+            <div className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium flex items-center gap-1.5">
+              <AlertTriangle className="size-3.5 animate-pulse" />
               {approvals.length} pending
             </div>
           )}
@@ -87,15 +98,10 @@ function ApprovalsPage() {
 
       {/* Approvals List */}
       {approvals.length === 0 ? (
-        <div
-          className="
-          p-12 rounded-xl border border-dashed border-slate-700
-          text-center text-slate-500
-        "
-        >
-          <div className="text-4xl mb-4">✓</div>
-          <p className="text-lg">No pending approvals</p>
-          <p className="text-sm mt-1">
+        <div className="p-12 rounded-xl border border-dashed border-border text-center">
+          <ShieldCheck className="size-12 text-muted-foreground/50 mx-auto mb-4" />
+          <p className="text-lg text-muted-foreground">No pending approvals</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">
             Permission requests from agents will appear here in real-time
           </p>
         </div>
@@ -140,19 +146,19 @@ function ApprovalCard({
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-amber-400 text-lg">⚠️</span>
+            <AlertTriangle className="size-5 text-amber-400" />
             <h3 className="font-semibold text-lg">{approval.toolCall.title}</h3>
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Kind:{" "}
-            <span className="text-slate-300">{approval.toolCall.kind}</span>
+            <span className="text-foreground">{approval.toolCall.kind}</span>
           </p>
         </div>
 
         <Link
           to="/dashboard/sessions/$sessionId"
           params={{ sessionId: approval.sessionId }}
-          className="text-sm text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
           View session →
         </Link>
@@ -182,7 +188,7 @@ function ApprovalCard({
                     ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
                     : isAllow
                       ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30"
-                      : "bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600/50"
+                      : "bg-secondary text-foreground hover:bg-secondary/80 border border-border"
                 }
               `}
             >
@@ -193,7 +199,7 @@ function ApprovalCard({
       </div>
 
       {/* Meta */}
-      <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center gap-4 text-xs text-slate-500">
+      <div className="mt-4 pt-4 border-t border-border flex items-center gap-4 text-xs text-muted-foreground">
         <span className="font-mono">{approval.id.slice(0, 20)}...</span>
         <span>•</span>
         <span>Session: {approval.sessionId.slice(0, 8)}...</span>

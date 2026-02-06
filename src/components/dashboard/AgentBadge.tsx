@@ -2,26 +2,28 @@
  * Agent Type Badge Component
  */
 
+import type { LucideIcon } from "lucide-react";
+import { Bot, Hexagon, Sparkles } from "lucide-react";
 import type { AgentType } from "../../lib/agents/types";
 
 const agentConfig: Record<
   AgentType,
-  { label: string; color: string; icon: string }
+  { label: string; color: string; icon: LucideIcon }
 > = {
   gemini: {
     label: "Gemini",
     color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    icon: "✦", // Will replace with SVG
+    icon: Sparkles,
   },
   "claude-code": {
     label: "Claude",
     color: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    icon: "◈",
+    icon: Bot,
   },
   codex: {
     label: "Codex",
     color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    icon: "⬡",
+    icon: Hexagon,
   },
 };
 
@@ -42,7 +44,7 @@ export function AgentBadge({ type, size = "md" }: AgentBadgeProps) {
         ${config.color} ${sizeClasses}
       `}
     >
-      <span className="text-xs">{config.icon}</span>
+      <config.icon className="size-3" />
       {config.label}
     </span>
   );
