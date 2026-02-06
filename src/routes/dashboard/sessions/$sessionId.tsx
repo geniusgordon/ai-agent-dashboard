@@ -36,6 +36,8 @@ function SessionDetailPage() {
 	const [events, setEvents] = useState<AgentEvent[]>([]);
 	const [pendingApproval, setPendingApproval] =
 		useState<ApprovalRequest | null>(null);
+	const [isEditingName, setIsEditingName] = useState(false);
+	const [editName, setEditName] = useState("");
 
 	// Query pending approvals for this session
 	const approvalsQuery = useQuery(trpc.approvals.list.queryOptions());
@@ -86,14 +88,20 @@ function SessionDetailPage() {
 				// Try to merge with last event if both are message/thinking chunks
 				if (prev.length > 0) {
 					const last = prev[prev.length - 1];
+					const lastPayload = last.payload as Record<string, unknown>;
+					const newPayload = event.payload as Record<string, unknown>;
+					
+					// Only merge if same type, same session, and same sender (user vs agent)
+					// User messages have isUser=true, agent messages have isUser undefined/false
+					const lastIsUser = lastPayload.isUser === true;
+					const newIsUser = newPayload.isUser === true;
 					const canMerge =
 						last.type === event.type &&
 						(event.type === "message" || event.type === "thinking") &&
-						last.sessionId === event.sessionId;
+						last.sessionId === event.sessionId &&
+						lastIsUser === newIsUser;
 
 					if (canMerge) {
-						const lastPayload = last.payload as Record<string, unknown>;
-						const newPayload = event.payload as Record<string, unknown>;
 						const lastContent = extractContent(lastPayload);
 						const newContent = extractContent(newPayload);
 
@@ -199,6 +207,21 @@ function SessionDetailPage() {
 		}),
 	);
 
+	// Rename session mutation
+	const renameSessionMutation = useMutation(
+		trpc.sessions.renameSession.mutationOptions({
+			onSuccess: () => {
+				setIsEditingName(false);
+				queryClient.invalidateQueries({
+					queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.sessions.listSessions.queryKey(),
+				});
+			},
+		}),
+	);
+
 	// Auto-scroll to bottom
 	useEffect(() => {
 		if (autoScroll && logsEndRef.current) {
@@ -288,9 +311,49 @@ function SessionDetailPage() {
 								<span className="text-xs text-slate-500">○ Connecting...</span>
 							)}
 						</div>
-						<p className="font-mono text-sm text-slate-400 mt-1">
-							{session.id}
-						</p>
+						{/* Editable Session Name */}
+						{isEditingName ? (
+							<form
+								onSubmit={(e) => {
+									e.preventDefault();
+									renameSessionMutation.mutate({ sessionId, name: editName });
+								}}
+								className="flex items-center gap-2 mt-1"
+							>
+								<input
+									type="text"
+									value={editName}
+									onChange={(e) => setEditName(e.target.value)}
+									className="px-2 py-1 text-sm bg-slate-700 border border-slate-600 rounded text-white"
+									autoFocus
+								/>
+								<button
+									type="submit"
+									className="text-xs text-green-400 hover:text-green-300"
+								>
+									Save
+								</button>
+								<button
+									type="button"
+									onClick={() => setIsEditingName(false)}
+									className="text-xs text-slate-400 hover:text-slate-300"
+								>
+									Cancel
+								</button>
+							</form>
+						) : (
+							<p
+								className="font-mono text-sm text-slate-400 mt-1 cursor-pointer hover:text-slate-300"
+								onClick={() => {
+									setEditName(session.name || "");
+									setIsEditingName(true);
+								}}
+								title="Click to rename"
+							>
+								{session.name || session.id.slice(0, 8)}
+								<span className="text-slate-600 ml-2">✏️</span>
+							</p>
+						)}
 					</div>
 				</div>
 
@@ -460,6 +523,15 @@ function SessionDetailPage() {
 	);
 }
 
+function formatTime(date: Date): string {
+	return date.toLocaleTimeString("en-US", {
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hour12: false,
+	});
+}
+
 function LogEntry({ event }: { event: AgentEvent }) {
 	const config: Record<string, { prefix: string; color: string }> = {
 		thinking: { prefix: "💭", color: "text-purple-400" },
@@ -497,8 +569,11 @@ function LogEntry({ event }: { event: AgentEvent }) {
 
 	return (
 		<div className={`flex gap-2 ${isUser ? "text-cyan-400" : color}`}>
+			<span className="shrink-0 text-slate-600 text-xs font-mono w-16">
+				{formatTime(event.timestamp)}
+			</span>
 			<span className="shrink-0">{isUser ? "👤" : prefix}</span>
-			<span className="whitespace-pre-wrap break-words">{content}</span>
+			<span className="whitespace-pre-wrap break-words flex-1">{content}</span>
 		</div>
 	);
 }

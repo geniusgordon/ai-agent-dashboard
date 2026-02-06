@@ -34,6 +34,7 @@ export interface AgentSession {
 	agentType: AgentType;
 	status: SessionStatus;
 	cwd: string;
+	name?: string;
 	createdAt: Date;
 	updatedAt: Date;
 	error?: string;

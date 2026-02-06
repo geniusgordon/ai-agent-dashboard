@@ -99,12 +99,17 @@ export class ACPClient extends EventEmitter {
 	private sessions: Map<string, Session> = new Map();
 	private pendingPermissions: Map<string, PendingPermission> = new Map();
 	private agentCapabilities: acp.InitializeResponse | null = null;
+	private cwd: string;
 
 	constructor(
 		private config: AgentConfig,
-		private cwd: string = process.cwd(),
+		cwd: string = process.cwd(),
 	) {
 		super();
+		// Expand ~ to home directory
+		this.cwd = cwd.startsWith("~")
+			? cwd.replace("~", process.env.HOME ?? "")
+			: cwd;
 	}
 
 	/**
@@ -117,10 +122,19 @@ export class ACPClient extends EventEmitter {
 		const finalCommand = this.config.command ?? command;
 		const finalArgs = [...args, ...(this.config.args ?? [])];
 
+		// Ensure PATH includes common locations
+		const homedir = process.env.HOME ?? "";
+		const extraPaths = [
+			`${homedir}/.local/bin`,
+			`${homedir}/.npm-global/bin`,
+			"/usr/local/bin",
+		].join(":");
+		const enhancedPath = `${extraPaths}:${process.env.PATH ?? ""}`;
+
 		this.process = spawn(finalCommand, finalArgs, {
 			stdio: ["pipe", "pipe", "pipe"],
 			cwd: this.cwd,
-			env: { ...process.env, ...this.config.env },
+			env: { ...process.env, PATH: enhancedPath, ...this.config.env },
 		});
 
 		// Handle stderr (for debugging)
@@ -179,7 +193,14 @@ export class ACPClient extends EventEmitter {
 			throw new Error("Client not started. Call start() first.");
 		}
 
-		const result = await this.connection.newSession({ cwd, mcpServers });
+		// Expand ~ to home directory
+		const expandedCwd = cwd.startsWith("~")
+			? cwd.replace("~", process.env.HOME ?? "")
+			: cwd;
+
+		console.log(`[ACPClient] Creating session with cwd: ${expandedCwd}`);
+		const result = await this.connection.newSession({ cwd: expandedCwd, mcpServers });
+		console.log(`[ACPClient] Session created: ${result.sessionId}`);
 
 		const session: Session = {
 			id: result.sessionId,

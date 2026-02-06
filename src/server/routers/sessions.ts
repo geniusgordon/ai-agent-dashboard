@@ -77,7 +77,15 @@ export const sessionsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			const manager = getAgentManager();
-			return manager.createSession(input);
+			try {
+				console.log("[createSession] Starting with input:", input);
+				const session = await manager.createSession(input);
+				console.log("[createSession] Success:", session.id);
+				return session;
+			} catch (error) {
+				console.error("[createSession] Error:", error);
+				throw error;
+			}
 		}),
 
 	/**
@@ -149,6 +157,17 @@ export const sessionsRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const manager = getAgentManager();
 			manager.killClient(input.clientId);
+			return { success: true };
+		}),
+
+	/**
+	 * Rename a session
+	 */
+	renameSession: publicProcedure
+		.input(z.object({ sessionId: z.string(), name: z.string() }))
+		.mutation(async ({ input }) => {
+			const manager = getAgentManager();
+			manager.renameSession(input.sessionId, input.name);
 			return { success: true };
 		}),
 });

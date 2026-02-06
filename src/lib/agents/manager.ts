@@ -53,6 +53,7 @@ interface ManagedSession {
 	agentType: AgentType;
 	status: SessionStatus;
 	cwd: string;
+	name?: string;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -167,7 +168,12 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 			throw new Error(`Client not ready: ${managed.status}`);
 		}
 
-		const cwd = options.cwd ?? managed.cwd;
+		// Expand ~ to home directory
+		let cwd = options.cwd ?? managed.cwd;
+		if (cwd.startsWith("~")) {
+			cwd = cwd.replace("~", process.env.HOME ?? "");
+		}
+
 		const acpSession = await managed.acpClient.createSession(cwd);
 
 		const session: ManagedSession = {
@@ -203,6 +209,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 				clientId: stored.clientId,
 				agentType: stored.agentType,
 				cwd: stored.cwd ?? "unknown",
+				name: stored.name,
 				status: stored.status,
 				createdAt: new Date(stored.createdAt),
 				updatedAt: new Date(stored.updatedAt),
@@ -228,6 +235,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 					clientId: s.clientId,
 					agentType: s.agentType,
 					cwd: s.cwd ?? "unknown",
+					name: s.name,
 					status: s.status,
 					createdAt: new Date(s.createdAt),
 					updatedAt: new Date(s.updatedAt),
@@ -238,6 +246,23 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 			? allSessions.filter((s) => s.clientId === clientId)
 			: allSessions;
 		return filtered;
+	}
+
+	// -------------------------------------------------------------------------
+	// Session Management
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Rename a session
+	 */
+	renameSession(sessionId: string, name: string): void {
+		const session = this.sessions.get(sessionId);
+		if (session) {
+			session.name = name;
+			session.updatedAt = new Date();
+		}
+		// Always update on disk
+		store.updateSessionName(sessionId, name);
 	}
 
 	// -------------------------------------------------------------------------
@@ -647,6 +672,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 			agentType: managed.agentType,
 			status: managed.status,
 			cwd: managed.cwd,
+			name: managed.name,
 			createdAt: managed.createdAt,
 			updatedAt: managed.updatedAt,
 		};

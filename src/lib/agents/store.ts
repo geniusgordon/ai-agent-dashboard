@@ -37,6 +37,7 @@ interface StoredSession {
 	clientId: string;
 	agentType: AgentType;
 	cwd?: string;
+	name?: string;
 	status: SessionStatus;
 	createdAt: string;
 	updatedAt: string;
@@ -71,6 +72,7 @@ export function saveSession(
 		clientId: string;
 		agentType: AgentType;
 		cwd?: string;
+		name?: string;
 		status: SessionStatus;
 		createdAt: Date;
 		updatedAt: Date;
@@ -84,6 +86,7 @@ export function saveSession(
 		clientId: session.clientId,
 		agentType: session.agentType,
 		cwd: session.cwd,
+		name: session.name,
 		status: session.status,
 		createdAt: session.createdAt.toISOString(),
 		updatedAt: session.updatedAt.toISOString(),
@@ -175,6 +178,18 @@ export function appendSessionEvent(sessionId: string, event: AgentEvent): void {
 			timestamp: event.timestamp.toISOString(),
 			payload: event.payload,
 		});
+		stored.updatedAt = new Date().toISOString();
+		writeFileSync(getSessionPath(sessionId), JSON.stringify(stored, null, 2));
+	}
+}
+
+/**
+ * Update session name on disk
+ */
+export function updateSessionName(sessionId: string, name: string): void {
+	const stored = loadSession(sessionId);
+	if (stored) {
+		stored.name = name;
 		stored.updatedAt = new Date().toISOString();
 		writeFileSync(getSessionPath(sessionId), JSON.stringify(stored, null, 2));
 	}

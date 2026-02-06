@@ -17,6 +17,7 @@ function SessionsPage() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [filter, setFilter] = useState<"all" | "running" | "completed">("all");
+	const [search, setSearch] = useState("");
 
 	const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
 	const sessions = sessionsQuery.data ?? [];
@@ -38,13 +39,26 @@ function SessionsPage() {
 	});
 
 	const filteredSessions = sessions.filter((session) => {
-		if (filter === "all") return true;
-		if (filter === "running")
-			return ["running", "waiting-approval", "starting"].includes(
-				session.status,
-			);
-		if (filter === "completed")
-			return ["completed", "error", "killed"].includes(session.status);
+		// Status filter
+		if (filter === "running" && !["running", "waiting-approval", "starting"].includes(session.status)) {
+			return false;
+		}
+		if (filter === "completed" && !["completed", "error", "killed"].includes(session.status)) {
+			return false;
+		}
+		
+		// Search filter
+		if (search) {
+			const searchLower = search.toLowerCase();
+			const matchesId = session.id.toLowerCase().includes(searchLower);
+			const matchesName = session.name?.toLowerCase().includes(searchLower);
+			const matchesCwd = session.cwd.toLowerCase().includes(searchLower);
+			const matchesAgent = session.agentType.toLowerCase().includes(searchLower);
+			if (!matchesId && !matchesName && !matchesCwd && !matchesAgent) {
+				return false;
+			}
+		}
+		
 		return true;
 	});
 
@@ -64,8 +78,24 @@ function SessionsPage() {
 				)}
 			</div>
 
-			{/* Filters */}
-			<div className="flex items-center gap-2">
+			{/* Search & Filters */}
+			<div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+				{/* Search */}
+				<input
+					type="text"
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
+					placeholder="Search sessions..."
+					className="
+						px-4 py-2 rounded-lg w-full sm:w-64
+						bg-slate-800 border border-slate-700
+						text-slate-100 placeholder-slate-500
+						focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50
+					"
+				/>
+				
+				{/* Status Filters */}
+				<div className="flex items-center gap-2">
 				{(["all", "running", "completed"] as const).map((f) => (
 					<button
 						key={f}
@@ -88,6 +118,7 @@ function SessionsPage() {
 							` (${sessions.filter((s) => ["completed", "error", "killed"].includes(s.status)).length})`}
 					</button>
 				))}
+				</div>
 			</div>
 
 			{/* Sessions Grid */}

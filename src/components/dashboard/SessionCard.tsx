@@ -33,9 +33,9 @@ export function SessionCard({ session }: SessionCardProps) {
 						<StatusBadge status={session.status} />
 					</div>
 
-					{/* Session ID */}
+					{/* Session Name or ID */}
 					<p className="font-mono text-sm text-slate-300 truncate mb-1">
-						{session.id}
+						{session.name || session.id.slice(0, 8)}
 					</p>
 
 					{/* CWD */}
