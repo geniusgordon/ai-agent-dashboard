@@ -1,5 +1,6 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
+import { approvalsRouter, sessionsRouter } from "@/server/routers";
 import { createTRPCRouter, publicProcedure } from "./init";
 
 const todos = [
@@ -21,5 +22,7 @@ const todosRouter = {
 
 export const trpcRouter = createTRPCRouter({
 	todos: todosRouter,
+	sessions: sessionsRouter,
+	approvals: approvalsRouter,
 });
 export type TRPCRouter = typeof trpcRouter;
