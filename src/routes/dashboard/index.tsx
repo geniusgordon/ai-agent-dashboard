@@ -79,6 +79,22 @@ function DashboardOverview() {
 		}),
 	);
 
+	const cleanupMutation = useMutation(
+		trpc.sessions.cleanupStaleSessions.mutationOptions({
+			onSuccess: (data) => {
+				queryClient.invalidateQueries({
+					queryKey: trpc.sessions.listClients.queryKey(),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.sessions.listSessions.queryKey(),
+				});
+				if (data.cleaned > 0) {
+					alert(`Cleaned up ${data.cleaned} stale session(s)`);
+				}
+			},
+		}),
+	);
+
 	const createSessionMutation = useMutation(
 		trpc.sessions.createSession.mutationOptions({
 			onSuccess: () => {
@@ -191,15 +207,25 @@ function DashboardOverview() {
 
 			{/* Clients Grid */}
 			<div>
-				<h2 className="text-lg font-semibold mb-4">
-					Active Clients
-					<span className="ml-2 text-sm text-slate-500 font-normal">
-						({clients.length})
-					</span>
-					{clientsQuery.isLoading && (
-						<span className="ml-2 text-sm text-slate-500">Loading...</span>
-					)}
-				</h2>
+				<div className="flex items-center justify-between mb-4">
+					<h2 className="text-lg font-semibold">
+						Active Clients
+						<span className="ml-2 text-sm text-slate-500 font-normal">
+							({clients.length})
+						</span>
+						{clientsQuery.isLoading && (
+							<span className="ml-2 text-sm text-slate-500">Loading...</span>
+						)}
+					</h2>
+					<button
+						type="button"
+						onClick={() => cleanupMutation.mutate()}
+						disabled={cleanupMutation.isPending}
+						className="px-3 py-1.5 text-sm rounded-lg bg-slate-700/50 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer disabled:opacity-50"
+					>
+						{cleanupMutation.isPending ? "Cleaning..." : "🧹 Cleanup"}
+					</button>
+				</div>
 
 				{clients.length === 0 ? (
 					<div

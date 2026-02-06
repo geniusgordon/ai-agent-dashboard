@@ -154,6 +154,51 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 		return Array.from(this.clients.values()).map((m) => this.toAgentClient(m));
 	}
 
+	/**
+	 * Check if a client's ACP process is still running
+	 */
+	isClientAlive(clientId: string): boolean {
+		const managed = this.clients.get(clientId);
+		if (!managed) return false;
+		return managed.acpClient.isRunning();
+	}
+
+	/**
+	 * Clean up stale sessions that have no active client
+	 * Returns the number of sessions cleaned
+	 */
+	cleanupStaleSessions(): number {
+		const activeClientIds = new Set(
+			Array.from(this.clients.values())
+				.filter((c) => c.acpClient.isRunning())
+				.map((c) => c.id),
+		);
+
+		let cleaned = 0;
+
+		// Clean up in-memory sessions
+		for (const [sessionId, session] of this.sessions.entries()) {
+			if (!activeClientIds.has(session.clientId)) {
+				session.status = "error";
+				this.sessions.delete(sessionId);
+				this.sessionToClient.delete(sessionId);
+				this.sessionEvents.delete(sessionId);
+				// Update on disk
+				store.updateSessionStatus(sessionId, "error");
+				cleaned++;
+			}
+		}
+
+		// Clean up dead clients
+		for (const [clientId, managed] of this.clients.entries()) {
+			if (!managed.acpClient.isRunning()) {
+				this.clients.delete(clientId);
+			}
+		}
+
+		return cleaned;
+	}
+
 	// -------------------------------------------------------------------------
 	// Session Lifecycle
 	// -------------------------------------------------------------------------

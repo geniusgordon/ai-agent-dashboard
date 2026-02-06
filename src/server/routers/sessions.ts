@@ -170,4 +170,23 @@ export const sessionsRouter = createTRPCRouter({
 			manager.renameSession(input.sessionId, input.name);
 			return { success: true };
 		}),
+
+	/**
+	 * Check if a client is still alive
+	 */
+	isClientAlive: publicProcedure
+		.input(z.object({ clientId: z.string() }))
+		.query(async ({ input }) => {
+			const manager = getAgentManager();
+			return { alive: manager.isClientAlive(input.clientId) };
+		}),
+
+	/**
+	 * Clean up stale sessions with dead clients
+	 */
+	cleanupStaleSessions: publicProcedure.mutation(async () => {
+		const manager = getAgentManager();
+		const cleaned = manager.cleanupStaleSessions();
+		return { cleaned };
+	}),
 });
