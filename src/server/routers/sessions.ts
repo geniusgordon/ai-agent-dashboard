@@ -116,4 +116,14 @@ export const sessionsRouter = createTRPCRouter({
       await manager.sendMessage(input.sessionId, input.message);
       return { success: true };
     }),
+
+  /**
+   * Get event history for a session
+   */
+  getSessionEvents: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(async ({ input }) => {
+      const manager = getAgentManager();
+      return manager.getSessionEvents(input.sessionId);
+    }),
 });

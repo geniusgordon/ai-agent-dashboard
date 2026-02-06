@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import type { TRPCRouter } from "@/integrations/trpc/router";
+import { Provider } from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
 import "../styles/design-tokens.css";
 
@@ -26,17 +27,21 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       { rel: "stylesheet", href: appCss },
     ],
   }),
-  component: RootDocument,
+  component: RootComponent,
 });
 
-function RootDocument() {
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+  
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body className="bg-slate-900 text-slate-100">
-        <Outlet />
+        <Provider queryClient={queryClient}>
+          <Outlet />
+        </Provider>
         <Scripts />
       </body>
     </html>

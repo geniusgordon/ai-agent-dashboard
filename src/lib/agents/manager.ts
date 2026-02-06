@@ -76,6 +76,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   private sessions: Map<string, ManagedSession> = new Map();
   private approvals: Map<string, ManagedApproval> = new Map();
   private sessionToClient: Map<string, string> = new Map();
+  private sessionEvents: Map<string, AgentEvent[]> = new Map();
 
   // -------------------------------------------------------------------------
   // Client Lifecycle
@@ -289,6 +290,13 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   // Events
   // -------------------------------------------------------------------------
 
+  /**
+   * Get event history for a session
+   */
+  getSessionEvents(sessionId: string): AgentEvent[] {
+    return this.sessionEvents.get(sessionId) ?? [];
+  }
+
   onEvent(handler: EventHandler): UnsubscribeFn {
     this.on("event", handler);
     return () => this.off("event", handler);
@@ -449,6 +457,12 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   }
 
   private emitEvent(event: AgentEvent): void {
+    // Store event in history
+    const events = this.sessionEvents.get(event.sessionId) ?? [];
+    events.push(event);
+    this.sessionEvents.set(event.sessionId, events);
+    
+    // Emit to listeners
     this.emit("event", event);
   }
 

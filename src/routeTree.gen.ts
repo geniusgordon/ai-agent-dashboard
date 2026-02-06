@@ -13,6 +13,7 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardApprovalsRouteImport } from './routes/dashboard/approvals'
+import { Route as ApiEventsRouteImport } from './routes/api.events'
 import { Route as DashboardSessionsIndexRouteImport } from './routes/dashboard/sessions/index'
 import { Route as DashboardSessionsSessionIdRouteImport } from './routes/dashboard/sessions/$sessionId'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
@@ -37,6 +38,11 @@ const DashboardApprovalsRoute = DashboardApprovalsRouteImport.update({
   path: '/approvals',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const ApiEventsRoute = ApiEventsRouteImport.update({
+  id: '/api/events',
+  path: '/api/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardSessionsIndexRoute = DashboardSessionsIndexRouteImport.update({
   id: '/sessions/',
   path: '/sessions/',
@@ -57,6 +63,7 @@ const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/api/events': typeof ApiEventsRoute
   '/dashboard/approvals': typeof DashboardApprovalsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/events': typeof ApiEventsRoute
   '/dashboard/approvals': typeof DashboardApprovalsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/api/events': typeof ApiEventsRoute
   '/dashboard/approvals': typeof DashboardApprovalsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/api/events'
     | '/dashboard/approvals'
     | '/dashboard/'
     | '/api/trpc/$'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api/events'
     | '/dashboard/approvals'
     | '/dashboard'
     | '/api/trpc/$'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/api/events'
     | '/dashboard/approvals'
     | '/dashboard/'
     | '/api/trpc/$'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  ApiEventsRoute: typeof ApiEventsRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/approvals'
       preLoaderRoute: typeof DashboardApprovalsRouteImport
       parentRoute: typeof DashboardRouteRoute
+    }
+    '/api/events': {
+      id: '/api/events'
+      path: '/api/events'
+      fullPath: '/api/events'
+      preLoaderRoute: typeof ApiEventsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/dashboard/sessions/': {
       id: '/dashboard/sessions/'
@@ -191,6 +211,7 @@ const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  ApiEventsRoute: ApiEventsRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport

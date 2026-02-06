@@ -3,8 +3,8 @@
  */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { AgentBadge } from "../../components/dashboard";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "../../integrations/trpc/react";
 import type { ApprovalRequest } from "../../lib/agents/types";
 
 export const Route = createFileRoute("/dashboard/approvals")({
@@ -12,17 +12,34 @@ export const Route = createFileRoute("/dashboard/approvals")({
 });
 
 function ApprovalsPage() {
-  // TODO: Replace with tRPC query
-  const [approvals] = useState<ApprovalRequest[]>([]);
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const approvalsQuery = useQuery(trpc.approvals.list.queryOptions());
+  const approvals = approvalsQuery.data ?? [];
+
+  const approveMutation = useMutation(
+    trpc.approvals.approve.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.approvals.list.queryKey() });
+      },
+    })
+  );
+
+  const denyMutation = useMutation(
+    trpc.approvals.deny.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.approvals.list.queryKey() });
+      },
+    })
+  );
 
   const handleApprove = (approvalId: string, optionId: string) => {
-    // TODO: Call tRPC mutation
-    console.log("Approve:", approvalId, optionId);
+    approveMutation.mutate({ approvalId, optionId });
   };
 
   const handleDeny = (approvalId: string) => {
-    // TODO: Call tRPC mutation
-    console.log("Deny:", approvalId);
+    denyMutation.mutate({ approvalId });
   };
 
   return (
@@ -36,11 +53,16 @@ function ApprovalsPage() {
           </p>
         </div>
 
-        {approvals.length > 0 && (
-          <div className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium">
-            {approvals.length} pending
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {approvalsQuery.isLoading && (
+            <span className="text-sm text-slate-500">Loading...</span>
+          )}
+          {approvals.length > 0 && (
+            <div className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium animate-pulse">
+              {approvals.length} pending
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Approvals List */}
@@ -49,7 +71,7 @@ function ApprovalsPage() {
           p-12 rounded-xl border border-dashed border-slate-700
           text-center text-slate-500
         ">
-          <div className="text-4xl mb-4">◈</div>
+          <div className="text-4xl mb-4">✓</div>
           <p className="text-lg">No pending approvals</p>
           <p className="text-sm mt-1">
             Permission requests from agents will appear here
@@ -63,6 +85,7 @@ function ApprovalsPage() {
               approval={approval}
               onApprove={handleApprove}
               onDeny={handleDeny}
+              isLoading={approveMutation.isPending || denyMutation.isPending}
             />
           ))}
         </div>
@@ -75,13 +98,13 @@ interface ApprovalCardProps {
   approval: ApprovalRequest;
   onApprove: (approvalId: string, optionId: string) => void;
   onDeny: (approvalId: string) => void;
+  isLoading?: boolean;
 }
 
-function ApprovalCard({ approval, onApprove, onDeny }: ApprovalCardProps) {
+function ApprovalCard({ approval, onApprove, onDeny, isLoading }: ApprovalCardProps) {
   return (
     <div className="
       p-5 rounded-xl border border-amber-500/30 bg-amber-500/5
-      animate-pulse-slow
     ">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -119,8 +142,10 @@ function ApprovalCard({ approval, onApprove, onDeny }: ApprovalCardProps) {
                   ? onDeny(approval.id)
                   : onApprove(approval.id, option.optionId)
               }
+              disabled={isLoading}
               className={`
                 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
+                disabled:opacity-50 disabled:cursor-not-allowed
                 ${isDeny
                   ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
                   : isAllow
@@ -137,7 +162,7 @@ function ApprovalCard({ approval, onApprove, onDeny }: ApprovalCardProps) {
 
       {/* Meta */}
       <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center gap-4 text-xs text-slate-500">
-        <span className="font-mono">{approval.id}</span>
+        <span className="font-mono">{approval.id.slice(0, 20)}...</span>
         <span>•</span>
         <span>Session: {approval.sessionId.slice(0, 8)}...</span>
       </div>

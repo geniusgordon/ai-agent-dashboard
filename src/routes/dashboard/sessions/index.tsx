@@ -4,17 +4,20 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "../../../integrations/trpc/react";
 import { SessionCard } from "../../../components/dashboard";
-import type { AgentSession } from "../../../lib/agents/types";
 
 export const Route = createFileRoute("/dashboard/sessions/")({
   component: SessionsPage,
 });
 
 function SessionsPage() {
-  // TODO: Replace with tRPC query
-  const [sessions] = useState<AgentSession[]>([]);
+  const trpc = useTRPC();
   const [filter, setFilter] = useState<"all" | "running" | "completed">("all");
+
+  const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
+  const sessions = sessionsQuery.data ?? [];
 
   const filteredSessions = sessions.filter((session) => {
     if (filter === "all") return true;
@@ -33,6 +36,10 @@ function SessionsPage() {
             View and manage all agent sessions
           </p>
         </div>
+        
+        {sessionsQuery.isLoading && (
+          <span className="text-sm text-slate-500">Loading...</span>
+        )}
       </div>
 
       {/* Filters */}
@@ -51,6 +58,9 @@ function SessionsPage() {
             `}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === "all" && ` (${sessions.length})`}
+            {f === "running" && ` (${sessions.filter(s => ["running", "waiting-approval", "starting"].includes(s.status)).length})`}
+            {f === "completed" && ` (${sessions.filter(s => ["completed", "error", "killed"].includes(s.status)).length})`}
           </button>
         ))}
       </div>

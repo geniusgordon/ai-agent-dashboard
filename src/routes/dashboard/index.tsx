@@ -4,24 +4,72 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTRPC } from "../../integrations/trpc/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClientCard, SessionCard, AgentBadge } from "../../components/dashboard";
-import type { AgentType, AgentClient, AgentSession } from "../../lib/agents/types";
+import type { AgentType } from "../../lib/agents/types";
 
 export const Route = createFileRoute("/dashboard/")({
   component: DashboardOverview,
 });
 
 function DashboardOverview() {
-  // TODO: Replace with tRPC queries
-  const [clients] = useState<AgentClient[]>([]);
-  const [sessions] = useState<AgentSession[]>([]);
-  const [isSpawning, setIsSpawning] = useState(false);
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const [selectedCwd, setSelectedCwd] = useState(process.cwd?.() ?? "/tmp");
+  const [spawningType, setSpawningType] = useState<AgentType | null>(null);
 
-  const handleSpawnClient = async (agentType: AgentType) => {
-    setIsSpawning(true);
-    // TODO: Call tRPC mutation
-    console.log("Spawning client:", agentType);
-    setTimeout(() => setIsSpawning(false), 1000);
+  // Queries
+  const clientsQuery = useQuery(trpc.sessions.listClients.queryOptions());
+  const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
+
+  const clients = clientsQuery.data ?? [];
+  const sessions = sessionsQuery.data ?? [];
+
+  // Mutations
+  const spawnClientMutation = useMutation(
+    trpc.sessions.spawnClient.mutationOptions({
+      onSuccess: () => {
+        setSpawningType(null);
+        queryClient.invalidateQueries({ queryKey: trpc.sessions.listClients.queryKey() });
+      },
+      onError: () => {
+        setSpawningType(null);
+      },
+    })
+  );
+
+  const stopClientMutation = useMutation(
+    trpc.sessions.stopClient.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.sessions.listClients.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.sessions.listSessions.queryKey() });
+      },
+    })
+  );
+
+  const createSessionMutation = useMutation(
+    trpc.sessions.createSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.sessions.listSessions.queryKey() });
+      },
+    })
+  );
+
+  const handleSpawnClient = (agentType: AgentType) => {
+    setSpawningType(agentType);
+    spawnClientMutation.mutate({
+      agentType,
+      cwd: selectedCwd,
+    });
+  };
+
+  const handleStopClient = (clientId: string) => {
+    stopClientMutation.mutate({ clientId });
+  };
+
+  const handleCreateSession = (clientId: string) => {
+    createSessionMutation.mutate({ clientId });
   };
 
   return (
@@ -39,26 +87,57 @@ function DashboardOverview() {
       {/* Quick Spawn */}
       <div className="p-6 rounded-xl border border-slate-700/50 bg-slate-800/30">
         <h2 className="text-lg font-semibold mb-4">Spawn Agent</h2>
-        <div className="flex flex-wrap gap-3">
-          {(["gemini", "claude-code", "codex"] as AgentType[]).map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => handleSpawnClient(type)}
-              disabled={isSpawning}
-              className="
-                px-4 py-2.5 rounded-lg border border-slate-600/50 bg-slate-700/50
-                hover:bg-slate-700 hover:border-slate-500/50
-                transition-all cursor-pointer
-                disabled:opacity-50 disabled:cursor-not-allowed
-                flex items-center gap-2
-              "
-            >
-              <AgentBadge type={type} size="sm" />
-              <span className="text-sm text-slate-300">Start</span>
-            </button>
-          ))}
+        
+        {/* CWD Input */}
+        <div className="mb-4">
+          <label htmlFor="cwd" className="block text-sm text-slate-400 mb-2">
+            Working Directory
+          </label>
+          <input
+            id="cwd"
+            type="text"
+            value={selectedCwd}
+            onChange={(e) => setSelectedCwd(e.target.value)}
+            className="
+              w-full px-4 py-2 rounded-lg
+              bg-slate-900 border border-slate-700
+              text-slate-100 font-mono text-sm
+              focus:outline-none focus:ring-2 focus:ring-green-500/50
+            "
+          />
         </div>
+
+        <div className="flex flex-wrap gap-3">
+          {(["gemini", "claude-code", "codex"] as AgentType[]).map((type) => {
+            const isSpawning = spawningType === type;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => handleSpawnClient(type)}
+                disabled={spawningType !== null}
+                className="
+                  px-4 py-2.5 rounded-lg border border-slate-600/50 bg-slate-700/50
+                  hover:bg-slate-700 hover:border-slate-500/50
+                  transition-all cursor-pointer
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  flex items-center gap-2
+                "
+              >
+                <AgentBadge type={type} size="sm" />
+                <span className="text-sm text-slate-300">
+                  {isSpawning ? "Starting..." : "Start"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {spawnClientMutation.isError && (
+          <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            Error: {spawnClientMutation.error?.message}
+          </div>
+        )}
       </div>
 
       {/* Clients Grid */}
@@ -68,6 +147,9 @@ function DashboardOverview() {
           <span className="ml-2 text-sm text-slate-500 font-normal">
             ({clients.length})
           </span>
+          {clientsQuery.isLoading && (
+            <span className="ml-2 text-sm text-slate-500">Loading...</span>
+          )}
         </h2>
 
         {clients.length === 0 ? (
@@ -85,8 +167,8 @@ function DashboardOverview() {
                 key={client.id}
                 client={client}
                 sessionCount={sessions.filter((s) => s.clientId === client.id).length}
-                onCreateSession={() => console.log("Create session for", client.id)}
-                onStop={() => console.log("Stop client", client.id)}
+                onCreateSession={() => handleCreateSession(client.id)}
+                onStop={() => handleStopClient(client.id)}
               />
             ))}
           </div>
