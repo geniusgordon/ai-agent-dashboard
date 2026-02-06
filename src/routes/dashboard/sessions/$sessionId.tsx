@@ -127,10 +127,16 @@ function SessionDetailPage() {
   // Approval mutations
   const approveMutation = useMutation(
     trpc.approvals.approve.mutationOptions({
-      onSuccess: () => {
+      onMutate: () => {
+        // Immediately hide the banner
         setPendingApproval(null);
+      },
+      onSuccess: () => {
         queryClient.invalidateQueries({ 
           queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: trpc.approvals.list.queryKey() 
         });
       },
     })
@@ -138,10 +144,16 @@ function SessionDetailPage() {
 
   const denyMutation = useMutation(
     trpc.approvals.deny.mutationOptions({
-      onSuccess: () => {
+      onMutate: () => {
+        // Immediately hide the banner
         setPendingApproval(null);
+      },
+      onSuccess: () => {
         queryClient.invalidateQueries({ 
           queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: trpc.approvals.list.queryKey() 
         });
       },
     })

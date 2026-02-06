@@ -11,6 +11,7 @@ import {
   type AgentType as ACPAgentType,
   type PendingPermission,
 } from "../acp/index.js";
+import * as store from "./store.js";
 import type * as acp from "@agentclientprotocol/sdk";
 import type {
   AgentType,
@@ -182,20 +183,61 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     this.sessions.set(session.id, session);
     this.sessionToClient.set(session.id, options.clientId);
 
+    // Persist to disk
+    store.saveSession(session, []);
+
     return this.toAgentSession(session);
   }
 
   getSession(sessionId: string): AgentSession | undefined {
     const managed = this.sessions.get(sessionId);
-    return managed ? this.toAgentSession(managed) : undefined;
+    if (managed) {
+      return this.toAgentSession(managed);
+    }
+    
+    // Try loading from disk
+    const stored = store.loadSession(sessionId);
+    if (stored) {
+      return {
+        id: stored.id,
+        clientId: stored.clientId,
+        agentType: stored.agentType,
+        cwd: stored.cwd ?? "unknown",
+        status: stored.status,
+        createdAt: new Date(stored.createdAt),
+        updatedAt: new Date(stored.updatedAt),
+      };
+    }
+    
+    return undefined;
   }
 
   listSessions(clientId?: string): AgentSession[] {
-    const sessions = Array.from(this.sessions.values());
+    // Combine in-memory and stored sessions
+    const memSessions = Array.from(this.sessions.values());
+    const storedSessions = store.loadAllSessions();
+    
+    // Merge: prefer in-memory sessions
+    const memIds = new Set(memSessions.map(s => s.id));
+    const allSessions: AgentSession[] = [
+      ...memSessions.map(s => this.toAgentSession(s)),
+      ...storedSessions
+        .filter(s => !memIds.has(s.id))
+        .map(s => ({
+          id: s.id,
+          clientId: s.clientId,
+          agentType: s.agentType,
+          cwd: s.cwd ?? "unknown",
+          status: s.status,
+          createdAt: new Date(s.createdAt),
+          updatedAt: new Date(s.updatedAt),
+        })),
+    ];
+    
     const filtered = clientId
-      ? sessions.filter((s) => s.clientId === clientId)
-      : sessions;
-    return filtered.map((s) => this.toAgentSession(s));
+      ? allSessions.filter((s) => s.clientId === clientId)
+      : allSessions;
+    return filtered;
   }
 
   // -------------------------------------------------------------------------
@@ -208,7 +250,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   killSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      throw new Error(`Session not found: ${sessionId}`);
+      // Try to update on disk anyway
+      store.updateSessionStatus(sessionId, "killed");
+      return;
     }
 
     session.status = "killed";
@@ -226,6 +270,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     this.sessions.delete(sessionId);
     this.sessionToClient.delete(sessionId);
     this.sessionEvents.delete(sessionId);
+
+    // Update on disk (keep for history)
+    store.updateSessionStatus(sessionId, "killed");
 
     // Remove related approvals
     for (const [approvalId, approval] of this.approvals) {
@@ -365,7 +412,22 @@ export class AgentManager extends EventEmitter implements IAgentManager {
    * Get event history for a session
    */
   getSessionEvents(sessionId: string): AgentEvent[] {
-    return this.sessionEvents.get(sessionId) ?? [];
+    // Try in-memory first
+    const memEvents = this.sessionEvents.get(sessionId);
+    if (memEvents && memEvents.length > 0) {
+      return memEvents;
+    }
+    
+    // Load from disk
+    const stored = store.loadSession(sessionId);
+    if (stored) {
+      return stored.events.map(e => ({
+        ...e,
+        timestamp: new Date(e.timestamp),
+      }));
+    }
+    
+    return [];
   }
 
   onEvent(handler: EventHandler): UnsubscribeFn {
@@ -532,6 +594,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     const events = this.sessionEvents.get(event.sessionId) ?? [];
     events.push(event);
     this.sessionEvents.set(event.sessionId, events);
+    
+    // Persist to disk
+    store.appendSessionEvent(event.sessionId, event);
     
     // Emit to listeners
     this.emit("event", event);
