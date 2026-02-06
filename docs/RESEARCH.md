@@ -129,3 +129,208 @@ interface AgentEvent {
 ```
 
 This allows the dashboard to handle both agent types with the same UI components.
+
+---
+
+## Gemini CLI
+
+### Basic Non-Interactive Mode
+```bash
+gemini -p "your prompt"                    # headless mode
+gemini -p "prompt" -o stream-json          # streaming JSON output
+gemini -p "prompt" --approval-mode default # require approvals
+```
+
+### Stream JSON Output Format
+```bash
+gemini -p "prompt" -o stream-json
+```
+
+**Event types:**
+- `{"type":"init","session_id":"...","model":"..."}` — session start
+- `{"type":"message","content":"...","delta":true}` — streaming response chunks
+- `{"type":"message","content":"...","delta":false}` — complete message
+- `{"type":"result","stats":{...}}` — session completion with stats
+
+### Approval Modes
+- `default` — prompt for approval
+- `auto_edit` — auto-approve file edits only
+- `yolo` — auto-approve everything
+- `plan` — read-only mode
+
+### Session Management
+- `--list-sessions` — list available sessions
+- `-r latest` or `-r <index>` — resume a session
+- `--delete-session <index>` — delete a session
+
+---
+
+## Agent Client Protocol (ACP) — Gemini CLI `--experimental-acp`
+
+### Overview
+ACP is a **standardized JSON-RPC 2.0 protocol** for communication between code editors and AI coding agents. Developed by **Zed editor team**, now adopted by Gemini CLI.
+
+- **Spec**: https://agentclientprotocol.com
+- **SDK**: `@agentclientprotocol/sdk` (npm)
+- **Gemini impl**: `packages/cli/src/zed-integration/zedIntegration.ts`
+
+### Protocol Flow
+
+```
+Client                              Agent (Gemini)
+   |                                     |
+   |--- initialize ---------------------->|
+   |<------------------------ result -----|
+   |                                     |
+   |--- session/new --------------------->|
+   |<-------------------- sessionId ------|
+   |                                     |
+   |--- session/prompt ------------------>|
+   |<---------- session/update (stream) --|
+   |<---------- session/update (stream) --|
+   |<------------------------ result -----|
+```
+
+### Key Methods
+
+**Client → Agent:**
+- `initialize` — handshake, exchange capabilities
+- `session/new` — create new session (returns sessionId)
+- `session/load` — resume existing session
+- `session/prompt` — send user message
+- `session/cancel` — cancel ongoing turn (notification)
+- `session/set_mode` — change approval mode
+
+**Agent → Client:**
+- `session/update` — streaming updates (notification)
+- `session/request_permission` — request approval for actions
+
+### Initialize Request/Response
+
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": 1,
+    "clientCapabilities": {
+      "fs": { "read": true, "write": true },
+      "terminal": true
+    }
+  }
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocolVersion": 1,
+    "authMethods": [
+      { "id": "oauth-personal", "name": "Log in with Google" },
+      { "id": "gemini-api-key", "name": "Use Gemini API key" },
+      { "id": "vertex-ai", "name": "Vertex AI" }
+    ],
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": { "image": true, "audio": true, "embeddedContext": true },
+      "mcpCapabilities": { "http": true, "sse": true }
+    }
+  }
+}
+```
+
+### Session Update Types (streaming)
+
+```typescript
+type SessionUpdate =
+  | { sessionUpdate: "agent_thought_chunk", content: ContentBlock }  // thinking/reasoning
+  | { sessionUpdate: "agent_message_chunk", content: ContentBlock }  // actual response
+  | { sessionUpdate: "tool_call", toolCallId: string, title: string, status: "pending" | "in_progress" | "completed" | "failed" }
+  | { sessionUpdate: "tool_call_update", toolCallId: string, status: string, content?: Content[] }
+  | { sessionUpdate: "plan", entries: PlanEntry[] }
+```
+
+### Permission Request
+
+```json
+// Agent → Client (method call, expects response)
+{
+  "jsonrpc": "2.0",
+  "id": 42,
+  "method": "session/request_permission",
+  "params": {
+    "sessionId": "...",
+    "permission": {
+      "type": "file_write",
+      "path": "/path/to/file.txt",
+      "content": "..."
+    }
+  }
+}
+
+// Client → Agent
+{
+  "jsonrpc": "2.0",
+  "id": 42,
+  "result": { "granted": true }
+}
+```
+
+### Stop Reasons
+
+```typescript
+type StopReason = "end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled"
+```
+
+### Testing ACP Mode
+
+```bash
+# Start Gemini in ACP mode
+gemini --experimental-acp
+
+# Then send JSON-RPC messages via stdin
+```
+
+### Why ACP is Ideal for Our Dashboard
+
+1. **Standard protocol** — JSON-RPC 2.0, well-defined spec
+2. **Built-in session management** — `session/new`, `session/load`
+3. **Structured streaming** — `session/update` with typed events
+4. **Permission requests** — `session/request_permission` for remote approval
+5. **MCP integration** — can pass MCP servers to sessions
+6. **Extensible** — `_meta` fields and `_` prefixed custom methods
+
+### Comparison: stream-json vs ACP
+
+| Feature | stream-json | ACP |
+|---------|-------------|-----|
+| Protocol | NDJSON (one-way) | JSON-RPC 2.0 (bidirectional) |
+| Session mgmt | External (`-r` flag) | Built-in (`session/new`, `session/load`) |
+| Streaming | ✅ | ✅ (`session/update`) |
+| Approvals | Via `--approval-mode` | `session/request_permission` |
+| Thinking | Not exposed | `agent_thought_chunk` |
+| Multi-session | One per process | Multiple via sessionId |
+
+**Recommendation**: Use ACP mode (`--experimental-acp`) for GeminiAdapter — it provides the richest programmatic control.
+
+---
+
+## Adapter Strategy Summary
+
+| Agent | Recommended Mode | Approval Mechanism |
+|-------|------------------|-------------------|
+| Claude Code | `--print --output-format stream-json --verbose` | Need workaround (tmux/pty) |
+| Codex | `codex app-server` (JSON-RPC) | `requestApproval` methods |
+| Gemini | `gemini --experimental-acp` (JSON-RPC) | `session/request_permission` |
+
+### GeminiAdapter Strategy
+1. Spawn `gemini --experimental-acp`
+2. Send `initialize` with client capabilities
+3. Create sessions with `session/new`
+4. Send prompts with `session/prompt`
+5. Handle `session/update` notifications for streaming
+6. Handle `session/request_permission` for approvals
+7. Normalize events to `AgentEvent` interface

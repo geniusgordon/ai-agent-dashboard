@@ -1,0 +1,366 @@
+/**
+ * ACP (Agent Client Protocol) Client Implementation
+ *
+ * This module implements an ACP Client that can communicate with any
+ * ACP-compatible agent (Gemini CLI, claude-code-acp, codex-acp, etc.)
+ *
+ * @see https://agentclientprotocol.com
+ */
+
+import { spawn, type ChildProcess } from "node:child_process";
+import { Readable, Writable } from "node:stream";
+import * as acp from "@agentclientprotocol/sdk";
+import { EventEmitter } from "node:events";
+
+// Re-export useful types from the SDK
+export type {
+  SessionNotification,
+  RequestPermissionRequest,
+  RequestPermissionResponse,
+  InitializeResponse,
+  NewSessionResponse,
+  PromptResponse,
+  ContentBlock,
+} from "@agentclientprotocol/sdk";
+
+/**
+ * Supported agent types
+ */
+export type AgentType = "gemini" | "claude-code" | "codex";
+
+/**
+ * Agent configuration
+ */
+export interface AgentConfig {
+  type: AgentType;
+  command?: string; // Override default command
+  args?: string[]; // Additional args
+  env?: Record<string, string>; // Environment variables
+}
+
+/**
+ * Default agent commands
+ */
+const DEFAULT_COMMANDS: Record<AgentType, { command: string; args: string[] }> =
+  {
+    gemini: {
+      command: "gemini",
+      args: ["--experimental-acp"],
+    },
+    "claude-code": {
+      command: "npx",
+      args: ["@zed-industries/claude-code-acp"],
+    },
+    codex: {
+      command: "npx",
+      args: ["@zed-industries/codex-acp"],
+    },
+  };
+
+/**
+ * Session state
+ */
+export interface Session {
+  id: string;
+  agentType: AgentType;
+  cwd: string;
+  createdAt: Date;
+}
+
+/**
+ * Permission request with callback
+ */
+export interface PendingPermission {
+  sessionId: string;
+  request: acp.RequestPermissionRequest;
+  resolve: (response: acp.RequestPermissionResponse) => void;
+}
+
+/**
+ * Events emitted by ACPClient
+ */
+export interface ACPClientEvents {
+  "session:update": (sessionId: string, update: acp.SessionNotification) => void;
+  "permission:request": (permission: PendingPermission) => void;
+  "agent:ready": (capabilities: acp.InitializeResponse) => void;
+  "agent:error": (error: Error) => void;
+  "agent:exit": (code: number | null) => void;
+}
+
+/**
+ * ACP Client - manages connection to an ACP agent
+ */
+export class ACPClient extends EventEmitter {
+  private process: ChildProcess | null = null;
+  private connection: acp.ClientSideConnection | null = null;
+  private sessions: Map<string, Session> = new Map();
+  private pendingPermissions: Map<string, PendingPermission> = new Map();
+  private agentCapabilities: acp.InitializeResponse | null = null;
+
+  constructor(
+    private config: AgentConfig,
+    private cwd: string = process.cwd(),
+  ) {
+    super();
+  }
+
+  /**
+   * Start the agent process and establish connection
+   */
+  async start(): Promise<acp.InitializeResponse> {
+    const { command, args } =
+      DEFAULT_COMMANDS[this.config.type] ?? DEFAULT_COMMANDS.gemini;
+
+    const finalCommand = this.config.command ?? command;
+    const finalArgs = [...args, ...(this.config.args ?? [])];
+
+    this.process = spawn(finalCommand, finalArgs, {
+      stdio: ["pipe", "pipe", "pipe"],
+      cwd: this.cwd,
+      env: { ...process.env, ...this.config.env },
+    });
+
+    // Handle stderr (for debugging)
+    this.process.stderr?.on("data", (data) => {
+      console.error(`[${this.config.type}]`, data.toString());
+    });
+
+    // Handle process exit
+    this.process.on("exit", (code) => {
+      this.emit("agent:exit", code);
+    });
+
+    this.process.on("error", (error) => {
+      this.emit("agent:error", error);
+    });
+
+    // Create streams for ACP communication
+    const input = Writable.toWeb(this.process.stdin!) as WritableStream;
+    const output = Readable.toWeb(
+      this.process.stdout!,
+    ) as ReadableStream<Uint8Array>;
+
+    // Create the ACP connection
+    const stream = acp.ndJsonStream(input, output);
+    this.connection = new acp.ClientSideConnection(
+      () => this.createClientHandler(),
+      stream,
+    );
+
+    // Initialize the connection
+    const initResult = await this.connection.initialize({
+      protocolVersion: acp.PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: {
+          readTextFile: true,
+          writeTextFile: true,
+        },
+        terminal: true,
+      },
+    });
+
+    this.agentCapabilities = initResult;
+    this.emit("agent:ready", initResult);
+
+    return initResult;
+  }
+
+  /**
+   * Create a new session
+   */
+  async createSession(
+    cwd: string,
+    mcpServers: acp.McpServer[] = [],
+  ): Promise<Session> {
+    if (!this.connection) {
+      throw new Error("Client not started. Call start() first.");
+    }
+
+    const result = await this.connection.newSession({ cwd, mcpServers });
+
+    const session: Session = {
+      id: result.sessionId,
+      agentType: this.config.type,
+      cwd,
+      createdAt: new Date(),
+    };
+
+    this.sessions.set(session.id, session);
+    return session;
+  }
+
+  /**
+   * Send a prompt to a session
+   */
+  async prompt(
+    sessionId: string,
+    prompt: acp.ContentBlock[],
+  ): Promise<acp.PromptResponse> {
+    if (!this.connection) {
+      throw new Error("Client not started. Call start() first.");
+    }
+
+    return this.connection.prompt({ sessionId, prompt });
+  }
+
+  /**
+   * Send a text prompt (convenience method)
+   */
+  async sendMessage(sessionId: string, text: string): Promise<acp.PromptResponse> {
+    return this.prompt(sessionId, [{ type: "text", text }]);
+  }
+
+  /**
+   * Respond to a permission request
+   */
+  respondToPermission(
+    permissionId: string,
+    optionId: string,
+  ): void {
+    const pending = this.pendingPermissions.get(permissionId);
+    if (!pending) {
+      throw new Error(`No pending permission with id: ${permissionId}`);
+    }
+
+    pending.resolve({
+      outcome: {
+        outcome: "selected",
+        optionId,
+      },
+    });
+
+    this.pendingPermissions.delete(permissionId);
+  }
+
+  /**
+   * Deny a permission request
+   */
+  denyPermission(permissionId: string): void {
+    const pending = this.pendingPermissions.get(permissionId);
+    if (!pending) {
+      throw new Error(`No pending permission with id: ${permissionId}`);
+    }
+
+    pending.resolve({
+      outcome: {
+        outcome: "denied",
+      },
+    });
+
+    this.pendingPermissions.delete(permissionId);
+  }
+
+  /**
+   * Get all active sessions
+   */
+  getSessions(): Session[] {
+    return Array.from(this.sessions.values());
+  }
+
+  /**
+   * Get pending permissions
+   */
+  getPendingPermissions(): PendingPermission[] {
+    return Array.from(this.pendingPermissions.values());
+  }
+
+  /**
+   * Get agent capabilities
+   */
+  getCapabilities(): acp.InitializeResponse | null {
+    return this.agentCapabilities;
+  }
+
+  /**
+   * Stop the agent process
+   */
+  stop(): void {
+    if (this.process) {
+      this.process.kill();
+      this.process = null;
+    }
+    this.connection = null;
+    this.sessions.clear();
+    this.pendingPermissions.clear();
+  }
+
+  /**
+   * Check if client is running
+   */
+  isRunning(): boolean {
+    return this.process !== null && !this.process.killed;
+  }
+
+  /**
+   * Create the client handler for ACP callbacks
+   */
+  private createClientHandler(): acp.Client {
+    return {
+      requestPermission: async (
+        params: acp.RequestPermissionRequest,
+      ): Promise<acp.RequestPermissionResponse> => {
+        return new Promise((resolve) => {
+          const permissionId = `perm_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+          const pending: PendingPermission = {
+            sessionId: params.sessionId,
+            request: params,
+            resolve,
+          };
+
+          this.pendingPermissions.set(permissionId, pending);
+          this.emit("permission:request", { ...pending, id: permissionId });
+        });
+      },
+
+      sessionUpdate: async (params: acp.SessionNotification): Promise<void> => {
+        this.emit("session:update", params.sessionId, params);
+      },
+
+      readTextFile: async (
+        params: acp.ReadTextFileRequest,
+      ): Promise<acp.ReadTextFileResponse> => {
+        // TODO: Implement file reading through secure sandbox
+        console.log("[ACPClient] readTextFile:", params.path);
+        const fs = await import("node:fs/promises");
+        try {
+          const content = await fs.readFile(params.path, "utf-8");
+          return { content };
+        } catch (error) {
+          throw new Error(`Failed to read file: ${params.path}`);
+        }
+      },
+
+      writeTextFile: async (
+        params: acp.WriteTextFileRequest,
+      ): Promise<acp.WriteTextFileResponse> => {
+        // TODO: Implement file writing through secure sandbox
+        console.log("[ACPClient] writeTextFile:", params.path);
+        const fs = await import("node:fs/promises");
+        try {
+          await fs.writeFile(params.path, params.content, "utf-8");
+          return {};
+        } catch (error) {
+          throw new Error(`Failed to write file: ${params.path}`);
+        }
+      },
+    };
+  }
+}
+
+/**
+ * Create a new ACP client for the specified agent type
+ */
+export function createACPClient(
+  agentType: AgentType,
+  cwd?: string,
+  options?: Partial<AgentConfig>,
+): ACPClient {
+  return new ACPClient(
+    {
+      type: agentType,
+      ...options,
+    },
+    cwd,
+  );
+}
