@@ -415,6 +415,14 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     session.status = "running";
     session.updatedAt = new Date();
 
+    this.emitEvent({
+      type: "message",
+      clientId: session.clientId,
+      sessionId,
+      timestamp: new Date(),
+      payload: { content: message, isUser: true },
+    });
+
     try {
       const result = await managed.acpClient.sendMessage(sessionId, message);
 

@@ -209,17 +209,6 @@ export function useSessionDetail(sessionId: string) {
   // ---------------------------------------------------------------------------
 
   const sendMessage = (message: string) => {
-    // Optimistic user event
-    setEvents((prev) => [
-      ...prev,
-      {
-        type: "message" as const,
-        clientId: session?.clientId ?? "",
-        sessionId,
-        timestamp: new Date(),
-        payload: { content: message, isUser: true },
-      },
-    ]);
     sendMessageMutation.mutate({ sessionId, message });
   };
 

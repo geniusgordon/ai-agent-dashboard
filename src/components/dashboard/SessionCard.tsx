@@ -13,11 +13,11 @@ interface SessionCardProps {
 }
 
 const statusLeftBorder: Record<string, string> = {
-  running: "border-l-green-500",
-  "waiting-approval": "border-l-amber-500",
-  starting: "border-l-yellow-500",
-  completed: "border-l-blue-500",
-  error: "border-l-red-500",
+  running: "border-l-status-running",
+  "waiting-approval": "border-l-status-waiting",
+  starting: "border-l-status-starting",
+  completed: "border-l-status-completed",
+  error: "border-l-status-error",
   killed: "border-l-muted-foreground",
   idle: "border-l-muted-foreground",
 };

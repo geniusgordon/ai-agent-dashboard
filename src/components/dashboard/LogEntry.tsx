@@ -17,8 +17,8 @@ export function LogEntry({ event }: LogEntryProps) {
   const config = isUser
     ? {
         icon: User,
-        color: "text-cyan-400",
-        borderColor: "border-l-cyan-500/60",
+        color: "text-event-user",
+        borderColor: "border-l-event-user/60",
       }
     : (eventConfig[event.type] ?? defaultEventConfig);
 

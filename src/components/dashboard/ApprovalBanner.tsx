@@ -17,12 +17,12 @@ export function ApprovalBanner({
   isDenying,
 }: ApprovalBannerProps) {
   return (
-    <div className="p-3 sm:p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.08)]">
+    <div className="p-3 sm:p-4 rounded-xl border border-action-warning/30 bg-action-warning/10 shadow-warning-glow">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="size-4 text-amber-400 animate-pulse shrink-0" />
-            <span className="font-semibold text-sm text-amber-200 break-words">
+            <AlertTriangle className="size-4 text-action-warning animate-pulse shrink-0" />
+            <span className="font-semibold text-sm text-action-warning break-words">
               {approval.toolCall.title}
             </span>
           </div>
@@ -49,9 +49,9 @@ export function ApprovalBanner({
                   disabled:opacity-50
                   ${
                     isDenyOption
-                      ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      ? "bg-action-danger/20 text-action-danger hover:bg-action-danger/30"
                       : isAllow
-                        ? "bg-green-600 text-white hover:bg-green-500"
+                        ? "bg-action-success text-white hover:bg-action-success-hover"
                         : "bg-secondary text-foreground hover:bg-secondary/80"
                   }
                 `}

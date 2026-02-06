@@ -61,13 +61,10 @@ export function SessionHeader({
             <AgentBadge type={session.agentType} size="sm" />
             <StatusBadge status={session.status} />
             {connected ? (
-              <span
-                className="text-xs font-medium text-green-400 flex items-center gap-1.5"
-                style={{ textShadow: "0 0 8px rgba(74, 222, 128, 0.5)" }}
-              >
+              <span className="text-xs font-medium text-live flex items-center gap-1.5 shadow-live-glow">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-live" />
                 </span>
                 Live
               </span>
@@ -96,7 +93,7 @@ export function SessionHeader({
               />
               <button
                 type="submit"
-                className="text-xs font-medium text-green-400 hover:text-green-300 transition-colors duration-200 cursor-pointer"
+                className="text-xs font-medium text-action-success-hover hover:text-action-success-hover/80 transition-colors duration-200 cursor-pointer"
               >
                 Save
               </button>
@@ -142,7 +139,7 @@ export function SessionHeader({
             p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer inline-flex items-center gap-1.5
             ${
               autoScroll
-                ? "bg-green-500/20 text-green-400"
+                ? "bg-action-success/20 text-action-success-hover"
                 : "bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80"
             }
           `}
@@ -166,7 +163,7 @@ export function SessionHeader({
               }
             }}
             disabled={isKilling}
-            className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+            className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-action-danger/20 text-action-danger hover:bg-action-danger/30 transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
             title="Kill session"
           >
             <Square className="size-3.5" />

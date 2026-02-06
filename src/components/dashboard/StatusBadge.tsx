@@ -16,26 +16,26 @@ const statusConfig: Record<
   },
   starting: {
     label: "Starting",
-    color: "bg-yellow-500/20 text-yellow-400",
+    color: "bg-status-starting/20 text-status-starting",
     pulse: true,
   },
   running: {
     label: "Running",
-    color: "bg-green-500/20 text-green-400",
+    color: "bg-status-running/20 text-status-running",
     pulse: true,
   },
   "waiting-approval": {
     label: "Waiting",
-    color: "bg-amber-500/20 text-amber-400",
+    color: "bg-status-waiting/20 text-status-waiting",
     pulse: true,
   },
   completed: {
     label: "Completed",
-    color: "bg-blue-500/20 text-blue-400",
+    color: "bg-status-completed/20 text-status-completed",
   },
   error: {
     label: "Error",
-    color: "bg-red-500/20 text-red-400",
+    color: "bg-status-error/20 text-status-error",
   },
   killed: {
     label: "Killed",
@@ -43,7 +43,7 @@ const statusConfig: Record<
   },
   ready: {
     label: "Ready",
-    color: "bg-green-500/20 text-green-400",
+    color: "bg-status-running/20 text-status-running",
   },
   stopped: {
     label: "Stopped",

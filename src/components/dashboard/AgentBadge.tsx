@@ -12,17 +12,17 @@ const agentConfig: Record<
 > = {
   gemini: {
     label: "Gemini",
-    color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    color: "bg-agent-gemini/20 text-agent-gemini border-agent-gemini/30",
     icon: Sparkles,
   },
   "claude-code": {
     label: "Claude",
-    color: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    color: "bg-agent-claude/20 text-agent-claude border-agent-claude/30",
     icon: Bot,
   },
   codex: {
     label: "Codex",
-    color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    color: "bg-agent-codex/20 text-agent-codex border-agent-codex/30",
     icon: Hexagon,
   },
 };

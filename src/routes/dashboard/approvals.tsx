@@ -71,10 +71,10 @@ function ApprovalsPage() {
 
         <div className="flex items-center gap-3">
           {connected ? (
-            <span className="text-xs text-green-400 flex items-center gap-1.5">
+            <span className="text-xs text-live flex items-center gap-1.5 shadow-live-glow">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-live" />
               </span>
               Live
             </span>
@@ -88,7 +88,7 @@ function ApprovalsPage() {
             <span className="text-sm text-muted-foreground">Loading...</span>
           )}
           {approvals.length > 0 && (
-            <div className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium flex items-center gap-1.5">
+            <div className="px-3 py-1 rounded-full bg-action-warning/20 text-action-warning text-sm font-medium flex items-center gap-1.5">
               <AlertTriangle className="size-3.5 animate-pulse" />
               {approvals.length} pending
             </div>
@@ -138,7 +138,7 @@ function ApprovalCard({
   return (
     <div
       className="
-      p-5 rounded-xl border border-amber-500/30 bg-amber-500/5
+      p-5 rounded-xl border border-action-warning/30 bg-action-warning/5
       animate-in fade-in slide-in-from-top-2 duration-300
     "
     >
@@ -146,7 +146,7 @@ function ApprovalCard({
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="size-5 text-amber-400" />
+            <AlertTriangle className="size-5 text-action-warning" />
             <h3 className="font-semibold text-lg">{approval.toolCall.title}</h3>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -185,9 +185,9 @@ function ApprovalCard({
                 disabled:opacity-50 disabled:cursor-not-allowed
                 ${
                   isDeny
-                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
+                    ? "bg-action-danger/20 text-action-danger hover:bg-action-danger/30 border border-action-danger/30"
                     : isAllow
-                      ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30"
+                      ? "bg-action-success/20 text-action-success-hover hover:bg-action-success/30 border border-action-success/30"
                       : "bg-secondary text-foreground hover:bg-secondary/80 border border-border"
                 }
               `}

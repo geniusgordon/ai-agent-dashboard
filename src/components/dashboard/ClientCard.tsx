@@ -16,9 +16,9 @@ interface ClientCardProps {
 }
 
 const agentAccentBorder: Record<string, string> = {
-  gemini: "border-t-blue-500",
-  "claude-code": "border-t-amber-500",
-  codex: "border-t-emerald-500",
+  gemini: "border-t-agent-gemini",
+  "claude-code": "border-t-agent-claude",
+  codex: "border-t-agent-codex",
 };
 
 export function ClientCard({
@@ -45,7 +45,7 @@ export function ClientCard({
           <button
             type="button"
             onClick={onStop}
-            className="p-1.5 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded text-muted-foreground hover:text-status-error hover:bg-status-error/10 transition-colors cursor-pointer"
             title="Stop client"
           >
             <X className="size-4" />
@@ -77,8 +77,8 @@ export function ClientCard({
             disabled={isCreatingSession}
             className="
               px-3 py-1 rounded-md text-xs font-medium
-              bg-green-500/20 text-green-400 border border-green-500/30
-              hover:bg-green-500/30 transition-colors cursor-pointer
+              bg-action-success/20 text-action-success-hover border border-action-success/30
+              hover:bg-action-success/30 transition-colors cursor-pointer
               disabled:opacity-50 disabled:cursor-not-allowed
               inline-flex items-center gap-1.5
             "
@@ -91,8 +91,8 @@ export function ClientCard({
 
       {/* Error */}
       {client.error && (
-        <div className="mt-3 p-2 rounded bg-red-500/10 border border-red-500/20">
-          <p className="text-xs text-red-400">{client.error}</p>
+        <div className="mt-3 p-2 rounded bg-status-error/10 border border-status-error/20">
+          <p className="text-xs text-status-error">{client.error}</p>
         </div>
       )}
     </div>

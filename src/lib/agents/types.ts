@@ -104,6 +104,7 @@ export interface ThinkingPayload {
 export interface MessagePayload {
   content: string;
   delta?: boolean;
+  isUser?: boolean;
 }
 
 export interface ToolCallPayload {
