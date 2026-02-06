@@ -7,9 +7,17 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check"
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write",
+    "format:check": "biome format",
+    "lint": "biome lint --write",
+    "lint:check": "biome lint",
+    "check": "biome check --write",
+    "check:ci": "biome check",
+    "validate": "pnpm run typecheck && pnpm run check:ci && pnpm run test"
   },
   "dependencies": {
     "@faker-js/faker": "^10.0.0",
