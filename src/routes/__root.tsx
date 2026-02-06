@@ -1,75 +1,44 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
-	createRootRouteWithContext,
-	HeadContent,
-	Scripts,
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+  Scripts,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import type { TRPCRouter } from "@/integrations/trpc/router";
-import Header from "../components/Header";
-import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
-import AiDevtools from "../lib/ai-devtools";
-import StoreDevtools from "../lib/demo-store-devtools";
 import appCss from "../styles.css?url";
+import "../styles/design-tokens.css";
 
 interface MyRouterContext {
-	queryClient: QueryClient;
-
-	trpc: TRPCOptionsProxy<TRPCRouter>;
+  queryClient: QueryClient;
+  trpc: TRPCOptionsProxy<TRPCRouter>;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-	head: () => ({
-		meta: [
-			{
-				charSet: "utf-8",
-			},
-			{
-				name: "viewport",
-				content: "width=device-width, initial-scale=1",
-			},
-			{
-				title: "TanStack Start Starter",
-			},
-		],
-		links: [
-			{
-				rel: "stylesheet",
-				href: appCss,
-			},
-		],
-	}),
-
-	shellComponent: RootDocument,
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "AI Agent Dashboard" },
+    ],
+    links: [
+      { rel: "stylesheet", href: appCss },
+    ],
+  }),
+  component: RootDocument,
 });
 
-function RootDocument({ children }: { children: React.ReactNode }) {
-	return (
-		<html lang="en">
-			<head>
-				<HeadContent />
-			</head>
-			<body>
-				<Header />
-				{children}
-				<TanStackDevtools
-					config={{
-						position: "bottom-right",
-					}}
-					plugins={[
-						{
-							name: "Tanstack Router",
-							render: <TanStackRouterDevtoolsPanel />,
-						},
-						AiDevtools,
-						TanStackQueryDevtools,
-						StoreDevtools,
-					]}
-				/>
-				<Scripts />
-			</body>
-		</html>
-	);
+function RootDocument() {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body className="bg-slate-900 text-slate-100">
+        <Outlet />
+        <Scripts />
+      </body>
+    </html>
+  );
 }
