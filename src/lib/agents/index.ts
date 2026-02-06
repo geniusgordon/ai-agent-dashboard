@@ -8,37 +8,33 @@
 export { AgentManager, getAgentManager } from "./manager.js";
 
 export type {
-  // Agent types
-  AgentType,
-  AgentSession,
-  AgentClient,
-  AgentCapabilities,
-  ClientStatus,
-  SessionStatus,
-
-  // Options
-  SpawnClientOptions,
-  CreateSessionOptions,
-
-  // Events
-  AgentEvent,
-  AgentEventType,
-  ThinkingPayload,
-  MessagePayload,
-  ToolCallPayload,
-  ToolUpdatePayload,
-  PlanPayload,
-  CompletePayload,
-  ErrorPayload,
-
-  // Approvals
-  ApprovalRequest,
-  ApprovalOption,
-  ApprovalStatus,
-
-  // Manager interface
-  IAgentManager,
-  EventHandler,
-  ApprovalHandler,
-  UnsubscribeFn,
+	AgentCapabilities,
+	AgentClient,
+	// Events
+	AgentEvent,
+	AgentEventType,
+	AgentSession,
+	// Agent types
+	AgentType,
+	ApprovalHandler,
+	ApprovalOption,
+	// Approvals
+	ApprovalRequest,
+	ApprovalStatus,
+	ClientStatus,
+	CompletePayload,
+	CreateSessionOptions,
+	ErrorPayload,
+	EventHandler,
+	// Manager interface
+	IAgentManager,
+	MessagePayload,
+	PlanPayload,
+	SessionStatus,
+	// Options
+	SpawnClientOptions,
+	ThinkingPayload,
+	ToolCallPayload,
+	ToolUpdatePayload,
+	UnsubscribeFn,
 } from "./types.js";

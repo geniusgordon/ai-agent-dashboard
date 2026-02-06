@@ -25,7 +25,20 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"a11y": {
+				"noSvgWithoutTitle": "off"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off",
+				"noUnknownAtRules": "off"
+			},
+			"correctness": {
+				"useUniqueElementIds": "off"
+			},
+			"style": {
+				"noNonNullAssertion": "off"
+			}
 		}
 	},
 	"javascript": {

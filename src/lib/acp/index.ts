@@ -9,33 +9,31 @@
  * @see https://agentclientprotocol.com
  */
 
-export {
-  ACPClient,
-  createACPClient,
-  type AgentType,
-  type AgentConfig,
-  type Session,
-  type PendingPermission,
-  type ACPClientEvents,
-} from "./client.js";
-
-export {
-  ACPManager,
-  getACPManager,
-  type ManagedClient,
-  type ManagedSession,
-  type ManagedPermission,
-  type ACPManagerEvents,
-} from "./manager.js";
-
 // Re-export useful types from SDK
 export type {
-  SessionNotification,
-  RequestPermissionRequest,
-  RequestPermissionResponse,
-  InitializeResponse,
-  NewSessionResponse,
-  PromptResponse,
-  ContentBlock,
-  McpServer,
+	ContentBlock,
+	InitializeResponse,
+	McpServer,
+	NewSessionResponse,
+	PromptResponse,
+	RequestPermissionRequest,
+	RequestPermissionResponse,
+	SessionNotification,
 } from "@agentclientprotocol/sdk";
+export {
+	ACPClient,
+	type ACPClientEvents,
+	type AgentConfig,
+	type AgentType,
+	createACPClient,
+	type PendingPermission,
+	type Session,
+} from "./client.js";
+export {
+	ACPManager,
+	type ACPManagerEvents,
+	getACPManager,
+	type ManagedClient,
+	type ManagedPermission,
+	type ManagedSession,
+} from "./manager.js";
