@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../../../integrations/trpc/react";
 import { useAgentEvents } from "../../../hooks/useAgentEvents";
 import { AgentBadge, StatusBadge } from "../../../components/dashboard";
-import type { AgentEvent } from "../../../lib/agents/types";
+import type { AgentEvent, ApprovalRequest } from "../../../lib/agents/types";
 
 export const Route = createFileRoute("/dashboard/sessions/$sessionId")({
   component: SessionDetailPage,
@@ -22,6 +22,20 @@ function SessionDetailPage() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [events, setEvents] = useState<AgentEvent[]>([]);
+  const [pendingApproval, setPendingApproval] = useState<ApprovalRequest | null>(null);
+
+  // Query pending approvals for this session
+  const approvalsQuery = useQuery(trpc.approvals.list.queryOptions());
+
+  // Load pending approval on mount
+  useEffect(() => {
+    if (approvalsQuery.data) {
+      const approval = approvalsQuery.data.find(a => a.sessionId === sessionId);
+      if (approval && !pendingApproval) {
+        setPendingApproval(approval);
+      }
+    }
+  }, [approvalsQuery.data, sessionId, pendingApproval]);
 
   // Query session
   const sessionQuery = useQuery(
@@ -50,18 +64,51 @@ function SessionDetailPage() {
     
     // Refresh session status when complete or error
     if (event.type === "complete" || event.type === "error") {
+      setPendingApproval(null);
       queryClient.invalidateQueries({ 
         queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
       });
     }
   }, [queryClient, sessionId, trpc.sessions.getSession]);
 
+  // Handle approval requests
+  const handleApproval = useCallback((approval: ApprovalRequest) => {
+    setPendingApproval(approval);
+    queryClient.invalidateQueries({ 
+      queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
+    });
+  }, [queryClient, sessionId, trpc.sessions.getSession]);
+
   // Subscribe to real-time events
   const { connected } = useAgentEvents({
     sessionId,
     onEvent: handleEvent,
+    onApproval: handleApproval,
     enabled: !!session,
   });
+
+  // Approval mutations
+  const approveMutation = useMutation(
+    trpc.approvals.approve.mutationOptions({
+      onSuccess: () => {
+        setPendingApproval(null);
+        queryClient.invalidateQueries({ 
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
+        });
+      },
+    })
+  );
+
+  const denyMutation = useMutation(
+    trpc.approvals.deny.mutationOptions({
+      onSuccess: () => {
+        setPendingApproval(null);
+        queryClient.invalidateQueries({ 
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
+        });
+      },
+    })
+  );
 
   // Send message mutation
   const sendMessageMutation = useMutation(
@@ -176,6 +223,53 @@ function SessionDetailPage() {
         </div>
       </div>
 
+      {/* Pending Approval Banner */}
+      {pendingApproval && (
+        <div className="mb-4 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 animate-pulse">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-amber-400">⚠️</span>
+                <span className="font-medium text-amber-200">{pendingApproval.toolCall.title}</span>
+              </div>
+              <p className="text-sm text-slate-400">
+                Kind: {pendingApproval.toolCall.kind}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {pendingApproval.options.map((option) => {
+                const isAllow = option.kind.includes("allow");
+                const isDeny = option.kind === "deny";
+                return (
+                  <button
+                    key={option.optionId}
+                    type="button"
+                    onClick={() =>
+                      isDeny
+                        ? denyMutation.mutate({ approvalId: pendingApproval.id })
+                        : approveMutation.mutate({ approvalId: pendingApproval.id, optionId: option.optionId })
+                    }
+                    disabled={approveMutation.isPending || denyMutation.isPending}
+                    className={`
+                      px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
+                      disabled:opacity-50
+                      ${isDeny
+                        ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                        : isAllow
+                          ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                          : "bg-slate-700/50 text-slate-300 hover:bg-slate-700"
+                      }
+                    `}
+                  >
+                    {option.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Logs Container */}
       <div className="flex-1 overflow-y-auto rounded-xl border border-slate-700/50 bg-slate-900/50 p-4 font-mono text-sm">
         {events.length === 0 ? (
@@ -201,8 +295,8 @@ function SessionDetailPage() {
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Send a message..."
-              disabled={sendMessageMutation.isPending}
+              placeholder={pendingApproval ? "Waiting for approval..." : "Send a message..."}
+              disabled={sendMessageMutation.isPending || !!pendingApproval}
               className="
                 flex-1 px-4 py-3 rounded-lg
                 bg-slate-800 border border-slate-700
@@ -213,7 +307,7 @@ function SessionDetailPage() {
             />
             <button
               type="submit"
-              disabled={!inputMessage.trim() || sendMessageMutation.isPending}
+              disabled={!inputMessage.trim() || sendMessageMutation.isPending || !!pendingApproval}
               className="
                 px-6 py-3 rounded-lg font-medium
                 bg-green-600 text-white
@@ -243,12 +337,29 @@ function LogEntry({ event }: { event: AgentEvent }) {
   };
 
   const { prefix, color } = config[event.type] ?? { prefix: "📨", color: "text-slate-400" };
-  const payload = event.payload as { content?: string; stopReason?: string; message?: string; isUser?: boolean };
-  const content = payload.content ?? payload.stopReason ?? payload.message ?? JSON.stringify(payload);
+  const payload = event.payload as Record<string, unknown>;
+  
+  // Extract content - handle nested objects from ACP
+  let content: string;
+  if (typeof payload.content === "string") {
+    content = payload.content;
+  } else if (typeof payload.content === "object" && payload.content !== null) {
+    // ACP format: { type: "text", text: "..." }
+    const nested = payload.content as Record<string, unknown>;
+    content = (nested.text as string) ?? JSON.stringify(nested);
+  } else if (typeof payload.stopReason === "string") {
+    content = payload.stopReason;
+  } else if (typeof payload.message === "string") {
+    content = payload.message;
+  } else {
+    content = JSON.stringify(payload);
+  }
+
+  const isUser = payload.isUser === true;
 
   return (
-    <div className={`flex gap-2 ${payload.isUser ? "text-cyan-400" : color}`}>
-      <span className="shrink-0">{payload.isUser ? "👤" : prefix}</span>
+    <div className={`flex gap-2 ${isUser ? "text-cyan-400" : color}`}>
+      <span className="shrink-0">{isUser ? "👤" : prefix}</span>
       <span className="whitespace-pre-wrap break-words">{content}</span>
     </div>
   );

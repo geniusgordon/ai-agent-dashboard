@@ -5,6 +5,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../../integrations/trpc/react";
+import { useAgentEvents } from "../../hooks/useAgentEvents";
 import type { ApprovalRequest } from "../../lib/agents/types";
 
 export const Route = createFileRoute("/dashboard/approvals")({
@@ -17,6 +18,14 @@ function ApprovalsPage() {
 
   const approvalsQuery = useQuery(trpc.approvals.list.queryOptions());
   const approvals = approvalsQuery.data ?? [];
+
+  // Subscribe to real-time approval events
+  const { connected } = useAgentEvents({
+    onApproval: () => {
+      // Refresh the list when a new approval comes in
+      queryClient.invalidateQueries({ queryKey: trpc.approvals.list.queryKey() });
+    },
+  });
 
   const approveMutation = useMutation(
     trpc.approvals.approve.mutationOptions({
@@ -54,6 +63,11 @@ function ApprovalsPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {connected ? (
+            <span className="text-xs text-green-400">● Live</span>
+          ) : (
+            <span className="text-xs text-slate-500">○ Connecting...</span>
+          )}
           {approvalsQuery.isLoading && (
             <span className="text-sm text-slate-500">Loading...</span>
           )}
@@ -74,7 +88,7 @@ function ApprovalsPage() {
           <div className="text-4xl mb-4">✓</div>
           <p className="text-lg">No pending approvals</p>
           <p className="text-sm mt-1">
-            Permission requests from agents will appear here
+            Permission requests from agents will appear here in real-time
           </p>
         </div>
       ) : (
@@ -105,12 +119,13 @@ function ApprovalCard({ approval, onApprove, onDeny, isLoading }: ApprovalCardPr
   return (
     <div className="
       p-5 rounded-xl border border-amber-500/30 bg-amber-500/5
+      animate-in fade-in slide-in-from-top-2 duration-300
     ">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-amber-400 text-lg">◈</span>
+            <span className="text-amber-400 text-lg">⚠️</span>
             <h3 className="font-semibold text-lg">{approval.toolCall.title}</h3>
           </div>
           <p className="text-sm text-slate-400">
