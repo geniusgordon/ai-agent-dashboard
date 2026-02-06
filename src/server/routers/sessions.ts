@@ -5,6 +5,7 @@ import {
 	type AgentType,
 	ClaudeCodeAdapter,
 	CodexAdapter,
+	GeminiAdapter,
 	getSessionManager,
 } from "@/lib/agents";
 
@@ -15,6 +16,7 @@ function ensureInitialized() {
 	const manager = getSessionManager();
 	manager.registerAdapter(new ClaudeCodeAdapter());
 	manager.registerAdapter(new CodexAdapter());
+	manager.registerAdapter(new GeminiAdapter());
 	initialized = true;
 }
 
@@ -22,6 +24,7 @@ function ensureInitialized() {
 const agentTypeSchema = z.enum([
 	"claude-code",
 	"codex",
+	"gemini",
 ]) satisfies z.ZodType<AgentType>;
 
 const spawnInputSchema = z.object({

@@ -8,7 +8,7 @@
 // Session Types
 // =============================================================================
 
-export type AgentType = "claude-code" | "codex";
+export type AgentType = "claude-code" | "codex" | "gemini";
 
 export type SessionStatus =
 	| "idle"
