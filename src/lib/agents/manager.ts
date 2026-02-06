@@ -1,208 +1,534 @@
 /**
- * Session Manager
+ * Agent Manager - ACP-based Implementation
  *
- * Manages multiple agent adapters and provides a unified interface.
+ * Manages AI coding agents through the Agent Client Protocol (ACP).
+ * Supports Gemini CLI, Claude Code, and Codex.
  */
 
+import { EventEmitter } from "node:events";
+import {
+  ACPClient,
+  type AgentType as ACPAgentType,
+  type PendingPermission,
+} from "../acp/index.js";
+import type * as acp from "@agentclientprotocol/sdk";
 import type {
-	AgentAdapter,
-	AgentEvent,
-	AgentSession,
-	AgentType,
-	ApprovalRequest,
-	EventHandler,
-	SessionManager as ISessionManager,
-	SpawnOptions,
-	UnsubscribeFn,
-} from "./types";
+  AgentType,
+  AgentSession,
+  AgentClient,
+  AgentEvent,
+  ApprovalRequest,
+  ApprovalOption,
+  SpawnClientOptions,
+  CreateSessionOptions,
+  EventHandler,
+  ApprovalHandler,
+  UnsubscribeFn,
+  IAgentManager,
+  ClientStatus,
+  SessionStatus,
+} from "./types.js";
 
-export class SessionManager implements ISessionManager {
-	private adapters: Map<AgentType, AgentAdapter> = new Map();
-	private sessionToAdapter: Map<string, AgentType> = new Map();
-	private globalHandlers: Set<EventHandler> = new Set();
+/**
+ * Internal client state
+ */
+interface ManagedClient {
+  id: string;
+  acpClient: ACPClient;
+  agentType: AgentType;
+  status: ClientStatus;
+  cwd: string;
+  createdAt: Date;
+  capabilities?: acp.InitializeResponse;
+  error?: Error;
+}
 
-	// ---------------------------------------------------------------------------
-	// Adapter Management
-	// ---------------------------------------------------------------------------
+/**
+ * Internal session state
+ */
+interface ManagedSession {
+  id: string;
+  clientId: string;
+  agentType: AgentType;
+  status: SessionStatus;
+  cwd: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-	registerAdapter(adapter: AgentAdapter): void {
-		console.log(`[SessionManager] Registering adapter: ${adapter.type}`);
-		this.adapters.set(adapter.type, adapter);
+/**
+ * Internal approval state
+ */
+interface ManagedApproval {
+  id: string;
+  clientId: string;
+  sessionId: string;
+  createdAt: Date;
+  pending: PendingPermission;
+  request: acp.RequestPermissionRequest;
+}
 
-		// Subscribe to all events from this adapter
-		adapter.onAllEvents((event) => {
-			this.emitEvent(event);
-		});
-	}
+/**
+ * Agent Manager Implementation
+ */
+export class AgentManager extends EventEmitter implements IAgentManager {
+  private clients: Map<string, ManagedClient> = new Map();
+  private sessions: Map<string, ManagedSession> = new Map();
+  private approvals: Map<string, ManagedApproval> = new Map();
+  private sessionToClient: Map<string, string> = new Map();
 
-	getAdapter(type: AgentType): AgentAdapter | undefined {
-		return this.adapters.get(type);
-	}
+  // -------------------------------------------------------------------------
+  // Client Lifecycle
+  // -------------------------------------------------------------------------
 
-	// ---------------------------------------------------------------------------
-	// Session Operations
-	// ---------------------------------------------------------------------------
+  async spawnClient(options: SpawnClientOptions): Promise<AgentClient> {
+    const clientId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-	async spawn(options: SpawnOptions): Promise<AgentSession> {
-		const adapter = this.adapters.get(options.type);
-		if (!adapter) {
-			throw new Error(`No adapter registered for agent type: ${options.type}`);
-		}
+    const acpClient = new ACPClient(
+      {
+        type: options.agentType as ACPAgentType,
+        env: options.env,
+      },
+      options.cwd,
+    );
 
-		const session = await adapter.spawn(options);
+    const managed: ManagedClient = {
+      id: clientId,
+      acpClient,
+      agentType: options.agentType,
+      status: "starting",
+      cwd: options.cwd,
+      createdAt: new Date(),
+    };
 
-		// Track which adapter owns this session
-		this.sessionToAdapter.set(session.id, options.type);
+    this.clients.set(clientId, managed);
+    this.setupClientListeners(clientId, acpClient);
 
-		return session;
-	}
+    try {
+      const capabilities = await acpClient.start();
+      managed.status = "ready";
+      managed.capabilities = capabilities;
+    } catch (error) {
+      managed.status = "error";
+      managed.error = error as Error;
+      throw error;
+    }
 
-	async kill(sessionId: string): Promise<void> {
-		const adapterType = this.sessionToAdapter.get(sessionId);
-		if (!adapterType) {
-			throw new Error(`Unknown session: ${sessionId}`);
-		}
+    return this.toAgentClient(managed);
+  }
 
-		const adapter = this.adapters.get(adapterType);
-		if (!adapter) {
-			throw new Error(`Adapter not found for type: ${adapterType}`);
-		}
+  async stopClient(clientId: string): Promise<void> {
+    const managed = this.clients.get(clientId);
+    if (!managed) return;
 
-		await adapter.kill(sessionId);
-		// Note: We don't delete the mapping here so the session can still be queried
-		// The session status will be 'killed' but remains accessible for history
-	}
+    managed.acpClient.stop();
+    managed.status = "stopped";
 
-	async sendMessage(sessionId: string, message: string): Promise<void> {
-		const adapter = this.getAdapterForSession(sessionId);
-		await adapter.sendMessage(sessionId, message);
-	}
+    // Clean up sessions for this client
+    for (const [sessionId, session] of this.sessions.entries()) {
+      if (session.clientId === clientId) {
+        this.sessions.delete(sessionId);
+        this.sessionToClient.delete(sessionId);
+      }
+    }
 
-	getSession(sessionId: string): AgentSession | undefined {
-		const adapterType = this.sessionToAdapter.get(sessionId);
-		if (!adapterType) {
-			return undefined;
-		}
-		const adapter = this.adapters.get(adapterType);
-		return adapter?.getSession(sessionId);
-	}
+    // Clean up approvals for this client
+    for (const [approvalId, approval] of this.approvals.entries()) {
+      if (approval.clientId === clientId) {
+        this.approvals.delete(approvalId);
+      }
+    }
 
-	listAllSessions(): AgentSession[] {
-		const sessions: AgentSession[] = [];
-		for (const adapter of this.adapters.values()) {
-			sessions.push(...adapter.listSessions());
-		}
-		return sessions;
-	}
+    this.clients.delete(clientId);
+  }
 
-	// ---------------------------------------------------------------------------
-	// Approval Operations
-	// ---------------------------------------------------------------------------
+  getClient(clientId: string): AgentClient | undefined {
+    const managed = this.clients.get(clientId);
+    return managed ? this.toAgentClient(managed) : undefined;
+  }
 
-	async approve(approvalId: string, sessionId: string): Promise<void> {
-		const adapter = this.getAdapterForSession(sessionId);
-		await adapter.approve(approvalId);
-	}
+  listClients(): AgentClient[] {
+    return Array.from(this.clients.values()).map((m) => this.toAgentClient(m));
+  }
 
-	async reject(
-		approvalId: string,
-		sessionId: string,
-		reason?: string,
-	): Promise<void> {
-		const adapter = this.getAdapterForSession(sessionId);
-		await adapter.reject(approvalId, reason);
-	}
+  // -------------------------------------------------------------------------
+  // Session Lifecycle
+  // -------------------------------------------------------------------------
 
-	getAllPendingApprovals(): ApprovalRequest[] {
-		const approvals: ApprovalRequest[] = [];
-		for (const adapter of this.adapters.values()) {
-			for (const session of adapter.listSessions()) {
-				approvals.push(...adapter.getPendingApprovals(session.id));
-			}
-		}
-		return approvals;
-	}
+  async createSession(options: CreateSessionOptions): Promise<AgentSession> {
+    const managed = this.clients.get(options.clientId);
+    if (!managed) {
+      throw new Error(`Client not found: ${options.clientId}`);
+    }
 
-	getPendingApprovals(sessionId: string): ApprovalRequest[] {
-		const adapter = this.getAdapterForSession(sessionId);
-		return adapter?.getPendingApprovals(sessionId) ?? [];
-	}
+    if (managed.status !== "ready") {
+      throw new Error(`Client not ready: ${managed.status}`);
+    }
 
-	// ---------------------------------------------------------------------------
-	// Events
-	// ---------------------------------------------------------------------------
+    const cwd = options.cwd ?? managed.cwd;
+    const acpSession = await managed.acpClient.createSession(cwd);
 
-	onEvent(handler: EventHandler): UnsubscribeFn {
-		this.globalHandlers.add(handler);
-		return () => {
-			this.globalHandlers.delete(handler);
-		};
-	}
+    const session: ManagedSession = {
+      id: acpSession.id,
+      clientId: options.clientId,
+      agentType: managed.agentType,
+      status: "idle",
+      cwd,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-	onSessionEvent(sessionId: string, handler: EventHandler): UnsubscribeFn {
-		const adapter = this.getAdapterForSession(sessionId);
-		return adapter.onEvent(sessionId, handler);
-	}
+    this.sessions.set(session.id, session);
+    this.sessionToClient.set(session.id, options.clientId);
 
-	private emitEvent(event: AgentEvent): void {
-		for (const handler of this.globalHandlers) {
-			try {
-				handler(event);
-			} catch (err) {
-				console.error("[SessionManager] Error in event handler:", err);
-			}
-		}
-	}
+    return this.toAgentSession(session);
+  }
 
-	// ---------------------------------------------------------------------------
-	// Cleanup
-	// ---------------------------------------------------------------------------
+  getSession(sessionId: string): AgentSession | undefined {
+    const managed = this.sessions.get(sessionId);
+    return managed ? this.toAgentSession(managed) : undefined;
+  }
 
-	async dispose(): Promise<void> {
-		console.log("[SessionManager] Disposing all adapters...");
+  listSessions(clientId?: string): AgentSession[] {
+    const sessions = Array.from(this.sessions.values());
+    const filtered = clientId
+      ? sessions.filter((s) => s.clientId === clientId)
+      : sessions;
+    return filtered.map((s) => this.toAgentSession(s));
+  }
 
-		const disposePromises = Array.from(this.adapters.values()).map((adapter) =>
-			adapter.dispose(),
-		);
-		await Promise.all(disposePromises);
+  // -------------------------------------------------------------------------
+  // Communication
+  // -------------------------------------------------------------------------
 
-		this.adapters.clear();
-		this.sessionToAdapter.clear();
-		this.globalHandlers.clear();
-	}
+  async sendMessage(sessionId: string, message: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
 
-	// ---------------------------------------------------------------------------
-	// Private Helpers
-	// ---------------------------------------------------------------------------
+    const managed = this.clients.get(session.clientId);
+    if (!managed) {
+      throw new Error(`Client not found: ${session.clientId}`);
+    }
 
-	private getAdapterForSession(sessionId: string): AgentAdapter {
-		const adapterType = this.sessionToAdapter.get(sessionId);
-		if (!adapterType) {
-			throw new Error(`Unknown session: ${sessionId}`);
-		}
+    session.status = "running";
+    session.updatedAt = new Date();
 
-		const adapter = this.adapters.get(adapterType);
-		if (!adapter) {
-			throw new Error(`Adapter not found for type: ${adapterType}`);
-		}
+    try {
+      const result = await managed.acpClient.sendMessage(sessionId, message);
 
-		return adapter;
-	}
+      session.status = "idle";
+      session.updatedAt = new Date();
+
+      this.emitEvent({
+        type: "complete",
+        clientId: session.clientId,
+        sessionId,
+        timestamp: new Date(),
+        payload: { stopReason: result.stopReason },
+      });
+    } catch (error) {
+      session.status = "error";
+      session.updatedAt = new Date();
+      throw error;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Approvals
+  // -------------------------------------------------------------------------
+
+  getPendingApprovals(): ApprovalRequest[] {
+    return Array.from(this.approvals.values()).map((a) =>
+      this.toApprovalRequest(a),
+    );
+  }
+
+  async approveRequest(approvalId: string, optionId: string): Promise<void> {
+    const approval = this.approvals.get(approvalId);
+    if (!approval) {
+      throw new Error(`Approval not found: ${approvalId}`);
+    }
+
+    approval.pending.resolve({
+      outcome: { outcome: "selected", optionId },
+    });
+
+    this.approvals.delete(approvalId);
+
+    // Update session status
+    const session = this.sessions.get(approval.sessionId);
+    if (session && session.status === "waiting-approval") {
+      session.status = "running";
+      session.updatedAt = new Date();
+    }
+  }
+
+  async denyRequest(approvalId: string): Promise<void> {
+    const approval = this.approvals.get(approvalId);
+    if (!approval) {
+      throw new Error(`Approval not found: ${approvalId}`);
+    }
+
+    approval.pending.resolve({
+      outcome: { outcome: "cancelled" },
+    });
+
+    this.approvals.delete(approvalId);
+
+    // Update session status
+    const session = this.sessions.get(approval.sessionId);
+    if (session && session.status === "waiting-approval") {
+      session.status = "running";
+      session.updatedAt = new Date();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Events
+  // -------------------------------------------------------------------------
+
+  onEvent(handler: EventHandler): UnsubscribeFn {
+    this.on("event", handler);
+    return () => this.off("event", handler);
+  }
+
+  onApproval(handler: ApprovalHandler): UnsubscribeFn {
+    this.on("approval", handler);
+    return () => this.off("approval", handler);
+  }
+
+  // -------------------------------------------------------------------------
+  // Cleanup
+  // -------------------------------------------------------------------------
+
+  async dispose(): Promise<void> {
+    for (const managed of this.clients.values()) {
+      managed.acpClient.stop();
+    }
+    this.clients.clear();
+    this.sessions.clear();
+    this.approvals.clear();
+    this.sessionToClient.clear();
+    this.removeAllListeners();
+  }
+
+  // -------------------------------------------------------------------------
+  // Private: Event Handling
+  // -------------------------------------------------------------------------
+
+  private setupClientListeners(clientId: string, acpClient: ACPClient): void {
+    // Handle session updates (streaming)
+    acpClient.on("session:update", (sessionId, notification) => {
+      const event = this.normalizeSessionUpdate(
+        clientId,
+        sessionId,
+        notification,
+      );
+      if (event) {
+        this.emitEvent(event);
+      }
+    });
+
+    // Handle permission requests
+    acpClient.on("permission:request", (pending) => {
+      const approvalId = `approval_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      const approval: ManagedApproval = {
+        id: approvalId,
+        clientId,
+        sessionId: pending.sessionId,
+        createdAt: new Date(),
+        pending,
+        request: pending.request,
+      };
+
+      this.approvals.set(approvalId, approval);
+
+      // Update session status
+      const session = this.sessions.get(pending.sessionId);
+      if (session) {
+        session.status = "waiting-approval";
+        session.updatedAt = new Date();
+      }
+
+      this.emit("approval", this.toApprovalRequest(approval));
+    });
+
+    // Handle errors
+    acpClient.on("agent:error", (error) => {
+      const managed = this.clients.get(clientId);
+      if (managed) {
+        managed.status = "error";
+        managed.error = error;
+      }
+    });
+
+    // Handle exit
+    acpClient.on("agent:exit", () => {
+      const managed = this.clients.get(clientId);
+      if (managed) {
+        managed.status = "stopped";
+      }
+    });
+  }
+
+  private normalizeSessionUpdate(
+    clientId: string,
+    sessionId: string,
+    notification: acp.SessionNotification,
+  ): AgentEvent | null {
+    const update = notification.update;
+    const timestamp = new Date();
+
+    switch (update.sessionUpdate) {
+      case "agent_thought_chunk":
+        return {
+          type: "thinking",
+          clientId,
+          sessionId,
+          timestamp,
+          payload: {
+            content:
+              update.content.type === "text" ? update.content.text : "",
+          },
+        };
+
+      case "agent_message_chunk":
+        return {
+          type: "message",
+          clientId,
+          sessionId,
+          timestamp,
+          payload: {
+            content:
+              update.content.type === "text" ? update.content.text : "",
+          },
+        };
+
+      case "tool_call":
+        return {
+          type: "tool-call",
+          clientId,
+          sessionId,
+          timestamp,
+          payload: {
+            toolCallId: update.toolCallId,
+            title: update.title,
+            kind: update.kind,
+            status: update.status,
+          },
+        };
+
+      case "tool_call_update":
+        return {
+          type: "tool-update",
+          clientId,
+          sessionId,
+          timestamp,
+          payload: {
+            toolCallId: update.toolCallId,
+            status: update.status,
+            content: update.content,
+          },
+        };
+
+      case "plan":
+        return {
+          type: "plan",
+          clientId,
+          sessionId,
+          timestamp,
+          payload: { entries: update.entries },
+        };
+
+      default:
+        return null;
+    }
+  }
+
+  private emitEvent(event: AgentEvent): void {
+    this.emit("event", event);
+  }
+
+  // -------------------------------------------------------------------------
+  // Private: Type Conversions
+  // -------------------------------------------------------------------------
+
+  private toAgentClient(managed: ManagedClient): AgentClient {
+    return {
+      id: managed.id,
+      agentType: managed.agentType,
+      status: managed.status,
+      cwd: managed.cwd,
+      createdAt: managed.createdAt,
+      capabilities: managed.capabilities
+        ? {
+            loadSession: managed.capabilities.agentCapabilities?.loadSession ?? false,
+            promptCapabilities: {
+              image: managed.capabilities.agentCapabilities?.promptCapabilities?.image ?? false,
+              audio: managed.capabilities.agentCapabilities?.promptCapabilities?.audio ?? false,
+              embeddedContext: managed.capabilities.agentCapabilities?.promptCapabilities?.embeddedContext ?? false,
+            },
+            mcpCapabilities: {
+              http: managed.capabilities.agentCapabilities?.mcpCapabilities?.http ?? false,
+              sse: managed.capabilities.agentCapabilities?.mcpCapabilities?.sse ?? false,
+            },
+          }
+        : undefined,
+      error: managed.error?.message,
+    };
+  }
+
+  private toAgentSession(managed: ManagedSession): AgentSession {
+    return {
+      id: managed.id,
+      clientId: managed.clientId,
+      agentType: managed.agentType,
+      status: managed.status,
+      cwd: managed.cwd,
+      createdAt: managed.createdAt,
+      updatedAt: managed.updatedAt,
+    };
+  }
+
+  private toApprovalRequest(managed: ManagedApproval): ApprovalRequest {
+    const toolCall = managed.request.toolCall;
+    const options: ApprovalOption[] = (managed.request.options ?? []).map(
+      (opt) => ({
+        optionId: opt.optionId,
+        name: opt.name,
+        kind: opt.kind,
+        description: (opt as { description?: string }).description,
+      }),
+    );
+
+    return {
+      id: managed.id,
+      clientId: managed.clientId,
+      sessionId: managed.sessionId,
+      status: "pending",
+      createdAt: managed.createdAt,
+      toolCall: {
+        toolCallId: toolCall?.toolCallId ?? "",
+        title: toolCall?.title ?? "Unknown",
+        kind: toolCall?.kind ?? "unknown",
+      },
+      options,
+    };
+  }
 }
 
 // Singleton instance
-let instance: SessionManager | null = null;
+let managerInstance: AgentManager | null = null;
 
-export function getSessionManager(): SessionManager {
-	if (!instance) {
-		instance = new SessionManager();
-	}
-	return instance;
-}
-
-export function resetSessionManager(): void {
-	if (instance) {
-		instance.dispose();
-		instance = null;
-	}
+/**
+ * Get the global AgentManager instance
+ */
+export function getAgentManager(): AgentManager {
+  if (!managerInstance) {
+    managerInstance = new AgentManager();
+  }
+  return managerInstance;
 }

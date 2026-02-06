@@ -20,7 +20,7 @@ const client = createACPClient(agentType, process.cwd());
 client.on("agent:ready", (capabilities) => {
   console.log("✅ Agent ready!");
   console.log("   Protocol version:", capabilities.protocolVersion);
-  console.log("   Auth methods:", capabilities.authMethods?.map((m) => m.name).join(", "));
+  console.log("   Auth methods:", capabilities.authMethods?.map((m: { name: string }) => m.name).join(", "));
   console.log("   Capabilities:", JSON.stringify(capabilities.agentCapabilities, null, 2));
 });
 
@@ -32,7 +32,7 @@ client.on("agent:exit", (code) => {
   console.log(`👋 Agent exited with code: ${code}`);
 });
 
-client.on("session:update", (sessionId, notification) => {
+client.on("session:update", (_sessionId, notification) => {
   const update = notification.update;
 
   switch (update.sessionUpdate) {
@@ -60,7 +60,7 @@ client.on("session:update", (sessionId, notification) => {
 client.on("permission:request", (permission) => {
   console.log("\n🔐 Permission requested!");
   console.log("   Tool:", permission.request.toolCall?.title);
-  console.log("   Options:", permission.request.options?.map((o) => o.name).join(", "));
+  console.log("   Options:", permission.request.options?.map((o: { name: string }) => o.name).join(", "));
 
   // Auto-approve for testing
   const firstOption = permission.request.options?.[0];

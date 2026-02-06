@@ -243,7 +243,7 @@ export class ACPClient extends EventEmitter {
 
     pending.resolve({
       outcome: {
-        outcome: "denied",
+        outcome: "cancelled",
       },
     });
 

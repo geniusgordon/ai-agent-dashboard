@@ -1,163 +1,119 @@
-import type { TRPCRouterRecord } from "@trpc/server";
+/**
+ * Sessions Router - tRPC endpoints for agent session management
+ */
+
 import { z } from "zod";
-import { publicProcedure } from "@/integrations/trpc/init";
-import {
-	type AgentType,
-	ClaudeCodeAdapter,
-	CodexAdapter,
-	GeminiAdapter,
-	getSessionManager,
-} from "@/lib/agents";
+import { publicProcedure, createTRPCRouter } from "../../integrations/trpc/init.js";
+import { getAgentManager } from "../../lib/agents/index.js";
 
-// Initialize adapters on first use
-let initialized = false;
-function ensureInitialized() {
-	if (initialized) return;
-	const manager = getSessionManager();
-	manager.registerAdapter(new ClaudeCodeAdapter());
-	manager.registerAdapter(new CodexAdapter());
-	manager.registerAdapter(new GeminiAdapter());
-	initialized = true;
-}
+const AgentTypeSchema = z.enum(["gemini", "claude-code", "codex"]);
 
-// Input schemas
-const agentTypeSchema = z.enum([
-	"claude-code",
-	"codex",
-	"gemini",
-]) satisfies z.ZodType<AgentType>;
+export const sessionsRouter = createTRPCRouter({
+  // ---------------------------------------------------------------------------
+  // Client Management
+  // ---------------------------------------------------------------------------
 
-const spawnInputSchema = z.object({
-	type: agentTypeSchema,
-	cwd: z.string(),
-	prompt: z.string(),
-	model: z.string().optional(),
-	permissionMode: z
-		.enum(["default", "acceptEdits", "plan", "bypassPermissions"])
-		.optional(),
+  /**
+   * Spawn a new ACP client for an agent type
+   */
+  spawnClient: publicProcedure
+    .input(
+      z.object({
+        agentType: AgentTypeSchema,
+        cwd: z.string(),
+        env: z.record(z.string(), z.string()).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      return manager.spawnClient(input);
+    }),
+
+  /**
+   * Stop a client
+   */
+  stopClient: publicProcedure
+    .input(z.object({ clientId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      await manager.stopClient(input.clientId);
+      return { success: true };
+    }),
+
+  /**
+   * List all clients
+   */
+  listClients: publicProcedure.query(async () => {
+    const manager = getAgentManager();
+    return manager.listClients();
+  }),
+
+  /**
+   * Get a specific client
+   */
+  getClient: publicProcedure
+    .input(z.object({ clientId: z.string() }))
+    .query(async ({ input }) => {
+      const manager = getAgentManager();
+      return manager.getClient(input.clientId) ?? null;
+    }),
+
+  // ---------------------------------------------------------------------------
+  // Session Management
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Create a new session on a client
+   */
+  createSession: publicProcedure
+    .input(
+      z.object({
+        clientId: z.string(),
+        cwd: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      return manager.createSession(input);
+    }),
+
+  /**
+   * List all sessions (optionally filtered by client)
+   */
+  listSessions: publicProcedure
+    .input(z.object({ clientId: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const manager = getAgentManager();
+      return manager.listSessions(input?.clientId);
+    }),
+
+  /**
+   * Get a specific session
+   */
+  getSession: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(async ({ input }) => {
+      const manager = getAgentManager();
+      return manager.getSession(input.sessionId) ?? null;
+    }),
+
+  // ---------------------------------------------------------------------------
+  // Communication
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Send a message to a session
+   */
+  sendMessage: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+        message: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      await manager.sendMessage(input.sessionId, input.message);
+      return { success: true };
+    }),
 });
-
-const sessionIdSchema = z.object({
-	sessionId: z.string().uuid(),
-});
-
-const sendMessageSchema = z.object({
-	sessionId: z.string().uuid(),
-	message: z.string(),
-});
-
-// Router
-export const sessionsRouter = {
-	/**
-	 * List all sessions
-	 */
-	list: publicProcedure.query(() => {
-		ensureInitialized();
-		const manager = getSessionManager();
-		const sessions = manager.listAllSessions();
-
-		return sessions.map((s) => ({
-			id: s.id,
-			type: s.type,
-			status: s.status,
-			cwd: s.cwd,
-			prompt: s.prompt,
-			model: s.model,
-			createdAt: s.createdAt.toISOString(),
-			updatedAt: s.updatedAt.toISOString(),
-		}));
-	}),
-
-	/**
-	 * Get a single session by ID
-	 */
-	get: publicProcedure.input(sessionIdSchema).query(({ input }) => {
-		ensureInitialized();
-		const manager = getSessionManager();
-		const session = manager.getSession(input.sessionId);
-
-		if (!session) {
-			return null;
-		}
-
-		return {
-			id: session.id,
-			type: session.type,
-			status: session.status,
-			cwd: session.cwd,
-			prompt: session.prompt,
-			model: session.model,
-			nativeSessionId: session.nativeSessionId,
-			error: session.error,
-			createdAt: session.createdAt.toISOString(),
-			updatedAt: session.updatedAt.toISOString(),
-		};
-	}),
-
-	/**
-	 * Create a new session
-	 */
-	create: publicProcedure
-		.input(spawnInputSchema)
-		.mutation(async ({ input }) => {
-			ensureInitialized();
-			const manager = getSessionManager();
-
-			const session = await manager.spawn({
-				type: input.type,
-				cwd: input.cwd,
-				prompt: input.prompt,
-				model: input.model,
-				permissionMode: input.permissionMode,
-			});
-
-			return {
-				id: session.id,
-				type: session.type,
-				status: session.status,
-				cwd: session.cwd,
-				createdAt: session.createdAt.toISOString(),
-			};
-		}),
-
-	/**
-	 * Kill a session
-	 */
-	kill: publicProcedure.input(sessionIdSchema).mutation(async ({ input }) => {
-		ensureInitialized();
-		const manager = getSessionManager();
-		await manager.kill(input.sessionId);
-		return { success: true };
-	}),
-
-	/**
-	 * Send a message to a running session
-	 */
-	sendMessage: publicProcedure
-		.input(sendMessageSchema)
-		.mutation(async ({ input }) => {
-			ensureInitialized();
-			const manager = getSessionManager();
-			await manager.sendMessage(input.sessionId, input.message);
-			return { success: true };
-		}),
-
-	/**
-	 * Get pending approvals for a session
-	 */
-	getApprovals: publicProcedure.input(sessionIdSchema).query(({ input }) => {
-		ensureInitialized();
-		const manager = getSessionManager();
-		const approvals = manager.getPendingApprovals(input.sessionId);
-
-		return approvals.map((a) => ({
-			id: a.id,
-			sessionId: a.sessionId,
-			type: a.type,
-			status: a.status,
-			description: a.description,
-			details: a.details,
-			createdAt: a.createdAt.toISOString(),
-		}));
-	}),
-} satisfies TRPCRouterRecord;
