@@ -11,9 +11,10 @@ interface ClientCardProps {
   sessionCount: number;
   onCreateSession?: () => void;
   onStop?: () => void;
+  isCreatingSession?: boolean;
 }
 
-export function ClientCard({ client, sessionCount, onCreateSession, onStop }: ClientCardProps) {
+export function ClientCard({ client, sessionCount, onCreateSession, onStop, isCreatingSession }: ClientCardProps) {
   return (
     <div className="
       p-4 rounded-lg border border-slate-700/50 bg-slate-800/50
@@ -61,13 +62,15 @@ export function ClientCard({ client, sessionCount, onCreateSession, onStop }: Cl
           <button
             type="button"
             onClick={onCreateSession}
+            disabled={isCreatingSession}
             className="
               px-3 py-1 rounded-md text-xs font-medium
               bg-green-500/20 text-green-400 border border-green-500/30
               hover:bg-green-500/30 transition-colors cursor-pointer
+              disabled:opacity-50 disabled:cursor-not-allowed
             "
           >
-            + New Session
+            {isCreatingSession ? "Creating..." : "+ New Session"}
           </button>
         )}
       </div>

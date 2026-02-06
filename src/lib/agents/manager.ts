@@ -199,6 +199,77 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   }
 
   // -------------------------------------------------------------------------
+  // Kill / Cleanup
+  // -------------------------------------------------------------------------
+
+  /**
+   * Kill a specific session
+   */
+  killSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    session.status = "killed";
+    session.updatedAt = new Date();
+
+    this.emitEvent({
+      type: "complete",
+      clientId: session.clientId,
+      sessionId,
+      timestamp: new Date(),
+      payload: { stopReason: "killed" },
+    });
+
+    // Remove from tracking
+    this.sessions.delete(sessionId);
+    this.sessionToClient.delete(sessionId);
+    this.sessionEvents.delete(sessionId);
+
+    // Remove related approvals
+    for (const [approvalId, approval] of this.approvals) {
+      if (approval.sessionId === sessionId) {
+        this.approvals.delete(approvalId);
+      }
+    }
+  }
+
+  /**
+   * Kill an entire client (and all its sessions)
+   */
+  killClient(clientId: string): void {
+    const managed = this.clients.get(clientId);
+    if (!managed) {
+      throw new Error(`Client not found: ${clientId}`);
+    }
+
+    // Kill all sessions for this client
+    for (const [sessionId, session] of this.sessions) {
+      if (session.clientId === clientId) {
+        session.status = "killed";
+        this.sessions.delete(sessionId);
+        this.sessionToClient.delete(sessionId);
+        this.sessionEvents.delete(sessionId);
+      }
+    }
+
+    // Remove related approvals
+    for (const [approvalId, approval] of this.approvals) {
+      if (approval.clientId === clientId) {
+        this.approvals.delete(approvalId);
+      }
+    }
+
+    // Stop the ACP process
+    managed.acpClient.stop();
+    managed.status = "stopped";
+
+    // Remove from tracking
+    this.clients.delete(clientId);
+  }
+
+  // -------------------------------------------------------------------------
   // Communication
   // -------------------------------------------------------------------------
 

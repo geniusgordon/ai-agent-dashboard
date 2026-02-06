@@ -126,4 +126,26 @@ export const sessionsRouter = createTRPCRouter({
       const manager = getAgentManager();
       return manager.getSessionEvents(input.sessionId);
     }),
+
+  /**
+   * Kill a session
+   */
+  killSession: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      manager.killSession(input.sessionId);
+      return { success: true };
+    }),
+
+  /**
+   * Kill a client (and all its sessions)
+   */
+  killClient: publicProcedure
+    .input(z.object({ clientId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      manager.killClient(input.clientId);
+      return { success: true };
+    }),
 });

@@ -53,8 +53,8 @@ function DashboardOverview() {
     })
   );
 
-  const stopClientMutation = useMutation(
-    trpc.sessions.stopClient.mutationOptions({
+  const killClientMutation = useMutation(
+    trpc.sessions.killClient.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: trpc.sessions.listClients.queryKey() });
         queryClient.invalidateQueries({ queryKey: trpc.sessions.listSessions.queryKey() });
@@ -79,7 +79,9 @@ function DashboardOverview() {
   };
 
   const handleStopClient = (clientId: string) => {
-    stopClientMutation.mutate({ clientId });
+    if (confirm("Kill this client and all its sessions?")) {
+      killClientMutation.mutate({ clientId });
+    }
   };
 
   const handleCreateSession = (clientId: string) => {
@@ -199,6 +201,7 @@ function DashboardOverview() {
                 sessionCount={sessions.filter((s) => s.clientId === client.id).length}
                 onCreateSession={() => handleCreateSession(client.id)}
                 onStop={() => handleStopClient(client.id)}
+                isCreatingSession={createSessionMutation.isPending && createSessionMutation.variables?.clientId === client.id}
               />
             ))}
           </div>

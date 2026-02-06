@@ -14,6 +14,18 @@ export const Route = createFileRoute("/dashboard/sessions/$sessionId")({
   component: SessionDetailPage,
 });
 
+// Helper to extract content from various payload formats
+function extractContent(payload: Record<string, unknown>): string {
+  if (typeof payload.content === "string") {
+    return payload.content;
+  }
+  if (typeof payload.content === "object" && payload.content !== null) {
+    const nested = payload.content as Record<string, unknown>;
+    return (nested.text as string) ?? "";
+  }
+  return "";
+}
+
 function SessionDetailPage() {
   const { sessionId } = Route.useParams();
   const trpc = useTRPC();
@@ -58,9 +70,34 @@ function SessionDetailPage() {
     }
   }, [eventsQuery.data]);
 
-  // Handle incoming events
+  // Handle incoming events - merge consecutive message chunks
   const handleEvent = useCallback((event: AgentEvent) => {
-    setEvents((prev) => [...prev, event]);
+    setEvents((prev) => {
+      // Try to merge with last event if both are message/thinking chunks
+      if (prev.length > 0) {
+        const last = prev[prev.length - 1];
+        const canMerge = 
+          last.type === event.type && 
+          (event.type === "message" || event.type === "thinking") &&
+          last.sessionId === event.sessionId;
+        
+        if (canMerge) {
+          const lastPayload = last.payload as Record<string, unknown>;
+          const newPayload = event.payload as Record<string, unknown>;
+          const lastContent = extractContent(lastPayload);
+          const newContent = extractContent(newPayload);
+          
+          // Merge contents
+          const merged = {
+            ...last,
+            payload: { ...lastPayload, content: lastContent + newContent },
+            timestamp: event.timestamp,
+          };
+          return [...prev.slice(0, -1), merged];
+        }
+      }
+      return [...prev, event];
+    });
     
     // Refresh session status when complete or error
     if (event.type === "complete" || event.type === "error") {
@@ -116,6 +153,20 @@ function SessionDetailPage() {
       onSuccess: () => {
         queryClient.invalidateQueries({ 
           queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
+        });
+      },
+    })
+  );
+
+  // Kill session mutation
+  const killSessionMutation = useMutation(
+    trpc.sessions.killSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ 
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }) 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: trpc.sessions.listSessions.queryKey() 
         });
       },
     })
@@ -220,6 +271,20 @@ function SessionDetailPage() {
           >
             Auto-scroll {autoScroll ? "ON" : "OFF"}
           </button>
+          {session.status !== "completed" && session.status !== "killed" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Kill this session?")) {
+                  killSessionMutation.mutate({ sessionId });
+                }
+              }}
+              disabled={killSessionMutation.isPending}
+              className="px-3 py-1.5 rounded-lg text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {killSessionMutation.isPending ? "Killing..." : "Kill"}
+            </button>
+          )}
         </div>
       </div>
 
