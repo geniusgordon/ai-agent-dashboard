@@ -13,17 +13,19 @@ interface SessionCardProps {
 
 export function SessionCard({ session }: SessionCardProps) {
 	const timeAgo = getTimeAgo(session.createdAt);
+	const isInactive = session.isActive === false;
 
 	return (
 		<Link
 			to="/dashboard/sessions/$sessionId"
 			params={{ sessionId: session.id }}
-			className="
-        block p-4 rounded-lg border border-slate-700/50 bg-slate-800/50
-        hover:bg-slate-800 hover:border-slate-600/50
-        transition-all duration-200 cursor-pointer
-        group
-      "
+			className={`
+        block p-4 rounded-lg border transition-all duration-200 cursor-pointer group
+        ${isInactive 
+          ? "border-slate-700/30 bg-slate-900/30 opacity-60" 
+          : "border-slate-700/50 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600/50"
+        }
+      `}
 		>
 			<div className="flex items-start justify-between gap-4">
 				<div className="flex-1 min-w-0">
@@ -31,6 +33,11 @@ export function SessionCard({ session }: SessionCardProps) {
 					<div className="flex items-center gap-2 mb-2">
 						<AgentBadge type={session.agentType} size="sm" />
 						<StatusBadge status={session.status} />
+						{isInactive && (
+							<span className="text-xs px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-500">
+								History
+							</span>
+						)}
 					</div>
 
 					{/* Session Name or ID */}

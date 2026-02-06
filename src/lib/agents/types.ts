@@ -38,6 +38,8 @@ export interface AgentSession {
 	createdAt: Date;
 	updatedAt: Date;
 	error?: string;
+	/** Whether this session has an active client connection */
+	isActive?: boolean;
 }
 
 export interface AgentClient {

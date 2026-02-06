@@ -265,6 +265,13 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 	}
 
 	listSessions(clientId?: string): AgentSession[] {
+		// Get active client IDs
+		const activeClientIds = new Set(
+			Array.from(this.clients.values())
+				.filter((c) => c.acpClient.isRunning())
+				.map((c) => c.id),
+		);
+
 		// Combine in-memory and stored sessions
 		const memSessions = Array.from(this.sessions.values());
 		const storedSessions = store.loadAllSessions();
@@ -272,7 +279,10 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 		// Merge: prefer in-memory sessions
 		const memIds = new Set(memSessions.map((s) => s.id));
 		const allSessions: AgentSession[] = [
-			...memSessions.map((s) => this.toAgentSession(s)),
+			...memSessions.map((s) => ({
+				...this.toAgentSession(s),
+				isActive: activeClientIds.has(s.clientId),
+			})),
 			...storedSessions
 				.filter((s) => !memIds.has(s.id))
 				.map((s) => ({
@@ -284,6 +294,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 					status: s.status,
 					createdAt: new Date(s.createdAt),
 					updatedAt: new Date(s.updatedAt),
+					isActive: false, // Stored sessions without in-memory counterpart are inactive
 				})),
 		];
 
@@ -488,16 +499,66 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 			return memEvents;
 		}
 
-		// Load from disk
+		// Load from disk and merge consecutive message/thinking chunks
 		const stored = store.loadSession(sessionId);
 		if (stored) {
-			return stored.events.map((e) => ({
+			const events = stored.events.map((e) => ({
 				...e,
 				timestamp: new Date(e.timestamp),
-			}));
+			})) as AgentEvent[];
+
+			return this.mergeConsecutiveEvents(events);
 		}
 
 		return [];
+	}
+
+	/**
+	 * Merge consecutive message/thinking events with same sender
+	 */
+	private mergeConsecutiveEvents(events: AgentEvent[]): AgentEvent[] {
+		const merged: AgentEvent[] = [];
+
+		for (const event of events) {
+			const last = merged[merged.length - 1];
+
+			if (last) {
+				const lastPayload = last.payload as Record<string, unknown>;
+				const newPayload = event.payload as Record<string, unknown>;
+				const lastIsUser = lastPayload.isUser === true;
+				const newIsUser = newPayload.isUser === true;
+
+				const canMerge =
+					last.type === event.type &&
+					(event.type === "message" || event.type === "thinking") &&
+					last.sessionId === event.sessionId &&
+					lastIsUser === newIsUser;
+
+				if (canMerge) {
+					// Extract content
+					const getContent = (p: Record<string, unknown>): string => {
+						if (typeof p.content === "string") return p.content;
+						if (typeof p.content === "object" && p.content !== null) {
+							const nested = p.content as Record<string, unknown>;
+							return (nested.text as string) ?? "";
+						}
+						return "";
+					};
+
+					const lastContent = getContent(lastPayload);
+					const newContent = getContent(newPayload);
+
+					// Update last event with merged content
+					last.payload = { ...lastPayload, content: lastContent + newContent };
+					last.timestamp = event.timestamp;
+					continue;
+				}
+			}
+
+			merged.push({ ...event });
+		}
+
+		return merged;
 	}
 
 	onEvent(handler: EventHandler): UnsubscribeFn {
