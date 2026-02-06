@@ -23,6 +23,7 @@
 // Adapters
 export { BaseAdapter } from "./adapters/base";
 export { ClaudeCodeAdapter } from "./adapters/claude";
+export { CodexAdapter } from "./adapters/codex";
 // Manager
 export {
 	getSessionManager,

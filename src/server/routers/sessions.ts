@@ -4,6 +4,7 @@ import { publicProcedure } from "@/integrations/trpc/init";
 import {
 	type AgentType,
 	ClaudeCodeAdapter,
+	CodexAdapter,
 	getSessionManager,
 } from "@/lib/agents";
 
@@ -13,7 +14,7 @@ function ensureInitialized() {
 	if (initialized) return;
 	const manager = getSessionManager();
 	manager.registerAdapter(new ClaudeCodeAdapter());
-	// TODO: Add CodexAdapter when ready
+	manager.registerAdapter(new CodexAdapter());
 	initialized = true;
 }
 
