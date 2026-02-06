@@ -6,7 +6,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTRPC } from "../../integrations/trpc/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClientCard, SessionCard, AgentBadge } from "../../components/dashboard";
+import { useAgentEvents } from "../../hooks/useAgentEvents";
+import { ClientCard, SessionCard, AgentBadge, ErrorDisplay } from "../../components/dashboard";
 import type { AgentType } from "../../lib/agents/types";
 
 export const Route = createFileRoute("/dashboard/")({
@@ -25,6 +26,19 @@ function DashboardOverview() {
 
   const clients = clientsQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
+
+  // Subscribe to real-time events for status updates
+  useAgentEvents({
+    onEvent: (event) => {
+      if (event.type === "complete" || event.type === "error") {
+        queryClient.invalidateQueries({ queryKey: trpc.sessions.listSessions.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.sessions.listClients.queryKey() });
+      }
+    },
+    onApproval: () => {
+      queryClient.invalidateQueries({ queryKey: trpc.sessions.listSessions.queryKey() });
+    },
+  });
 
   // Mutations
   const spawnClientMutation = useMutation(
@@ -134,11 +148,27 @@ function DashboardOverview() {
         </div>
 
         {spawnClientMutation.isError && (
-          <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-            Error: {spawnClientMutation.error?.message}
+          <div className="mt-4">
+            <ErrorDisplay
+              error={spawnClientMutation.error}
+              title="Failed to spawn agent"
+              onRetry={() => spawnClientMutation.reset()}
+            />
           </div>
         )}
       </div>
+
+      {/* Query Errors */}
+      {(clientsQuery.isError || sessionsQuery.isError) && (
+        <ErrorDisplay
+          error={clientsQuery.error || sessionsQuery.error}
+          title="Failed to load data"
+          onRetry={() => {
+            clientsQuery.refetch();
+            sessionsQuery.refetch();
+          }}
+        />
+      )}
 
       {/* Clients Grid */}
       <div>

@@ -4,8 +4,9 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../../../integrations/trpc/react";
+import { useAgentEvents } from "../../../hooks/useAgentEvents";
 import { SessionCard } from "../../../components/dashboard";
 
 export const Route = createFileRoute("/dashboard/sessions/")({
@@ -14,10 +15,23 @@ export const Route = createFileRoute("/dashboard/sessions/")({
 
 function SessionsPage() {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "running" | "completed">("all");
 
   const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
   const sessions = sessionsQuery.data ?? [];
+
+  // Subscribe to real-time events for status updates
+  useAgentEvents({
+    onEvent: (event) => {
+      if (event.type === "complete" || event.type === "error") {
+        queryClient.invalidateQueries({ queryKey: trpc.sessions.listSessions.queryKey() });
+      }
+    },
+    onApproval: () => {
+      queryClient.invalidateQueries({ queryKey: trpc.sessions.listSessions.queryKey() });
+    },
+  });
 
   const filteredSessions = sessions.filter((session) => {
     if (filter === "all") return true;
