@@ -569,13 +569,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     session.currentModeId = modeId;
     session.updatedAt = new Date();
 
-    this.emitEvent({
-      type: "message",
-      clientId: session.clientId,
-      sessionId,
-      timestamp: new Date(),
-      payload: { content: `Mode changed to: ${modeId}`, isSystem: true },
-    });
+    // Note: Not emitting event - mode change is shown in the mode selector UI
   }
 
   // -------------------------------------------------------------------------
