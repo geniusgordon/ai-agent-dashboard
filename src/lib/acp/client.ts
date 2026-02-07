@@ -290,7 +290,7 @@ export class ACPClient extends EventEmitter {
    * Load an existing session (reconnect)
    * Only works if agent supports loadSession capability
    */
-  async loadSession(sessionId: string): Promise<Session> {
+  async loadSession(sessionId: string, cwd?: string): Promise<Session> {
     if (!this.connection) {
       throw new Error("Client not started. Call start() first.");
     }
@@ -299,8 +299,16 @@ export class ACPClient extends EventEmitter {
       throw new Error("Agent does not support loadSession");
     }
 
-    console.log(`[ACPClient] Loading session: ${sessionId}`);
-    const result = await this.connection.loadSession({ sessionId });
+    const expandedCwd = (cwd ?? this.cwd).startsWith("~")
+      ? (cwd ?? this.cwd).replace("~", process.env.HOME ?? "")
+      : (cwd ?? this.cwd);
+
+    console.log(`[ACPClient] Loading session: ${sessionId} with cwd: ${expandedCwd}`);
+    const result = await this.connection.loadSession({ 
+      sessionId,
+      cwd: expandedCwd,
+      mcpServers: [],
+    });
     console.log(`[ACPClient] Session loaded: ${result.sessionId}`);
 
     const session: Session = {

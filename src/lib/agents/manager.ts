@@ -361,9 +361,10 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     
     if (supportsLoad) {
       // Load existing session
-      console.log(`[reconnectSession] Loading session ${sessionId} with loadSession`);
+      const sessionCwd = stored.cwd ?? process.cwd();
+      console.log(`[reconnectSession] Loading session ${sessionId} with loadSession, cwd: ${sessionCwd}`);
       try {
-        await managed.acpClient.loadSession(sessionId);
+        await managed.acpClient.loadSession(sessionId, sessionCwd);
       } catch (error) {
         console.error(`[reconnectSession] loadSession failed:`, error);
         // Fall back to creating new session
