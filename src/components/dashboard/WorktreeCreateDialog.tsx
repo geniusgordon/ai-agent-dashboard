@@ -38,7 +38,8 @@ export function WorktreeCreateDialog({
     trpc.projects.listBranches.queryOptions({ projectId }, { enabled: open }),
   );
 
-  const branches = branchesQuery.data ?? [];
+  const branches = (branchesQuery.data ?? []).filter((b) => b !== "HEAD");
+  const defaultBranch = branches.includes("main") ? "main" : branches[0] ?? "";
 
   const createMutation = useMutation(
     trpc.worktrees.create.mutationOptions({
@@ -59,7 +60,7 @@ export function WorktreeCreateDialog({
       projectId,
       branchName,
       createNewBranch,
-      baseBranch: createNewBranch && baseBranch ? baseBranch : undefined,
+      baseBranch: createNewBranch ? baseBranch || defaultBranch || undefined : undefined,
     });
   };
 
@@ -160,7 +161,7 @@ export function WorktreeCreateDialog({
                 >
                   Base Branch
                   <span className="text-muted-foreground font-normal ml-1">
-                    (optional, defaults to HEAD)
+                    (optional, defaults to {defaultBranch || "main"})
                   </span>
                 </label>
                 <select
@@ -169,7 +170,7 @@ export function WorktreeCreateDialog({
                   onChange={(e) => setBaseBranch(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="">HEAD (default)</option>
+                  <option value="">{defaultBranch || "main"} (default)</option>
                   {branches.map((b) => (
                     <option key={b} value={b}>
                       {b}

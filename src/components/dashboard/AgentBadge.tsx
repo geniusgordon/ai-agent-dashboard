@@ -4,6 +4,12 @@
 
 import type { LucideIcon } from "lucide-react";
 import { Bot, Hexagon, Sparkles } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { AgentType } from "../../lib/agents/types";
 
 const agentConfig: Record<
@@ -30,12 +36,30 @@ const agentConfig: Record<
 interface AgentBadgeProps {
   type: AgentType;
   size?: "sm" | "md";
+  iconOnly?: boolean;
 }
 
-export function AgentBadge({ type, size = "md" }: AgentBadgeProps) {
+export function AgentBadge({ type, size = "md", iconOnly }: AgentBadgeProps) {
   const config = agentConfig[type];
   const sizeClasses =
     size === "sm" ? "px-2 py-0.5 text-xs" : "px-3 py-1 text-sm";
+
+  if (iconOnly) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={`inline-flex items-center justify-center rounded-full border font-medium p-1 ${config.color}`}
+            >
+              <config.icon className="size-3" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{config.label}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <span

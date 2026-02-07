@@ -1,287 +1,94 @@
 import { Link } from "@tanstack/react-router";
 import {
-  ArrowDownToLine,
   ArrowLeft,
-  ChevronDown,
+  Clock,
+  FolderGit2,
   Loader2,
-  Pause,
-  Pencil,
   Square,
-  Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { AgentBadge, BranchBadge, StatusBadge } from "@/components/dashboard";
+import { AgentBadge } from "@/components/dashboard/AgentBadge";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { AgentSession } from "@/lib/agents/types";
 
 export interface SessionHeaderProps {
   session: AgentSession;
-  connected: boolean;
-  autoScroll: boolean;
-  onToggleAutoScroll: () => void;
-  onClearLogs: () => void;
   onKillSession: () => void;
   isKilling: boolean;
-  onRename: (name: string) => void;
-  isRenaming: boolean;
-  onSetMode?: (modeId: string) => void;
-  isSettingMode?: boolean;
-  onDeleteSession?: () => void;
-  isDeleting?: boolean;
-  /** Override back-link target (defaults to /dashboard) */
+  /** Back link target — string path or object for Link `to` */
   backTo?: string;
-  /** Branch name for the worktree this session is assigned to */
-  branch?: string;
+  /** Route params for the back link (e.g., { projectId }) */
+  backParams?: Record<string, string>;
+  /** Project name to display in metadata row */
+  projectName?: string;
 }
 
 export function SessionHeader({
   session,
-  connected,
-  autoScroll,
-  onToggleAutoScroll,
-  onClearLogs,
   onKillSession,
   isKilling,
-  onRename,
-  isRenaming,
-  onSetMode,
-  isSettingMode,
-  onDeleteSession,
-  isDeleting,
-  backTo = "/dashboard",
-  branch,
+  backTo,
+  backParams,
+  projectName,
 }: SessionHeaderProps) {
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editName, setEditName] = useState("");
-  const wasRenaming = useRef(false);
-  const [showModeDropdown, setShowModeDropdown] = useState(false);
-  const modeDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close mode dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        modeDropdownRef.current &&
-        !modeDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowModeDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Close edit form when rename mutation completes
-  useEffect(() => {
-    if (wasRenaming.current && !isRenaming) {
-      setIsEditingName(false);
-    }
-    wasRenaming.current = isRenaming;
-  }, [isRenaming]);
+  const isMobile = useIsMobile();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0 flex-1 min-w-[200px]">
-        <Link
-          to={backTo}
-          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-200 cursor-pointer shrink-0"
-        >
-          <ArrowLeft className="size-4" />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <AgentBadge type={session.agentType} size="sm" />
-            <StatusBadge status={session.status} />
-            {branch && <BranchBadge branch={branch} size="sm" />}
-            {/* Mode Selector */}
-            {session.availableModes && session.availableModes.length > 0 && (
-              <div className="relative" ref={modeDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowModeDropdown(!showModeDropdown)}
-                  disabled={isSettingMode}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-md transition-colors duration-200 cursor-pointer disabled:opacity-50"
-                >
-                  {isSettingMode ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <>
-                      {session.availableModes.find(
-                        (m) => m.id === session.currentModeId,
-                      )?.name ||
-                        session.currentModeId ||
-                        "Mode"}
-                      <ChevronDown className="size-3" />
-                    </>
-                  )}
-                </button>
-                {showModeDropdown && (
-                  <div className="absolute top-full left-0 mt-1 z-50 min-w-[140px] bg-card border border-border rounded-lg shadow-lg py-1">
-                    {session.availableModes.map((mode) => (
-                      <button
-                        key={mode.id}
-                        type="button"
-                        onClick={() => {
-                          onSetMode?.(mode.id);
-                          setShowModeDropdown(false);
-                        }}
-                        className={`w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors duration-150 cursor-pointer ${
-                          mode.id === session.currentModeId
-                            ? "text-primary font-medium"
-                            : "text-foreground"
-                        }`}
-                      >
-                        <div>{mode.name}</div>
-                        {mode.description && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            {mode.description}
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {connected ? (
-              <span className="text-xs font-medium text-live flex items-center gap-1.5 shadow-live-glow">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-live" />
-                </span>
-                Live
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Loader2 className="size-3 animate-spin" />
-                Connecting
-              </span>
-            )}
-          </div>
-          {/* Session Name (non-editing mode) */}
-          {!isEditingName && (
-            <button
-              type="button"
-              className="font-mono text-sm text-muted-foreground mt-1 cursor-pointer hover:text-foreground inline-flex items-center gap-1.5 transition-colors duration-200"
-              onClick={() => {
-                setEditName(session.name || "");
-                setIsEditingName(true);
-              }}
-              title="Click to rename"
-            >
-              {session.name || session.id.slice(0, 8)}
-              <Pencil className="size-3 text-muted-foreground/50" />
-            </button>
-          )}
+    <div className="flex flex-col gap-1">
+      {/* Row 1: Back + Title + Badges + Kill */}
+      <div className="flex items-center gap-3">
+        {backTo && (
+          <Button variant="ghost" size="sm" asChild className="shrink-0">
+            <Link to={backTo} params={backParams}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+        )}
+
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <h1 className="text-lg font-semibold truncate">{session.name}</h1>
+          <AgentBadge type={session.agentType} iconOnly={isMobile} />
+          <StatusBadge status={session.status} />
         </div>
+
+        {session.status === "running" && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onKillSession}
+            disabled={isKilling}
+            className="shrink-0"
+          >
+            {isKilling ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <Square className="mr-1 h-3 w-3" />
+            )}
+            <span className="hidden md:inline">Kill Session</span>
+            <span className="md:hidden">Kill</span>
+          </Button>
+        )}
       </div>
 
-      {/* Editable Session Name - full width on mobile when editing */}
-      {isEditingName && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onRename(editName);
-          }}
-          className="flex items-center gap-2 w-full sm:w-auto"
-        >
-          <input
-            type="text"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            className="flex-1 sm:flex-none px-2.5 py-1.5 text-base sm:text-sm bg-card border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow duration-200"
-            autoFocus
-          />
-          <button
-            type="submit"
-            className="px-3 py-1.5 text-xs font-medium bg-action-success/20 text-action-success-hover rounded-md hover:bg-action-success/30 transition-colors duration-200 cursor-pointer"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditingName(false)}
-            className="px-3 py-1.5 text-xs text-muted-foreground bg-secondary/50 rounded-md hover:bg-secondary hover:text-foreground transition-colors duration-200 cursor-pointer"
-          >
-            Cancel
-          </button>
-        </form>
-      )}
-
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onClearLogs}
-          className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all duration-200 cursor-pointer inline-flex items-center gap-1.5"
-          title="Clear logs"
-        >
-          <Trash2 className="size-3.5" />
-          <span className="hidden sm:inline">Clear</span>
-        </button>
-        <button
-          type="button"
-          onClick={onToggleAutoScroll}
-          className={`
-            p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer inline-flex items-center gap-1.5
-            ${
-              autoScroll
-                ? "bg-action-success/20 text-action-success-hover"
-                : "bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80"
-            }
-          `}
-          title={`Auto-scroll ${autoScroll ? "ON" : "OFF"}`}
-        >
-          {autoScroll ? (
-            <ArrowDownToLine className="size-3.5" />
-          ) : (
-            <Pause className="size-3.5" />
-          )}
-          <span className="hidden sm:inline">
-            {autoScroll ? "Auto-scroll" : "Paused"}
-          </span>
-        </button>
-        {session.status !== "completed" &&
-          session.status !== "killed" &&
-          session.isActive !== false && (
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm("Kill this session?")) {
-                  onKillSession();
-                }
-              }}
-              disabled={isKilling}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-action-danger/20 text-action-danger hover:bg-action-danger/30 transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
-              title="Kill session"
-            >
-              <Square className="size-3.5" />
-              <span className="hidden sm:inline">
-                {isKilling ? "Killing..." : "Kill"}
-              </span>
-            </button>
-          )}
-        {/* Delete button for inactive sessions */}
-        {session.isActive === false && onDeleteSession && (
-          <button
-            type="button"
-            onClick={() => {
-              if (
-                confirm(
-                  "Delete this session permanently? This cannot be undone.",
-                )
-              ) {
-                onDeleteSession();
-              }
-            }}
-            disabled={isDeleting}
-            className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-action-danger/20 text-action-danger hover:bg-action-danger/30 transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
-            title="Delete session"
-          >
-            <Trash2 className="size-3.5" />
-            <span className="hidden sm:inline">
-              {isDeleting ? "Deleting..." : "Delete"}
-            </span>
-          </button>
+      {/* Row 2: Metadata */}
+      <div className="flex items-center gap-2 pl-10 text-xs text-muted-foreground">
+        <Clock className="h-3 w-3 shrink-0" />
+        <span className="truncate">
+          Started{" "}
+          {isMobile
+            ? new Date(session.createdAt).toLocaleTimeString()
+            : new Date(session.createdAt).toLocaleString()}
+        </span>
+        {projectName && (
+          <>
+            <FolderGit2 className="ml-1 h-3 w-3 shrink-0" />
+            <span className="truncate">{projectName}</span>
+          </>
         )}
+        <span className="hidden md:inline font-mono text-[10px]">
+          {session.id}
+        </span>
       </div>
     </div>
   );
