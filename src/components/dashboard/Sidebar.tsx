@@ -29,14 +29,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator,
   Sidebar as SidebarRoot,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useAgentEvents } from "../../hooks/useAgentEvents";
-import { useTRPC } from "../../integrations/trpc/react";
-import type { AgentSession, AgentType } from "../../lib/agents/types";
-import { useTheme } from "../../hooks/useTheme";
+import { useAgentEvents } from "@/hooks/useAgentEvents";
+import { useTheme } from "@/hooks/useTheme";
+import { useTRPC } from "@/integrations/trpc/react";
+import type { AgentSession, AgentType } from "@/lib/agents/types";
 
 const navItems = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
@@ -248,7 +248,10 @@ function ActiveSessionItem({
 
 function StatusDot({ status }: { status: string }) {
   const colorClass = statusColors[status] ?? "text-muted-foreground";
-  const pulse = status === "running" || status === "waiting-approval" || status === "starting";
+  const pulse =
+    status === "running" ||
+    status === "waiting-approval" ||
+    status === "starting";
 
   return (
     <span className={`relative flex size-2 ${colorClass}`}>
