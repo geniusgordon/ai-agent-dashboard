@@ -11,8 +11,27 @@ export interface LogEntryProps {
   event: AgentEvent;
 }
 
-// Get first line or truncate for collapsed view
+// Get preview for collapsed view
 function getPreview(content: string, maxLength = 80): string {
+  const trimmed = content.trim();
+  
+  // For JSON objects/arrays, show a summary
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return `[${parsed.length} items]`;
+      }
+      const keys = Object.keys(parsed).slice(0, 3);
+      const keyPreview = keys.join(", ");
+      const more = Object.keys(parsed).length > 3 ? ", ..." : "";
+      return `{ ${keyPreview}${more} }`;
+    } catch {
+      // Not valid JSON, fall through to default
+    }
+  }
+  
+  // Default: first line or truncated
   const firstLine = content.split("\n")[0];
   if (firstLine.length <= maxLength) return firstLine;
   return `${firstLine.slice(0, maxLength)}…`;
