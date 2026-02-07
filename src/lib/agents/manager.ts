@@ -305,7 +305,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     const filtered = clientId
       ? allSessions.filter((s) => s.clientId === clientId)
       : allSessions;
-    return filtered;
+    
+    // Sort by createdAt descending (newest first)
+    return filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   // -------------------------------------------------------------------------
