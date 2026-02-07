@@ -537,7 +537,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     // Try in-memory first
     const memEvents = this.sessionEvents.get(sessionId);
     if (memEvents && memEvents.length > 0) {
-      return memEvents;
+      // Always merge - memory events are stored as fragments
+      return this.mergeConsecutiveEvents(memEvents);
     }
 
     // Load from disk and merge consecutive message/thinking chunks
