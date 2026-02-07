@@ -804,16 +804,22 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           },
         };
 
-      case "agent_message_chunk":
+      case "agent_message_chunk": {
+        const content = update.content.type === "text" ? update.content.text : "";
+        
+        // Filter out system messages like "Mode changed to: xxx"
+        if (content.startsWith("Mode changed to:")) {
+          return null;
+        }
+        
         return {
           type: "message",
           clientId,
           sessionId,
           timestamp,
-          payload: {
-            content: update.content.type === "text" ? update.content.text : "",
-          },
+          payload: { content },
         };
+      }
 
       case "tool_call":
         return {
