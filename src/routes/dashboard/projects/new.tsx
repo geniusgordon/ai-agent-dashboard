@@ -29,7 +29,7 @@ function NewProjectPage() {
           queryKey: trpc.projects.list.queryKey(),
         });
         navigate({
-          to: "/dashboard/projects/$projectId",
+          to: "/dashboard/p/$projectId",
           params: { projectId: project.id },
         });
       },
@@ -43,7 +43,7 @@ function NewProjectPage() {
           queryKey: trpc.projects.list.queryKey(),
         });
         navigate({
-          to: "/dashboard/projects/$projectId",
+          to: "/dashboard/p/$projectId",
           params: { projectId: project.id },
         });
       },
@@ -71,7 +71,7 @@ function NewProjectPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link
-          to="/dashboard/projects"
+          to="/dashboard"
           className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-5" />

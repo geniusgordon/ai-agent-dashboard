@@ -1,482 +1,277 @@
 /**
- * Dashboard Overview Page
+ * Dashboard Home Page
+ *
+ * The root landing page. Shows a project cards grid with stats when
+ * projects exist, or an onboarding view when no projects are set up yet.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  FolderGit2,
-  Monitor,
-  Trash2,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import {
-  AgentBadge,
-  ClientCard,
-  ErrorDisplay,
-  ProjectCard,
-  SessionCard,
-} from "../../components/dashboard";
+import { Bot, FolderGit2, Import, Plus, ShieldAlert } from "lucide-react";
+import { ErrorDisplay, ProjectCard } from "../../components/dashboard";
 import { useAgentEvents } from "../../hooks/useAgentEvents";
 import { useNotifications } from "../../hooks/useNotifications";
 import { useTRPC } from "../../integrations/trpc/react";
-import type { AgentType } from "../../lib/agents/types";
-
-// Preset working directories
-const CWD_PRESETS = [
-  { label: "Home", path: "~" },
-  { label: "Projects", path: "~/Projects" },
-  { label: "Playground", path: "~/Playground" },
-  { label: "Works", path: "~/Works" },
-  { label: "Current", path: "." },
-];
-
-const PRESET_PATHS = new Set(CWD_PRESETS.map((p) => p.path));
-
-function timeAgo(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 export const Route = createFileRoute("/dashboard/")({
-  component: DashboardOverview,
+  component: DashboardHome,
 });
 
-function DashboardOverview() {
+function DashboardHome() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [selectedCwd, setSelectedCwd] = useState("~");
-  const [spawningType, setSpawningType] = useState<AgentType | null>(null);
-  const [showCwdDropdown, setShowCwdDropdown] = useState(false);
-  const cwdDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        cwdDropdownRef.current &&
-        !cwdDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowCwdDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Queries
-  const clientsQuery = useQuery(trpc.sessions.listClients.queryOptions());
-  const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
-  const recentDirsQuery = useQuery(
-    trpc.sessions.listRecentDirectories.queryOptions(),
-  );
+  // Core queries
   const projectsQuery = useQuery(trpc.projects.list.queryOptions());
+  const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
+  const approvalsQuery = useQuery(trpc.approvals.list.queryOptions());
 
-  const clients = clientsQuery.data ?? [];
+  const projects = projectsQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
-  const recentDirs = (recentDirsQuery.data ?? []).filter(
-    (d) => !PRESET_PATHS.has(d.path),
-  );
+  const approvals = approvalsQuery.data ?? [];
+
+  // Stats
+  const activeAgents = sessions.filter(
+    (s) =>
+      s.isActive !== false &&
+      (s.status === "running" ||
+        s.status === "waiting-approval" ||
+        s.status === "starting"),
+  ).length;
+  const pendingApprovals = approvals.length;
 
   // Desktop notifications
   const { notify, permission, requestPermission } = useNotifications();
 
-  // Subscribe to real-time events for status updates
+  // Keep data fresh via SSE
   useAgentEvents({
     onEvent: (event) => {
       if (event.type === "complete" || event.type === "error") {
         queryClient.invalidateQueries({
           queryKey: trpc.sessions.listSessions.queryKey(),
         });
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listClients.queryKey(),
-        });
       }
     },
     onApproval: (approval) => {
       queryClient.invalidateQueries({
-        queryKey: trpc.sessions.listSessions.queryKey(),
+        queryKey: trpc.approvals.list.queryKey(),
       });
-
-      // Send desktop notification
-      notify("🔔 Approval Required", {
+      notify("Approval Required", {
         body: `${approval.toolCall.kind}: ${approval.toolCall.title}`,
-        tag: approval.id, // Prevent duplicates
+        tag: approval.id,
       });
     },
   });
 
-  // Mutations
-  const spawnClientMutation = useMutation(
-    trpc.sessions.spawnClient.mutationOptions({
-      onSuccess: () => {
-        setSpawningType(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listClients.queryKey(),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listRecentDirectories.queryKey(),
-        });
-      },
-      onError: () => {
-        setSpawningType(null);
-      },
-    }),
-  );
+  // Loading state
+  if (projectsQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
-  const killClientMutation = useMutation(
-    trpc.sessions.killClient.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listClients.queryKey(),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listSessions.queryKey(),
-        });
-      },
-    }),
-  );
+  // Error state
+  if (projectsQuery.isError) {
+    return (
+      <ErrorDisplay
+        error={projectsQuery.error}
+        title="Failed to load projects"
+        onRetry={() => projectsQuery.refetch()}
+      />
+    );
+  }
 
-  const cleanupMutation = useMutation(
-    trpc.sessions.cleanupStaleSessions.mutationOptions({
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listClients.queryKey(),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listSessions.queryKey(),
-        });
-        if (data.cleaned > 0) {
-          alert(`Cleaned up ${data.cleaned} stale session(s)`);
-        }
-      },
-    }),
-  );
+  // Empty state — onboarding
+  if (projects.length === 0) {
+    return <OnboardingView />;
+  }
 
-  const createSessionMutation = useMutation(
-    trpc.sessions.createSession.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listSessions.queryKey(),
-        });
-      },
-    }),
-  );
-
-  const importProjectMutation = useMutation(
-    trpc.projects.importFromDirectory.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.projects.list.queryKey(),
-        });
-      },
-    }),
-  );
-
-  const handleImportToProject = (cwd: string) => {
-    importProjectMutation.mutate({ dirPath: cwd });
-  };
-
-  const handleSpawnClient = (agentType: AgentType) => {
-    setSpawningType(agentType);
-    spawnClientMutation.mutate({
-      agentType,
-      cwd: selectedCwd,
-    });
-  };
-
-  const handleStopClient = (clientId: string) => {
-    if (confirm("Kill this client and all its sessions?")) {
-      killClientMutation.mutate({ clientId });
-    }
-  };
-
-  const handleCreateSession = (clientId: string) => {
-    createSessionMutation.mutate({ clientId });
-  };
-
+  // Main view — project grid with stats
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your AI coding agents
+          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+          <p className="text-muted-foreground mt-1">Your AI agent workspaces</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {permission !== "granted" && (
+            <button
+              type="button"
+              onClick={requestPermission}
+              className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+            >
+              Enable Notifications
+            </button>
+          )}
+          <Link
+            to="/dashboard/projects/new"
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center gap-2"
+          >
+            <Plus className="size-4" />
+            New Project
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard
+          icon={<FolderGit2 className="size-5 text-purple-400" />}
+          label="Projects"
+          value={projects.length}
+        />
+        <StatCard
+          icon={<Bot className="size-5 text-emerald-400" />}
+          label="Active Agents"
+          value={activeAgents}
+        />
+        <StatCard
+          icon={<ShieldAlert className="size-5 text-amber-400" />}
+          label="Pending Approvals"
+          value={pendingApprovals}
+        />
+      </div>
+
+      {/* Project Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {projects.map((project) => (
+          <ProjectCard key={project.id} project={project} />
+        ))}
+
+        {/* New project card */}
+        <Link
+          to="/dashboard/projects/new"
+          className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border border-dashed border-border hover:border-primary/30 hover:bg-card/50 transition-all cursor-pointer group min-h-[160px]"
+        >
+          <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+            <Plus className="size-5 text-primary" />
+          </div>
+          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+            Add a project
+          </span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Stats Card
+// =============================================================================
+
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/30">
+      <div className="p-2.5 rounded-lg bg-card">{icon}</div>
+      <div>
+        <div className="text-2xl font-bold tabular-nums">{value}</div>
+        <div className="text-xs text-muted-foreground">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Onboarding View (no projects)
+// =============================================================================
+
+function OnboardingView() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="max-w-lg text-center space-y-6">
+        {/* Logo / Hero */}
+        <div className="mx-auto size-20 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+          AI
+        </div>
+
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Welcome to Agent Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
+            Manage AI coding agents organized around your git repositories. Each
+            project groups worktrees and agents for parallel development.
           </p>
         </div>
-        {/* Notification permission button */}
-        {permission !== "granted" && (
-          <button
-            type="button"
-            onClick={requestPermission}
-            className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-          >
-            🔔 Enable Notifications
-          </button>
-        )}
-      </div>
 
-      {/* Quick Spawn */}
-      <div className="p-6 rounded-xl border border-border bg-card/30">
-        <h2 className="text-lg font-semibold mb-4">Spawn Agent</h2>
-
-        {/* CWD Input with Presets */}
-        <div className="mb-4">
-          <label
-            htmlFor="cwd"
-            className="block text-sm text-muted-foreground mb-2"
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+          <Link
+            to="/dashboard/projects/new"
+            className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all group"
           >
-            Working Directory
-          </label>
-          <div className="flex gap-2">
-            <div className="relative flex-1" ref={cwdDropdownRef}>
-              <input
-                id="cwd"
-                type="text"
-                value={selectedCwd}
-                onChange={(e) => setSelectedCwd(e.target.value)}
-                className="
-                  w-full px-4 py-2 pr-10 rounded-lg
-                  bg-background border border-input
-                  text-foreground font-mono text-base sm:text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary/50
-                "
-                placeholder="Enter path or select preset..."
-              />
-              <button
-                type="button"
-                onClick={() => setShowCwdDropdown(!showCwdDropdown)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                <ChevronDown
-                  className={`size-4 transition-transform ${showCwdDropdown ? "rotate-180" : ""}`}
-                />
-              </button>
-              {showCwdDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 max-h-64 overflow-y-auto">
-                  <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Presets
-                  </div>
-                  {CWD_PRESETS.map((preset) => (
-                    <button
-                      key={preset.path}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCwd(preset.path);
-                        setShowCwdDropdown(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 hover:bg-accent transition-colors cursor-pointer ${
-                        selectedCwd === preset.path ? "bg-accent/50" : ""
-                      }`}
-                    >
-                      <div className="font-medium text-sm">{preset.label}</div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {preset.path}
-                      </div>
-                    </button>
-                  ))}
-                  {recentDirs.length > 0 && (
-                    <>
-                      <div className="border-t border-border my-1" />
-                      <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                        <Clock className="size-3" />
-                        Recent
-                      </div>
-                      {recentDirs.map((dir) => (
-                        <button
-                          key={dir.path}
-                          type="button"
-                          onClick={() => {
-                            setSelectedCwd(dir.path);
-                            setShowCwdDropdown(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 hover:bg-accent transition-colors cursor-pointer ${
-                            selectedCwd === dir.path ? "bg-accent/50" : ""
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-mono text-sm truncate">
-                              {dir.path}
-                            </div>
-                            <div className="text-xs text-muted-foreground ml-2 shrink-0">
-                              {timeAgo(dir.lastUsed)}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
+            <div className="p-3 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+              <FolderGit2 className="size-6 text-purple-400" />
             </div>
-          </div>
-        </div>
+            <div>
+              <div className="font-semibold">Create a Project</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Set up a new project from scratch
+              </div>
+            </div>
+          </Link>
 
-        <div className="flex flex-wrap gap-3">
-          {(["gemini", "claude-code", "codex"] as AgentType[]).map((type) => {
-            const isSpawning = spawningType === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => handleSpawnClient(type)}
-                disabled={spawningType !== null}
-                className="
-                  px-4 py-2.5 rounded-lg border border-border bg-secondary/50
-                  hover:bg-secondary hover:border-border
-                  transition-all cursor-pointer
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  flex items-center gap-2
-                "
-              >
-                <AgentBadge type={type} size="sm" />
-                <span className="text-sm text-muted-foreground">
-                  {isSpawning ? "Starting..." : "Start"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {spawnClientMutation.isError && (
-          <div className="mt-4">
-            <ErrorDisplay
-              error={spawnClientMutation.error}
-              title="Failed to spawn agent"
-              onRetry={() => spawnClientMutation.reset()}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Query Errors */}
-      {(clientsQuery.isError || sessionsQuery.isError) && (
-        <ErrorDisplay
-          error={clientsQuery.error || sessionsQuery.error}
-          title="Failed to load data"
-          onRetry={() => {
-            clientsQuery.refetch();
-            sessionsQuery.refetch();
-          }}
-        />
-      )}
-
-      {/* Clients Grid */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">
-            Active Clients
-            <span className="ml-2 text-sm text-muted-foreground font-normal">
-              ({clients.length})
-            </span>
-            {clientsQuery.isLoading && (
-              <span className="ml-2 text-sm text-muted-foreground">
-                Loading...
-              </span>
-            )}
-          </h2>
-          <button
-            type="button"
-            onClick={() => cleanupMutation.mutate()}
-            disabled={cleanupMutation.isPending}
-            className="px-3 py-1.5 text-sm rounded-lg bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+          <Link
+            to="/dashboard/projects/new"
+            className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-emerald-500/30 hover:shadow-md transition-all group"
           >
-            <Trash2 className="size-3.5" />
-            {cleanupMutation.isPending ? "Cleaning..." : "Cleanup"}
-          </button>
+            <div className="p-3 rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
+              <Import className="size-6 text-emerald-400" />
+            </div>
+            <div>
+              <div className="font-semibold">Import a Repository</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Add an existing git repo as a project
+              </div>
+            </div>
+          </Link>
         </div>
 
-        {clients.length === 0 ? (
-          <div className="p-12 rounded-xl border border-dashed border-border text-center">
-            <Monitor className="size-12 text-muted-foreground/50 mx-auto mb-4" />
-            <p className="text-muted-foreground">No active clients</p>
-            <p className="text-sm text-muted-foreground/70 mt-1">
-              Spawn an agent above to get started
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clients.map((client) => (
-              <ClientCard
-                key={client.id}
-                client={client}
-                sessionCount={
-                  sessions.filter((s) => s.clientId === client.id).length
-                }
-                onCreateSession={() => handleCreateSession(client.id)}
-                onStop={() => handleStopClient(client.id)}
-                isCreatingSession={
-                  createSessionMutation.isPending &&
-                  createSessionMutation.variables?.clientId === client.id
-                }
-                onImportToProject={handleImportToProject}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Projects Quick Access */}
-      {(projectsQuery.data?.length ?? 0) > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <FolderGit2 className="size-5 text-purple-400" />
-              Projects
-              <span className="text-sm text-muted-foreground font-normal">
-                ({projectsQuery.data?.length ?? 0})
+        {/* How it works */}
+        <div className="mt-8 p-6 rounded-xl border border-border bg-card/20 text-left">
+          <h3 className="font-semibold text-sm mb-3">How it works</h3>
+          <ol className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex gap-3">
+              <span className="shrink-0 size-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                1
               </span>
-            </h2>
-            <Link
-              to="/dashboard/projects"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-            >
-              View All
-              <ChevronRight className="size-4" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projectsQuery.data?.slice(0, 3).map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </div>
+              <span>
+                <strong className="text-foreground">Create a project</strong>{" "}
+                from a git repository
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="shrink-0 size-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                2
+              </span>
+              <span>
+                <strong className="text-foreground">Add worktrees</strong> for
+                parallel branches
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="shrink-0 size-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                3
+              </span>
+              <span>
+                <strong className="text-foreground">Spawn AI agents</strong>{" "}
+                (Claude Code, Gemini, Codex) per worktree
+              </span>
+            </li>
+          </ol>
         </div>
-      )}
-
-      {/* Recent Sessions */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">
-          Recent Sessions
-          <span className="ml-2 text-sm text-muted-foreground font-normal">
-            ({sessions.length})
-          </span>
-        </h2>
-
-        {sessions.length === 0 ? (
-          <div className="p-12 rounded-xl border border-dashed border-border text-center">
-            <Monitor className="size-12 text-muted-foreground/50 mx-auto mb-4" />
-            <p className="text-muted-foreground">No sessions yet</p>
-            <p className="text-sm text-muted-foreground/70 mt-1">
-              Create a session from an active client
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {sessions.slice(0, 6).map((session) => (
-              <SessionCard key={session.id} session={session} />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

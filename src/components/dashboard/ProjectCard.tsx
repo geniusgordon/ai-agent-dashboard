@@ -29,7 +29,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <Link
-      to="/dashboard/projects/$projectId"
+      to="/dashboard/p/$projectId"
       params={{ projectId: project.id }}
       className="block p-5 rounded-xl border border-border bg-card/50 shadow-sm hover:shadow-md hover:bg-card hover:border-primary/20 transition-all duration-200 cursor-pointer group"
     >
