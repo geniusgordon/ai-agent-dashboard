@@ -28,6 +28,7 @@ function SessionDetailPage() {
     connected,
     autoScroll,
     logsEndRef,
+    logContainerRef,
     isLoading,
     isSending,
     isKilling,
@@ -92,7 +93,7 @@ function SessionDetailPage() {
         />
       )}
 
-      <SessionLog events={events} logsEndRef={logsEndRef} />
+      <SessionLog events={events} logsEndRef={logsEndRef} containerRef={logContainerRef} />
 
       {session.status !== "completed" &&
         session.status !== "killed" &&

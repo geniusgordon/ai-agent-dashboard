@@ -14,6 +14,7 @@ export function useSessionDetail(sessionId: string) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [pendingApproval, setPendingApproval] =
@@ -238,6 +239,7 @@ export function useSessionDetail(sessionId: string) {
     connected,
     autoScroll,
     logsEndRef,
+    logContainerRef,
 
     // Loading states
     isLoading: sessionQuery.isLoading,
