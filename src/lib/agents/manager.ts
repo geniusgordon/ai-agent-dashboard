@@ -61,6 +61,15 @@ interface ManagedSession {
 }
 
 /**
+ * A message waiting in the per-session queue
+ */
+interface QueuedMessage {
+  id: string;
+  message: string;
+  contentBlocks?: Array<{ type: "image"; data: string; mimeType: string }>;
+}
+
+/**
  * Internal approval state
  */
 interface ManagedApproval {
@@ -81,6 +90,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   private approvals: Map<string, ManagedApproval> = new Map();
   private sessionToClient: Map<string, string> = new Map();
   private sessionEvents: Map<string, AgentEvent[]> = new Map();
+  private messageQueues: Map<string, QueuedMessage[]> = new Map();
+  private processingSession: Set<string> = new Set();
 
   // -------------------------------------------------------------------------
   // Client Lifecycle
@@ -455,6 +466,10 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       return;
     }
 
+    // Drain any queued messages before cleanup
+    this.drainQueue(sessionId, "Session killed");
+    this.messageQueues.delete(sessionId);
+
     session.status = "killed";
     session.updatedAt = new Date();
 
@@ -494,6 +509,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     // Kill all sessions for this client
     for (const [sessionId, session] of this.sessions) {
       if (session.clientId === clientId) {
+        this.drainQueue(sessionId, "Client killed");
+        this.messageQueues.delete(sessionId);
         session.status = "killed";
         this.sessions.delete(sessionId);
         this.sessionToClient.delete(sessionId);
@@ -520,11 +537,16 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   // Communication
   // -------------------------------------------------------------------------
 
-  async sendMessage(
+  /**
+   * Enqueue a message and return immediately.
+   * The user message event is emitted right away so it appears in the chat log.
+   * Actual processing happens in the background via processQueue().
+   */
+  sendMessage(
     sessionId: string,
     message: string,
     contentBlocks?: Array<{ type: "image"; data: string; mimeType: string }>,
-  ): Promise<void> {
+  ): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session not found: ${sessionId}`);
@@ -535,15 +557,11 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       throw new Error(`Client not found: ${session.clientId}`);
     }
 
-    session.status = "running";
-    session.updatedAt = new Date();
-
-    // Build payload for event (include images for display)
+    // Emit user message event immediately so it shows in the chat log
     const eventPayload: Record<string, unknown> = { content: message, isUser: true };
     if (contentBlocks && contentBlocks.length > 0) {
       eventPayload.images = contentBlocks.map((b) => ({
         mimeType: b.mimeType,
-        // Store as data URL for display
         dataUrl: `data:${b.mimeType};base64,${b.data}`,
       }));
     }
@@ -556,46 +574,123 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       payload: eventPayload,
     });
 
-    try {
-      // Build ACP content blocks
-      const acpContent: Array<
-        | { type: "text"; text: string }
-        | { type: "image"; data: string; mimeType: string }
-      > = [];
+    // Enqueue for background processing
+    const queue = this.messageQueues.get(sessionId) ?? [];
+    queue.push({
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      message,
+      contentBlocks,
+    });
+    this.messageQueues.set(sessionId, queue);
 
-      // Add images first (if any)
-      if (contentBlocks) {
-        for (const block of contentBlocks) {
-          acpContent.push({
-            type: "image",
-            data: block.data,
-            mimeType: block.mimeType,
+    // Kick off processing (no-op if already running for this session)
+    this.processQueue(sessionId);
+  }
+
+  /**
+   * Process queued messages one at a time for a session.
+   * Only one prompt() runs at a time per session (ACP protocol constraint).
+   */
+  private async processQueue(sessionId: string): Promise<void> {
+    if (this.processingSession.has(sessionId)) return;
+
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+
+    const managed = this.clients.get(session.clientId);
+    if (!managed) return;
+
+    this.processingSession.add(sessionId);
+
+    try {
+      while (true) {
+        const queue = this.messageQueues.get(sessionId);
+        if (!queue || queue.length === 0) break;
+
+        const current = this.sessions.get(sessionId);
+        if (!current || current.status === "killed" || current.status === "error") {
+          this.drainQueue(sessionId, "Session is no longer active");
+          break;
+        }
+
+        const next = queue.shift()!;
+
+        current.status = "running";
+        current.updatedAt = new Date();
+
+        try {
+          const acpContent: Array<
+            | { type: "text"; text: string }
+            | { type: "image"; data: string; mimeType: string }
+          > = [];
+
+          if (next.contentBlocks) {
+            for (const block of next.contentBlocks) {
+              acpContent.push({
+                type: "image",
+                data: block.data,
+                mimeType: block.mimeType,
+              });
+            }
+          }
+          if (next.message) {
+            acpContent.push({ type: "text", text: next.message });
+          }
+
+          const result = await managed.acpClient.prompt(sessionId, acpContent);
+
+          current.status = "idle";
+          current.updatedAt = new Date();
+
+          this.emitEvent({
+            type: "complete",
+            clientId: current.clientId,
+            sessionId,
+            timestamp: new Date(),
+            payload: { stopReason: result.stopReason },
           });
+        } catch (error) {
+          current.status = "error";
+          current.updatedAt = new Date();
+
+          this.emitEvent({
+            type: "error",
+            clientId: current.clientId,
+            sessionId,
+            timestamp: new Date(),
+            payload: { message: (error as Error).message },
+          });
+
+          this.drainQueue(sessionId, (error as Error).message);
+          break;
         }
       }
+    } finally {
+      this.processingSession.delete(sessionId);
+    }
+  }
 
-      // Add text message
-      if (message) {
-        acpContent.push({ type: "text", text: message });
+  /**
+   * Clear all queued messages for a session and emit a notification.
+   */
+  private drainQueue(sessionId: string, reason: string): void {
+    const queue = this.messageQueues.get(sessionId);
+    if (queue && queue.length > 0) {
+      const count = queue.length;
+      queue.length = 0;
+
+      const session = this.sessions.get(sessionId);
+      if (session) {
+        this.emitEvent({
+          type: "error",
+          clientId: session.clientId,
+          sessionId,
+          timestamp: new Date(),
+          payload: {
+            message: `${count} queued message(s) dropped: ${reason}`,
+          },
+        });
       }
-
-      // Use prompt() instead of sendMessage() to support content blocks
-      const result = await managed.acpClient.prompt(sessionId, acpContent);
-
-      session.status = "idle";
-      session.updatedAt = new Date();
-
-      this.emitEvent({
-        type: "complete",
-        clientId: session.clientId,
-        sessionId,
-        timestamp: new Date(),
-        payload: { stopReason: result.stopReason },
-      });
-    } catch (error) {
-      session.status = "error";
-      session.updatedAt = new Date();
-      throw error;
     }
   }
 
@@ -771,6 +866,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     this.sessions.clear();
     this.approvals.clear();
     this.sessionToClient.clear();
+    this.messageQueues.clear();
+    this.processingSession.clear();
     this.removeAllListeners();
   }
 

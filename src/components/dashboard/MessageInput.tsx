@@ -17,8 +17,8 @@ export interface ImageAttachment {
 
 export interface MessageInputProps {
   onSend: (message: string, images?: ImageAttachment[]) => void;
-  isSending: boolean;
   disabled: boolean;
+  isAgentBusy?: boolean;
   placeholder?: string;
   supportsImages?: boolean;
 }
@@ -28,8 +28,8 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function MessageInput({
   onSend,
-  isSending,
   disabled,
+  isAgentBusy = false,
   placeholder = "Send a message...",
   supportsImages = true,
 }: MessageInputProps) {
@@ -167,6 +167,18 @@ export function MessageInput({
           ${isDragging ? "border-primary bg-primary/5" : "border-border"}
         `}
       >
+        {/* Processing indicator */}
+        {isAgentBusy && (
+          <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-status-running">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-running opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-status-running" />
+            </span>
+            <Loader2 className="size-3 animate-spin" />
+            <span className="font-medium">Agent is thinking...</span>
+          </div>
+        )}
+
         {/* Image previews */}
         {images.length > 0 && (
           <div className="flex flex-wrap gap-2 px-2 pt-1">
@@ -210,7 +222,7 @@ export function MessageInput({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isSending || disabled}
+                disabled={disabled}
                 className="
                   p-2.5 rounded-lg text-muted-foreground
                   hover:text-foreground hover:bg-accent
@@ -231,7 +243,7 @@ export function MessageInput({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={isDragging ? "Drop image here..." : placeholder}
-            disabled={isSending || disabled}
+            disabled={disabled}
             rows={1}
             className="
               flex-1 px-4 py-2.5 rounded-lg
@@ -245,7 +257,7 @@ export function MessageInput({
           />
           <button
             type="submit"
-            disabled={!canSubmit || isSending || disabled}
+            disabled={!canSubmit || disabled}
             className="
               px-5 py-2.5 rounded-lg font-semibold text-sm
               bg-action-success text-white
@@ -256,11 +268,7 @@ export function MessageInput({
               cursor-pointer shrink-0 inline-flex items-center gap-2
             "
           >
-            {isSending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Send className="size-4" />
-            )}
+            <Send className="size-4" />
             <span className="hidden sm:inline">Send</span>
           </button>
         </div>

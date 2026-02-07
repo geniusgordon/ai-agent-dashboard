@@ -199,7 +199,11 @@ export interface IAgentManager {
   listSessions(clientId?: string): AgentSession[];
 
   // Communication
-  sendMessage(sessionId: string, message: string): Promise<void>;
+  sendMessage(
+    sessionId: string,
+    message: string,
+    contentBlocks?: Array<{ type: "image"; data: string; mimeType: string }>,
+  ): void;
 
   // Approvals
   getPendingApprovals(): ApprovalRequest[];

@@ -323,7 +323,7 @@ export function useSessionDetail(sessionId: string) {
 
     // Loading states
     isLoading: sessionQuery.isLoading,
-    isSending: sendMessageMutation.isPending,
+    isAgentBusy: session?.status === "running",
     isKilling: killSessionMutation.isPending,
     isRenaming: renameSessionMutation.isPending,
     isApproving: approveMutation.isPending,

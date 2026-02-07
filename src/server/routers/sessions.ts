@@ -131,9 +131,9 @@ export const sessionsRouter = createTRPCRouter({
           .optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(({ input }) => {
       const manager = getAgentManager();
-      await manager.sendMessage(
+      manager.sendMessage(
         input.sessionId,
         input.message,
         input.contentBlocks,

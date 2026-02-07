@@ -33,7 +33,7 @@ function SessionDetailPage() {
     logsEndRef,
     logContainerRef,
     isLoading,
-    isSending,
+    isAgentBusy,
     isKilling,
     isRenaming,
     isApproving,
@@ -121,8 +121,8 @@ function SessionDetailPage() {
         session.status !== "error" && (
           <MessageInput
             onSend={sendMessage}
-            isSending={isSending}
             disabled={!!pendingApproval}
+            isAgentBusy={isAgentBusy}
             placeholder={
               pendingApproval ? "Waiting for approval..." : "Send a message..."
             }
