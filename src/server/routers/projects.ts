@@ -106,7 +106,11 @@ export const projectsRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const manager = getProjectManager();
-      await manager.deleteBranch(input.projectId, input.branchName, input.force);
+      await manager.deleteBranch(
+        input.projectId,
+        input.branchName,
+        input.force,
+      );
       return { success: true };
     }),
 

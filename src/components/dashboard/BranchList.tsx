@@ -6,7 +6,13 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, GitBranch, GitFork, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  GitBranch,
+  GitFork,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { useTRPC } from "@/integrations/trpc/react";
@@ -196,9 +202,7 @@ function BranchRow({
         </div>
       </div>
 
-      {error && (
-        <p className="text-xs text-destructive mt-1.5 pl-1">{error}</p>
-      )}
+      {error && <p className="text-xs text-destructive mt-1.5 pl-1">{error}</p>}
     </div>
   );
 }

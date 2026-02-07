@@ -1,22 +1,16 @@
-/**
- * Project-Scoped Session Detail Page
- *
- * Same UI as the global session detail, but with project-scoped back links.
- * Reuses useSessionDetail for all orchestration logic.
- */
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { AlertCircle, Loader2, Send, Terminal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import {
-  ApprovalBanner,
-  MessageInput,
-  ReconnectBanner,
-  SessionHeader,
-  SessionLog,
-} from "@/components/dashboard";
-import { useSessionDetail } from "@/hooks/useSessionDetail";
+import { SessionHeader } from "@/components/dashboard/SessionHeader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
+import type { AgentEvent } from "@/lib/agents/types";
 
 export const Route = createFileRoute(
   "/dashboard/p/$projectId/sessions/$sessionId",
@@ -26,151 +20,224 @@ export const Route = createFileRoute(
 
 function ProjectSessionDetailPage() {
   const { projectId, sessionId } = Route.useParams();
-  const navigate = useNavigate();
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  // Look up worktree branch for this session
-  const assignmentsQuery = useQuery(
-    trpc.projects.getAssignments.queryOptions({ projectId }),
+  const [message, setMessage] = useState("");
+  const [events, setEvents] = useState<AgentEvent[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [isAutoScroll, setIsAutoScroll] = useState(true);
+
+  const sessionQuery = useQuery(
+    trpc.sessions.getSession.queryOptions({ sessionId }),
   );
-  const worktreesQuery = useQuery(
-    trpc.worktrees.list.queryOptions({ projectId }),
+  const projectQuery = useQuery(
+    trpc.projects.get.queryOptions({ id: projectId }),
   );
-  const branch = (() => {
-    const assignment = assignmentsQuery.data?.find(
-      (a) => a.sessionId === sessionId,
-    );
-    if (!assignment) return undefined;
-    const worktree = worktreesQuery.data?.find(
-      (w) => w.id === assignment.worktreeId,
-    );
-    return worktree?.branch;
-  })();
+  const sendMessageMutation = useMutation(
+    trpc.sessions.sendMessage.mutationOptions(),
+  );
+  const killSessionMutation = useMutation(
+    trpc.sessions.killSession.mutationOptions(),
+  );
 
-  const {
-    session,
-    events,
-    pendingApproval,
-    connected,
-    autoScroll,
-    showScrollButton,
-    supportsImages,
-    logsEndRef,
-    logContainerRef,
-    isLoading,
-    isAgentBusy,
-    isKilling,
-    isRenaming,
-    isApproving,
-    isDenying,
-    isSettingMode,
-    isReconnecting,
-    isDeleting,
-    sendMessage,
-    approve,
-    deny,
-    killSession,
-    renameSession,
-    setMode,
-    reconnect,
-    deleteSession,
-    clearLogs,
-    toggleAutoScroll,
-    manualScrollToBottom,
-  } = useSessionDetail(sessionId);
+  // Listen for real-time events
+  useAgentEvents({
+    onEvent: (event: AgentEvent) => {
+      if (event.sessionId === sessionId) {
+        setEvents((prev) => [...prev, event]);
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
+      }
+    },
+  });
 
-  if (isLoading) {
+  // Auto-scroll to bottom when new events arrive
+  useEffect(() => {
+    if (isAutoScroll && scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [events.length, isAutoScroll]);
+
+  // Track scroll position
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+
+    const viewport = scrollArea.querySelector(
+      "[data-radix-scroll-area-viewport]",
+    );
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setIsAutoScroll(isAtBottom);
+    };
+
+    viewport.addEventListener("scroll", handleScroll);
+    return () => viewport.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+
+    try {
+      await sendMessageMutation.mutateAsync({
+        sessionId,
+        message: message.trim(),
+      });
+      setMessage("");
+    } catch (_error) {
+      // Error is handled by mutation state
+    }
+  };
+
+  const handleKillSession = async () => {
+    try {
+      await killSessionMutation.mutateAsync({ sessionId });
+      queryClient.invalidateQueries({
+        queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+      });
+    } catch (_error) {
+      // Error is handled by mutation state
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  if (sessionQuery.isLoading) {
     return (
-      <div className="text-center py-12">
-        <Loader2 className="size-8 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-muted-foreground">Loading session...</p>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (!session) {
+  if (sessionQuery.error || !sessionQuery.data) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-2">Session not found</p>
-        <p className="text-sm text-muted-foreground font-mono">{sessionId}</p>
-        <Link
-          to="/dashboard/p/$projectId/sessions"
-          params={{ projectId }}
-          className="mt-4 inline-flex items-center gap-1.5 text-primary hover:text-primary/80"
-        >
-          <ArrowLeft className="size-4" />
-          Back to sessions
-        </Link>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            {sessionQuery.error?.message || "Session not found"}
+          </p>
+        </div>
       </div>
     );
   }
+
+  const session = sessionQuery.data;
+  const project = projectQuery.data;
 
   return (
-    <div className="h-[calc(100dvh-3.5rem-2rem)] sm:h-[calc(100dvh-3.5rem-3rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col gap-3">
+    <div className="flex h-full flex-col space-y-4 p-4">
       <SessionHeader
         session={session}
-        connected={connected}
-        autoScroll={autoScroll}
-        onToggleAutoScroll={toggleAutoScroll}
-        onClearLogs={clearLogs}
-        onKillSession={killSession}
-        isKilling={isKilling}
-        onRename={renameSession}
-        isRenaming={isRenaming}
-        backTo={`/dashboard/p/${projectId}/sessions`}
-        onDeleteSession={() => {
-          deleteSession();
-          navigate({
-            to: "/dashboard/p/$projectId/sessions",
-            params: { projectId },
-          });
-        }}
-        isDeleting={isDeleting}
-        branch={branch}
+        onKillSession={handleKillSession}
+        isKilling={killSessionMutation.isPending}
+        backTo="/dashboard/p/$projectId"
+        backParams={{ projectId }}
+        projectName={project?.name}
       />
 
-      {session.isActive === false && (
-        <ReconnectBanner
-          onReconnect={reconnect}
-          isReconnecting={isReconnecting}
-        />
+      {/* Session info */}
+      {session.task && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Task</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{session.task}</p>
+          </CardContent>
+        </Card>
       )}
 
-      {pendingApproval && (
-        <ApprovalBanner
-          approval={pendingApproval}
-          onApprove={approve}
-          onDeny={deny}
-          isApproving={isApproving}
-          isDenying={isDenying}
-        />
-      )}
+      {/* Event log */}
+      <Card className="flex-1 overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Terminal className="h-4 w-4" />
+            Event Log
+            <span className="text-xs font-normal text-muted-foreground">
+              ({events.length} events)
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-hidden p-0">
+          <ScrollArea className="h-[calc(100vh-400px)]" ref={scrollAreaRef}>
+            <div className="space-y-1 p-4 font-mono text-xs">
+              {events.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <p>Waiting for events...</p>
+                </div>
+              ) : (
+                events.map((event, i) => (
+                  <EventLine key={`${event.timestamp}-${i}`} event={event} />
+                ))
+              )}
+              <div ref={scrollRef} />
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
 
-      <SessionLog
-        events={events}
-        logsEndRef={logsEndRef}
-        containerRef={logContainerRef}
-        showScrollButton={showScrollButton}
-        onScrollToBottom={manualScrollToBottom}
-      />
-
-      {session.status !== "completed" &&
-        session.status !== "killed" &&
-        session.status !== "error" && (
-          <MessageInput
-            onSend={sendMessage}
-            disabled={!!pendingApproval}
-            isAgentBusy={isAgentBusy}
-            placeholder={
-              pendingApproval ? "Waiting for approval..." : "Send a message..."
-            }
-            supportsImages={supportsImages}
-            availableModes={session.availableModes}
-            currentModeId={session.currentModeId}
-            onSetMode={setMode}
-            isSettingMode={isSettingMode}
+      {/* Message input */}
+      {session.status === "running" && (
+        <div className="flex gap-2">
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Send a message to the agent..."
+            disabled={sendMessageMutation.isPending}
           />
-        )}
+          <Button
+            onClick={handleSendMessage}
+            disabled={!message.trim() || sendMessageMutation.isPending}
+            size="sm"
+          >
+            {sendMessageMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EventLine({ event }: { event: AgentEvent }) {
+  const time = new Date(event.timestamp).toLocaleTimeString();
+
+  const colorMap: Record<string, string> = {
+    message: "text-foreground",
+    status: "text-blue-400",
+    error: "text-red-400",
+    tool_use: "text-yellow-400",
+    tool_result: "text-green-400",
+    permission_request: "text-orange-400",
+    completion: "text-purple-400",
+  };
+
+  return (
+    <div className={`${colorMap[event.type] || "text-muted-foreground"}`}>
+      <span className="text-muted-foreground">[{time}]</span>{" "}
+      <span className="font-semibold">{event.type}</span>{" "}
+      <span className="break-all">
+        {typeof event.data === "string"
+          ? event.data
+          : JSON.stringify(event.data)}
+      </span>
     </div>
   );
 }

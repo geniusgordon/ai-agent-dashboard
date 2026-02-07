@@ -32,13 +32,16 @@ export function WorktreeCreateDialog({
   const [open, setOpen] = useState(false);
   const [branchName, setBranchName] = useState("");
   const [createNewBranch, setCreateNewBranch] = useState(true);
-  const [baseBranch, setBaseBranch] = useState("main");
+  const [baseBranch, setBaseBranch] = useState("");
 
   const branchesQuery = useQuery(
     trpc.projects.listBranches.queryOptions({ projectId }, { enabled: open }),
   );
 
-  const branches = branchesQuery.data ?? [];
+  const branches = (branchesQuery.data ?? []).filter((b) => b !== "HEAD");
+  const defaultBranch = branches.includes("main")
+    ? "main"
+    : (branches[0] ?? "");
 
   const createMutation = useMutation(
     trpc.worktrees.create.mutationOptions({
@@ -48,7 +51,7 @@ export function WorktreeCreateDialog({
         });
         setOpen(false);
         setBranchName("");
-        setBaseBranch("main");
+        setBaseBranch("");
       },
     }),
   );
@@ -59,7 +62,9 @@ export function WorktreeCreateDialog({
       projectId,
       branchName,
       createNewBranch,
-      baseBranch: createNewBranch && baseBranch ? baseBranch : undefined,
+      baseBranch: createNewBranch
+        ? baseBranch || defaultBranch || undefined
+        : undefined,
     });
   };
 
@@ -159,6 +164,9 @@ export function WorktreeCreateDialog({
                   className="block text-sm font-medium text-foreground mb-1.5"
                 >
                   Base Branch
+                  <span className="text-muted-foreground font-normal ml-1">
+                    (optional, defaults to {defaultBranch || "main"})
+                  </span>
                 </label>
                 <select
                   id="baseBranch"
@@ -166,13 +174,12 @@ export function WorktreeCreateDialog({
                   onChange={(e) => setBaseBranch(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  {branches
-                    .filter((b) => b !== "HEAD")
-                    .map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
+                  <option value="">{defaultBranch || "main"} (default)</option>
+                  {branches.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}

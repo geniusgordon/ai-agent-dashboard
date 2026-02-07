@@ -221,10 +221,7 @@ export async function listBranches(repoPath: string): Promise<string[]> {
 
 export async function getDefaultBranch(repoPath: string): Promise<string> {
   try {
-    const { stdout } = await git(
-      ["symbolic-ref", "--short", "HEAD"],
-      repoPath,
-    );
+    const { stdout } = await git(["symbolic-ref", "--short", "HEAD"], repoPath);
     return stdout.trim();
   } catch {
     // Fallback for bare repos or detached HEAD — use first branch
