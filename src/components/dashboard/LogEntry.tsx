@@ -201,8 +201,15 @@ export function LogEntry({ event }: LogEntryProps) {
                       PreTag="div"
                       customStyle={{
                         margin: "0.5rem 0",
+                        padding: "0.75rem 1rem",
                         borderRadius: "0.375rem",
                         fontSize: "0.85em",
+                        background: "#282c34",
+                      }}
+                      codeTagProps={{
+                        style: {
+                          background: "transparent",
+                        },
                       }}
                     >
                       {String(children).replace(/\n$/, "")}
