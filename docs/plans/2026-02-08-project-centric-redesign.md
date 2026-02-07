@@ -160,22 +160,28 @@ Commit: `cdd034b` — `feat: add project-scoped routes and server filters (Phase
 
 Commit: `486496c` — `feat: rewrite sidebar with project switcher and dual-mode nav (Phase 2)`
 
-### Phase 3: Home Page
+### Phase 3: Home Page — DONE
 
-8. **Home page rewrite** — Project cards grid with stats when projects exist
-9. **Empty/onboarding state** — Welcome flow when no projects exist, import + create actions
+8. ~~**Home page rewrite** — Project cards grid with stats when projects exist~~
+9. ~~**Empty/onboarding state** — Welcome flow when no projects exist, import + create actions~~
 
-### Phase 4: Project Overview Page
+Commit: `d9280d6` — `feat: rewrite home page as project grid with onboarding (Phase 3)`
 
-10. **Project home page** — Header, worktree grid, recent activity
-11. **Worktree cards** — Branch name, status, agent count, spawn button
-12. **Inline spawn flow** — Pick worktree → pick agent type → spawn (replaces current top-level spawner)
+### Phase 4: Project Overview Page — DONE
 
-### Phase 5: Session List & Approvals
+10. ~~**Project home page** — Header, worktree grid, recent activity~~
+11. ~~**Worktree cards** — Branch name, status, agent count, spawn button~~
+12. ~~**Inline spawn flow** — Pick worktree → pick agent type → spawn (replaces current top-level spawner)~~
 
-13. **Project-scoped session list** — Sessions grouped by worktree with collapsible sections
-14. **Project-scoped approvals** — Filtered approval list
-15. **Session detail** — Move under project route, keep existing functionality
+Commit: `252d6ce` — `feat: build project overview with worktree grid and inline spawn (Phase 4)`
+
+### Phase 5: Session List & Approvals — DONE
+
+13. ~~**Project-scoped session list** — Sessions grouped by worktree with collapsible sections~~
+14. ~~**Project-scoped approvals** — Filtered approval list~~
+15. ~~**Session detail** — Move under project route, keep existing functionality~~ (done in Phase 1)
+
+Commit: `0a029cf` — `feat: project-scoped session list and approvals pages (Phase 5)`
 
 ### Phase 6: Cleanup
 
