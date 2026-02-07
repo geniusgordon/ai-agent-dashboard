@@ -7,7 +7,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bot, FolderGit2, Import, Plus, ShieldAlert } from "lucide-react";
+import { Bot, FolderGit2, Plus, ShieldAlert } from "lucide-react";
 import { ErrorDisplay, ProjectCard } from "../../components/dashboard";
 import { useAgentEvents } from "../../hooks/useAgentEvents";
 import { useNotifications } from "../../hooks/useNotifications";
@@ -206,38 +206,21 @@ function OnboardingView() {
           </p>
         </div>
 
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-          <Link
-            to="/dashboard/projects/new"
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all group"
-          >
-            <div className="p-3 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-              <FolderGit2 className="size-6 text-purple-400" />
+        {/* Action Card */}
+        <Link
+          to="/dashboard/projects/new"
+          className="flex flex-col items-center gap-3 p-8 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all group mt-8"
+        >
+          <div className="p-3 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+            <FolderGit2 className="size-6 text-purple-400" />
+          </div>
+          <div>
+            <div className="font-semibold">Add a Project</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Point to any git repository to get started
             </div>
-            <div>
-              <div className="font-semibold">Create a Project</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Set up a new project from scratch
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/dashboard/projects/new"
-            className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-emerald-500/30 hover:shadow-md transition-all group"
-          >
-            <div className="p-3 rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
-              <Import className="size-6 text-emerald-400" />
-            </div>
-            <div>
-              <div className="font-semibold">Import a Repository</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Add an existing git repo as a project
-              </div>
-            </div>
-          </Link>
-        </div>
+          </div>
+        </Link>
 
         {/* How it works */}
         <div className="mt-8 p-6 rounded-xl border border-border bg-card/20 text-left">

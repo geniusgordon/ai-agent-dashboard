@@ -67,10 +67,19 @@ export const projectsRouter = createTRPCRouter({
     }),
 
   importFromDirectory: publicProcedure
-    .input(z.object({ dirPath: z.string().min(1) }))
+    .input(
+      z.object({
+        dirPath: z.string().min(1),
+        name: z.string().min(1).optional(),
+        description: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const manager = getProjectManager();
-      return manager.importFromDirectory(input.dirPath);
+      return manager.importFromDirectory(input.dirPath, {
+        name: input.name,
+        description: input.description,
+      });
     }),
 
   listBranches: publicProcedure

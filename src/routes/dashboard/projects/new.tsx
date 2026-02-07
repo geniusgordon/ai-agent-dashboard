@@ -1,40 +1,30 @@
 /**
- * Create Project Page
+ * Add Project Page
+ *
+ * Single flow: enter a directory path → auto-detect git repo → optionally
+ * override name/description → add project. Uses importFromDirectory which
+ * resolves the repo root, deduplicates, and syncs worktrees automatically.
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, FolderGit2, Import } from "lucide-react";
+import { ArrowLeft, FolderGit2 } from "lucide-react";
 import { useState } from "react";
 import { ErrorDisplay } from "@/components/dashboard/ErrorDisplay";
 import { useTRPC } from "@/integrations/trpc/react";
 
 export const Route = createFileRoute("/dashboard/projects/new")({
-  component: NewProjectPage,
+  component: AddProjectPage,
 });
 
-function NewProjectPage() {
+function AddProjectPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  const [dirPath, setDirPath] = useState("");
   const [name, setName] = useState("");
-  const [repoPath, setRepoPath] = useState("");
   const [description, setDescription] = useState("");
-
-  const createMutation = useMutation(
-    trpc.projects.create.mutationOptions({
-      onSuccess: (project) => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.projects.list.queryKey(),
-        });
-        navigate({
-          to: "/dashboard/p/$projectId",
-          params: { projectId: project.id },
-        });
-      },
-    }),
-  );
 
   const importMutation = useMutation(
     trpc.projects.importFromDirectory.mutationOptions({
@@ -50,21 +40,14 @@ function NewProjectPage() {
     }),
   );
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({
-      name,
-      repoPath,
+    importMutation.mutate({
+      dirPath,
+      name: name || undefined,
       description: description || undefined,
     });
   };
-
-  const handleImport = () => {
-    if (!repoPath) return;
-    importMutation.mutate({ dirPath: repoPath });
-  };
-
-  const isPending = createMutation.isPending || importMutation.isPending;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -77,53 +60,56 @@ function NewProjectPage() {
           <ArrowLeft className="size-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">New Project</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Add Project</h1>
           <p className="text-muted-foreground mt-1">
-            Add a git repository as a project
+            Point to a git repository to add it as a project
           </p>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleCreate} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="p-6 rounded-xl border border-border bg-card/30 space-y-4">
-          {/* Repo Path */}
+          {/* Directory Path */}
           <div>
             <label
-              htmlFor="repoPath"
+              htmlFor="dirPath"
               className="block text-sm font-medium text-foreground mb-1.5"
             >
               Repository Path
             </label>
             <input
-              id="repoPath"
+              id="dirPath"
               type="text"
-              value={repoPath}
-              onChange={(e) => setRepoPath(e.target.value)}
+              value={dirPath}
+              onChange={(e) => setDirPath(e.target.value)}
               placeholder="/path/to/your/repo"
               required
               className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              Absolute path to a git repository (bare or regular)
+              Any path inside a git repository — the repo root is detected
+              automatically
             </p>
           </div>
 
-          {/* Name */}
+          {/* Name (optional override) */}
           <div>
             <label
               htmlFor="name"
               className="block text-sm font-medium text-foreground mb-1.5"
             >
               Project Name
+              <span className="text-muted-foreground font-normal ml-1">
+                (optional)
+              </span>
             </label>
             <input
               id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="my-project"
-              required
+              placeholder="Defaults to directory name"
               className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -151,38 +137,23 @@ function NewProjectPage() {
         </div>
 
         {/* Error */}
-        {(createMutation.isError || importMutation.isError) && (
+        {importMutation.isError && (
           <ErrorDisplay
-            error={createMutation.error || importMutation.error}
-            title="Failed to create project"
-            onRetry={() => {
-              createMutation.reset();
-              importMutation.reset();
-            }}
+            error={importMutation.error}
+            title="Failed to add project"
+            onRetry={() => importMutation.reset()}
           />
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={isPending || !name || !repoPath}
-            className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 cursor-pointer"
-          >
-            <FolderGit2 className="size-4" />
-            {createMutation.isPending ? "Creating..." : "Create Project"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleImport}
-            disabled={isPending || !repoPath}
-            className="px-5 py-2.5 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 cursor-pointer"
-          >
-            <Import className="size-4" />
-            {importMutation.isPending ? "Importing..." : "Import from Path"}
-          </button>
-        </div>
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={importMutation.isPending || !dirPath}
+          className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 cursor-pointer"
+        >
+          <FolderGit2 className="size-4" />
+          {importMutation.isPending ? "Adding..." : "Add Project"}
+        </button>
       </form>
     </div>
   );

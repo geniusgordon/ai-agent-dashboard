@@ -443,7 +443,10 @@ export class ProjectManager {
   // Auto-detection
   // ---------------------------------------------------------------------------
 
-  async importFromDirectory(dirPath: string): Promise<Project> {
+  async importFromDirectory(
+    dirPath: string,
+    options?: { name?: string; description?: string },
+  ): Promise<Project> {
     const resolvedPath = resolve(dirPath);
     git.validatePath(resolvedPath);
 
@@ -466,8 +469,12 @@ export class ProjectManager {
     }
 
     // Create new project from repo
-    const name = basename(repoRoot);
-    return this.createProject({ name, repoPath: repoRoot });
+    const name = options?.name || basename(repoRoot);
+    return this.createProject({
+      name,
+      repoPath: repoRoot,
+      description: options?.description,
+    });
   }
 
   // ---------------------------------------------------------------------------
