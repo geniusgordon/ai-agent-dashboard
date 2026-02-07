@@ -183,7 +183,7 @@ function DashboardOverview() {
                 className="
                   w-full px-4 py-2 pr-10 rounded-lg
                   bg-background border border-input
-                  text-foreground font-mono text-sm
+                  text-foreground font-mono text-base sm:text-sm
                   focus:outline-none focus:ring-2 focus:ring-primary/50
                 "
                 placeholder="Enter path or select preset..."

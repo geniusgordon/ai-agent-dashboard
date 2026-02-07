@@ -62,7 +62,8 @@ export function MessageInput({
           disabled={isSending || disabled}
           rows={1}
           className="
-            flex-1 px-4 py-2.5 rounded-lg text-sm
+            flex-1 px-4 py-2.5 rounded-lg
+            text-base sm:text-sm
             bg-transparent border-none font-sans
             text-foreground placeholder-muted-foreground
             focus:outline-none

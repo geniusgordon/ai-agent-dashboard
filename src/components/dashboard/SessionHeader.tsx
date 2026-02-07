@@ -157,7 +157,7 @@ export function SessionHeader({
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="px-2.5 py-1 text-sm bg-card border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow duration-200"
+                className="px-2.5 py-1 text-base sm:text-sm bg-card border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow duration-200"
                 autoFocus
               />
               <button
