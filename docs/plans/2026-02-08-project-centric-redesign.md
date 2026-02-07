@@ -143,18 +143,22 @@ Same as current approvals page but filtered to the selected project's agents.
 
 ## Implementation Plan
 
-### Phase 1: Foundation (server + routing)
+### Phase 1: Foundation (server + routing) — DONE
 
-1. **Server query filters** — Add `projectId` parameter to `listSessions` and approval queries in tRPC routers
-2. **Route structure** — Create new route files for `/dashboard/p/$projectId` (layout), `/dashboard/p/$projectId/index`, `/dashboard/p/$projectId/sessions/index`, `/dashboard/p/$projectId/sessions/$sessionId`, `/dashboard/p/$projectId/approvals`
-3. **Project context** — Create a `useCurrentProject` hook that reads project ID from route params and provides project data to child components
+1. ~~**Server query filters** — Add `projectId` parameter to `listSessions` and approval queries in tRPC routers~~
+2. ~~**Route structure** — Create new route files for `/dashboard/p/$projectId` (layout), `/dashboard/p/$projectId/index`, `/dashboard/p/$projectId/sessions/index`, `/dashboard/p/$projectId/sessions/$sessionId`, `/dashboard/p/$projectId/approvals`~~
+3. ~~**Project context** — Create a `useCurrentProject` hook that reads project ID from route params and provides project data to child components~~
 
-### Phase 2: Sidebar Rewrite
+Commit: `cdd034b` — `feat: add project-scoped routes and server filters (Phase 1)`
 
-4. **ProjectSwitcher component** — Dropdown with popover, project list, search
-5. **Contextual navigation** — Dual-mode nav: global (home) vs. project-scoped
-6. **Active agents by worktree** — Replace "Active Sessions" section with worktree-grouped agent list
-7. **Footer "Home" link** — When inside a project, quick nav back to home
+### Phase 2: Sidebar Rewrite — DONE
+
+4. ~~**ProjectSwitcher component** — Dropdown with popover, project list, search~~
+5. ~~**Contextual navigation** — Dual-mode nav: global (home) vs. project-scoped~~
+6. ~~**Active agents by worktree** — Replace "Active Sessions" section with worktree-grouped agent list~~
+7. ~~**Footer "Home" link** — When inside a project, quick nav back to home~~
+
+Commit: `486496c` — `feat: rewrite sidebar with project switcher and dual-mode nav (Phase 2)`
 
 ### Phase 3: Home Page
 
