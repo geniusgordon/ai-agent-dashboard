@@ -6,6 +6,14 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { SessionMode } from "@/lib/agents/types";
 
 export interface ImageAttachment {
   id: string;
@@ -21,6 +29,14 @@ export interface MessageInputProps {
   isAgentBusy?: boolean;
   placeholder?: string;
   supportsImages?: boolean;
+  /** Available modes for this session */
+  availableModes?: SessionMode[];
+  /** Current mode ID */
+  currentModeId?: string;
+  /** Callback to change mode */
+  onSetMode?: (modeId: string) => void;
+  /** Whether a mode change is in progress */
+  isSettingMode?: boolean;
 }
 
 const ACCEPTED_IMAGE_TYPES = [
@@ -37,12 +53,19 @@ export function MessageInput({
   isAgentBusy = false,
   placeholder = "Send a message...",
   supportsImages = true,
+  availableModes,
+  currentModeId,
+  onSetMode,
+  isSettingMode,
 }: MessageInputProps) {
   const [input, setInput] = useState("");
   const [images, setImages] = useState<ImageAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showModeSelector =
+    availableModes && availableModes.length > 0 && onSetMode;
 
   const submit = () => {
     const trimmed = input.trim();
@@ -239,6 +262,33 @@ export function MessageInput({
                 <ImagePlus className="size-5" />
               </button>
             </>
+          )}
+
+          {/* Mode selector */}
+          {showModeSelector && (
+            <Select
+              value={currentModeId}
+              onValueChange={onSetMode}
+              disabled={isSettingMode}
+            >
+              <SelectTrigger
+                size="sm"
+                className="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none self-center"
+              >
+                {isSettingMode ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <SelectValue placeholder="Mode" />
+                )}
+              </SelectTrigger>
+              <SelectContent position="popper" side="top" align="start">
+                {availableModes.map((mode) => (
+                  <SelectItem key={mode.id} value={mode.id}>
+                    {mode.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
 
           <textarea
