@@ -327,6 +327,93 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     store.updateSessionName(sessionId, name);
   }
 
+  /**
+   * Reconnect a disconnected session
+   * Spawns a new client and loads the existing session
+   */
+  async reconnectSession(sessionId: string): Promise<AgentSession> {
+    // Get session from disk
+    const stored = store.loadSession(sessionId);
+    if (!stored) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    // Spawn new client
+    const client = await this.spawnClient({
+      agentType: stored.agentType,
+      cwd: stored.cwd ?? process.cwd(),
+    });
+
+    // Check if agent supports loadSession
+    const managed = this.clients.get(client.id);
+    if (!managed) {
+      throw new Error("Failed to get managed client");
+    }
+
+    const supportsLoad = managed.acpClient.supportsLoadSession();
+    
+    if (supportsLoad) {
+      // Load existing session
+      console.log(`[reconnectSession] Loading session ${sessionId} with loadSession`);
+      try {
+        await managed.acpClient.loadSession(sessionId);
+      } catch (error) {
+        console.error(`[reconnectSession] loadSession failed:`, error);
+        // Fall back to creating new session
+        console.log(`[reconnectSession] Falling back to new session`);
+        const newSession = await managed.acpClient.createSession(stored.cwd ?? process.cwd());
+        
+        // Update stored session to point to new client
+        const session: ManagedSession = {
+          id: newSession.id,
+          clientId: client.id,
+          agentType: stored.agentType,
+          status: "idle",
+          cwd: stored.cwd ?? process.cwd(),
+          name: stored.name,
+          createdAt: new Date(stored.createdAt),
+          updatedAt: new Date(),
+          availableModes: newSession.availableModes,
+          currentModeId: newSession.currentModeId,
+        };
+
+        this.sessions.set(session.id, session);
+        this.sessionToClient.set(session.id, client.id);
+
+        return this.toAgentSession(session);
+      }
+    } else {
+      console.log(`[reconnectSession] Agent doesn't support loadSession, creating new session`);
+    }
+
+    // Create managed session pointing to new client
+    const session: ManagedSession = {
+      id: sessionId,
+      clientId: client.id,
+      agentType: stored.agentType,
+      status: "idle",
+      cwd: stored.cwd ?? process.cwd(),
+      name: stored.name,
+      createdAt: new Date(stored.createdAt),
+      updatedAt: new Date(),
+    };
+
+    this.sessions.set(sessionId, session);
+    this.sessionToClient.set(sessionId, client.id);
+
+    // Load events from disk into memory
+    const events = stored.events.map((e) => ({
+      ...e,
+      timestamp: new Date(e.timestamp),
+    })) as AgentEvent[];
+    this.sessionEvents.set(sessionId, events);
+
+    return {
+      ...this.toAgentSession(session),
+      isActive: true,
+    };
+  }
+
   // -------------------------------------------------------------------------
   // Kill / Cleanup
   // -------------------------------------------------------------------------

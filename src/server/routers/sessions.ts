@@ -183,6 +183,17 @@ export const sessionsRouter = createTRPCRouter({
     }),
 
   /**
+   * Reconnect a disconnected session
+   * Spawns a new client and loads the session if supported
+   */
+  reconnectSession: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      return manager.reconnectSession(input.sessionId);
+    }),
+
+  /**
    * Check if a client is still alive
    */
   isClientAlive: publicProcedure

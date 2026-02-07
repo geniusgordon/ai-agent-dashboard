@@ -287,6 +287,47 @@ export class ACPClient extends EventEmitter {
   }
 
   /**
+   * Load an existing session (reconnect)
+   * Only works if agent supports loadSession capability
+   */
+  async loadSession(sessionId: string): Promise<Session> {
+    if (!this.connection) {
+      throw new Error("Client not started. Call start() first.");
+    }
+
+    if (!this.agentCapabilities?.agentCapabilities?.loadSession) {
+      throw new Error("Agent does not support loadSession");
+    }
+
+    console.log(`[ACPClient] Loading session: ${sessionId}`);
+    const result = await this.connection.loadSession({ sessionId });
+    console.log(`[ACPClient] Session loaded: ${result.sessionId}`);
+
+    const session: Session = {
+      id: result.sessionId,
+      agentType: this.config.type,
+      cwd: "", // Will be updated from stored session
+      createdAt: new Date(),
+      availableModes: result.modes?.availableModes?.map((m) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description ?? undefined,
+      })),
+      currentModeId: result.modes?.currentModeId,
+    };
+
+    this.sessions.set(session.id, session);
+    return session;
+  }
+
+  /**
+   * Check if agent supports loadSession
+   */
+  supportsLoadSession(): boolean {
+    return this.agentCapabilities?.agentCapabilities?.loadSession ?? false;
+  }
+
+  /**
    * Respond to a permission request
    */
   respondToPermission(permissionId: string, optionId: string): void {

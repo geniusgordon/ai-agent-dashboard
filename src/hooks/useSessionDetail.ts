@@ -240,6 +240,19 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  const reconnectMutation = useMutation(
+    trpc.sessions.reconnectSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.listClients.queryKey(),
+        });
+      },
+    }),
+  );
+
   // ---------------------------------------------------------------------------
   // Action callbacks
   // ---------------------------------------------------------------------------
@@ -260,6 +273,8 @@ export function useSessionDetail(sessionId: string) {
 
   const setMode = (modeId: string) =>
     setModeMutation.mutate({ sessionId, modeId });
+
+  const reconnect = () => reconnectMutation.mutate({ sessionId });
 
   const clearLogs = () => setEvents([]);
 
@@ -287,6 +302,7 @@ export function useSessionDetail(sessionId: string) {
     isApproving: approveMutation.isPending,
     isDenying: denyMutation.isPending,
     isSettingMode: setModeMutation.isPending,
+    isReconnecting: reconnectMutation.isPending,
 
     // Actions
     sendMessage,
@@ -295,6 +311,7 @@ export function useSessionDetail(sessionId: string) {
     killSession,
     renameSession,
     setMode,
+    reconnect,
     clearLogs,
     toggleAutoScroll,
   };

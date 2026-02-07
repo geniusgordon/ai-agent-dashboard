@@ -10,6 +10,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import {
   ApprovalBanner,
   MessageInput,
+  ReconnectBanner,
   SessionHeader,
   SessionLog,
 } from "@/components/dashboard";
@@ -36,12 +37,14 @@ function SessionDetailPage() {
     isApproving,
     isDenying,
     isSettingMode,
+    isReconnecting,
     sendMessage,
     approve,
     deny,
     killSession,
     renameSession,
     setMode,
+    reconnect,
     clearLogs,
     toggleAutoScroll,
   } = useSessionDetail(sessionId);
@@ -86,6 +89,11 @@ function SessionDetailPage() {
         onSetMode={setMode}
         isSettingMode={isSettingMode}
       />
+
+      {/* Show reconnect banner if session is inactive */}
+      {session.isActive === false && (
+        <ReconnectBanner onReconnect={reconnect} isReconnecting={isReconnecting} />
+      )}
 
       {pendingApproval && (
         <ApprovalBanner
