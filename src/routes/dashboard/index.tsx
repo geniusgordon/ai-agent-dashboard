@@ -3,13 +3,21 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, Clock, Monitor, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  FolderGit2,
+  Monitor,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   AgentBadge,
   ClientCard,
   ErrorDisplay,
+  ProjectCard,
   SessionCard,
 } from "../../components/dashboard";
 import { useAgentEvents } from "../../hooks/useAgentEvents";
@@ -29,9 +37,7 @@ const CWD_PRESETS = [
 const PRESET_PATHS = new Set(CWD_PRESETS.map((p) => p.path));
 
 function timeAgo(iso: string): string {
-  const seconds = Math.floor(
-    (Date.now() - new Date(iso).getTime()) / 1000,
-  );
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -73,6 +79,7 @@ function DashboardOverview() {
   const recentDirsQuery = useQuery(
     trpc.sessions.listRecentDirectories.queryOptions(),
   );
+  const projectsQuery = useQuery(trpc.projects.list.queryOptions());
 
   const clients = clientsQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
@@ -99,10 +106,10 @@ function DashboardOverview() {
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.listSessions.queryKey(),
       });
-      
+
       // Send desktop notification
       notify("🔔 Approval Required", {
-        body: `${approval.toolName}: ${approval.title}`,
+        body: `${approval.toolCall.kind}: ${approval.toolCall.title}`,
         tag: approval.id, // Prevent duplicates
       });
     },
@@ -164,6 +171,20 @@ function DashboardOverview() {
       },
     }),
   );
+
+  const importProjectMutation = useMutation(
+    trpc.projects.importFromDirectory.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.projects.list.queryKey(),
+        });
+      },
+    }),
+  );
+
+  const handleImportToProject = (cwd: string) => {
+    importProjectMutation.mutate({ dirPath: cwd });
+  };
 
   const handleSpawnClient = (agentType: AgentType) => {
     setSpawningType(agentType);
@@ -237,7 +258,9 @@ function DashboardOverview() {
                 onClick={() => setShowCwdDropdown(!showCwdDropdown)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
-                <ChevronDown className={`size-4 transition-transform ${showCwdDropdown ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`size-4 transition-transform ${showCwdDropdown ? "rotate-180" : ""}`}
+                />
               </button>
               {showCwdDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 max-h-64 overflow-y-auto">
@@ -396,11 +419,39 @@ function DashboardOverview() {
                   createSessionMutation.isPending &&
                   createSessionMutation.variables?.clientId === client.id
                 }
+                onImportToProject={handleImportToProject}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Projects Quick Access */}
+      {(projectsQuery.data?.length ?? 0) > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <FolderGit2 className="size-5 text-purple-400" />
+              Projects
+              <span className="text-sm text-muted-foreground font-normal">
+                ({projectsQuery.data?.length ?? 0})
+              </span>
+            </h2>
+            <Link
+              to="/dashboard/projects"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+            >
+              View All
+              <ChevronRight className="size-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projectsQuery.data?.slice(0, 3).map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Sessions */}
       <div>

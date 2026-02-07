@@ -11,6 +11,7 @@ import {
   getAgentManager,
   loadRecentDirectories,
 } from "../../lib/agents/index.js";
+import { getBranchInfo, getProjectManager } from "../../lib/projects/index.js";
 
 const AgentTypeSchema = z.enum(["gemini", "claude-code", "codex"]);
 
@@ -143,11 +144,7 @@ export const sessionsRouter = createTRPCRouter({
     )
     .mutation(({ input }) => {
       const manager = getAgentManager();
-      manager.sendMessage(
-        input.sessionId,
-        input.message,
-        input.contentBlocks,
-      );
+      manager.sendMessage(input.sessionId, input.message, input.contentBlocks);
       return { success: true };
     }),
 
@@ -169,6 +166,8 @@ export const sessionsRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const manager = getAgentManager();
       manager.killSession(input.sessionId);
+      // Clean up worktree assignment
+      getProjectManager().unassignAgent(input.sessionId);
       return { success: true };
     }),
 
@@ -180,6 +179,8 @@ export const sessionsRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const manager = getAgentManager();
       manager.deleteSession(input.sessionId);
+      // Clean up worktree assignment
+      getProjectManager().unassignAgent(input.sessionId);
       return { success: true };
     }),
 
@@ -190,6 +191,12 @@ export const sessionsRouter = createTRPCRouter({
     .input(z.object({ clientId: z.string() }))
     .mutation(async ({ input }) => {
       const manager = getAgentManager();
+      // Unassign all sessions for this client before killing
+      const sessions = manager.listSessions(input.clientId);
+      const projectManager = getProjectManager();
+      for (const session of sessions) {
+        projectManager.unassignAgent(session.id);
+      }
       manager.killClient(input.clientId);
       return { success: true };
     }),
@@ -245,4 +252,14 @@ export const sessionsRouter = createTRPCRouter({
     const cleaned = manager.cleanupStaleSessions();
     return { cleaned };
   }),
+
+  getBranchInfo: publicProcedure
+    .input(z.object({ cwd: z.string() }))
+    .query(async ({ input }) => {
+      let cwd = input.cwd;
+      if (cwd.startsWith("~")) {
+        cwd = cwd.replace("~", process.env.HOME ?? "");
+      }
+      return getBranchInfo(cwd);
+    }),
 });

@@ -6,9 +6,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useBranchInfo } from "../../hooks/useBranchInfo";
 import { useTRPC } from "../../integrations/trpc/react";
 import type { AgentSession } from "../../lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
+import { BranchBadge } from "./BranchBadge";
 import { StatusBadge } from "./StatusBadge";
 
 interface SessionCardProps {
@@ -29,6 +31,8 @@ export function SessionCard({ session }: SessionCardProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const branchQuery = useBranchInfo(session.cwd);
+  const branch = branchQuery.data?.branch;
 
   const deleteMutation = useMutation(
     trpc.sessions.deleteSession.mutationOptions({
@@ -89,10 +93,13 @@ export function SessionCard({ session }: SessionCardProps) {
             {session.name || session.id.slice(0, 8)}
           </p>
 
-          {/* CWD */}
-          <p className="text-xs text-muted-foreground truncate">
-            {session.cwd}
-          </p>
+          {/* CWD & Branch */}
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-xs text-muted-foreground truncate">
+              {session.cwd}
+            </p>
+            {branch && <BranchBadge branch={branch} size="sm" />}
+          </div>
         </div>
 
         {/* Time & Delete */}
@@ -128,7 +135,9 @@ export function SessionCard({ session }: SessionCardProps) {
       "
       >
         {confirmDelete && (
-          <span className="text-xs text-destructive">Click again to delete</span>
+          <span className="text-xs text-destructive">
+            Click again to delete
+          </span>
         )}
         <span
           className={`

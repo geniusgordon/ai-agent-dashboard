@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AgentBadge, StatusBadge } from "@/components/dashboard";
-import type { AgentSession, SessionMode } from "@/lib/agents/types";
+import type { AgentSession } from "@/lib/agents/types";
 
 export interface SessionHeaderProps {
   session: AgentSession;
@@ -99,8 +99,10 @@ export function SessionHeader({
                   ) : (
                     <>
                       {session.availableModes.find(
-                        (m) => m.id === session.currentModeId
-                      )?.name || session.currentModeId || "Mode"}
+                        (m) => m.id === session.currentModeId,
+                      )?.name ||
+                        session.currentModeId ||
+                        "Mode"}
                       <ChevronDown className="size-3" />
                     </>
                   )}
@@ -230,30 +232,36 @@ export function SessionHeader({
             {autoScroll ? "Auto-scroll" : "Paused"}
           </span>
         </button>
-        {session.status !== "completed" && session.status !== "killed" && session.isActive !== false && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("Kill this session?")) {
-                onKillSession();
-              }
-            }}
-            disabled={isKilling}
-            className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-action-danger/20 text-action-danger hover:bg-action-danger/30 transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
-            title="Kill session"
-          >
-            <Square className="size-3.5" />
-            <span className="hidden sm:inline">
-              {isKilling ? "Killing..." : "Kill"}
-            </span>
-          </button>
-        )}
+        {session.status !== "completed" &&
+          session.status !== "killed" &&
+          session.isActive !== false && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Kill this session?")) {
+                  onKillSession();
+                }
+              }}
+              disabled={isKilling}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-action-danger/20 text-action-danger hover:bg-action-danger/30 transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+              title="Kill session"
+            >
+              <Square className="size-3.5" />
+              <span className="hidden sm:inline">
+                {isKilling ? "Killing..." : "Kill"}
+              </span>
+            </button>
+          )}
         {/* Delete button for inactive sessions */}
         {session.isActive === false && onDeleteSession && (
           <button
             type="button"
             onClick={() => {
-              if (confirm("Delete this session permanently? This cannot be undone.")) {
+              if (
+                confirm(
+                  "Delete this session permanently? This cannot be undone.",
+                )
+              ) {
                 onDeleteSession();
               }
             }}

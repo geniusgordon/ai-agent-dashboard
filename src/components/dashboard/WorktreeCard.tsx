@@ -1,0 +1,109 @@
+/**
+ * Worktree Card Component
+ *
+ * Displays a worktree with its branch, assigned agents, and actions.
+ */
+
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, Play, Trash2, Users } from "lucide-react";
+import { useTRPC } from "@/integrations/trpc/react";
+import type { Worktree } from "@/lib/projects/types";
+import { BranchBadge } from "./BranchBadge";
+
+interface WorktreeCardProps {
+  worktree: Worktree;
+  onSpawnAgent?: () => void;
+  onDelete?: () => void;
+  isDeleting?: boolean;
+}
+
+export function WorktreeCard({
+  worktree,
+  onSpawnAgent,
+  onDelete,
+  isDeleting,
+}: WorktreeCardProps) {
+  const trpc = useTRPC();
+
+  const assignmentsQuery = useQuery(
+    trpc.worktrees.getAssignments.queryOptions({
+      worktreeId: worktree.id,
+    }),
+  );
+
+  const assignments = assignmentsQuery.data ?? [];
+  const hasMultipleAgents = assignments.length > 1;
+
+  return (
+    <div
+      className={`p-4 rounded-xl border bg-card/50 shadow-sm ${
+        hasMultipleAgents ? "border-amber-500/40" : "border-border"
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-medium text-sm truncate">{worktree.name}</h4>
+            {worktree.isMainWorktree && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                main
+              </span>
+            )}
+          </div>
+          <BranchBadge branch={worktree.branch} size="sm" />
+        </div>
+
+        {!worktree.isMainWorktree && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer disabled:opacity-50"
+            title="Delete worktree"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Path */}
+      <p className="text-xs text-muted-foreground font-mono truncate mb-3">
+        {worktree.path}
+      </p>
+
+      {/* Agents */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          {assignments.length > 0 ? (
+            <>
+              <Users className="size-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {assignments.length} agent{assignments.length !== 1 ? "s" : ""}
+              </span>
+              {hasMultipleAgents && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                  <AlertTriangle className="size-3" />
+                  shared
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground">No agents</span>
+          )}
+        </div>
+
+        {onSpawnAgent && (
+          <button
+            type="button"
+            onClick={onSpawnAgent}
+            className="px-2.5 py-1 rounded-md text-xs font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1"
+          >
+            <Play className="size-3" />
+            Spawn
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

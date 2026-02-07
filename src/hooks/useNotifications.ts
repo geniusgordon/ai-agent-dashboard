@@ -5,7 +5,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 export function useNotifications() {
-  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const [permission, setPermission] =
+    useState<NotificationPermission>("default");
 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
@@ -23,40 +24,37 @@ export function useNotifications() {
     return result;
   }, []);
 
-  const notify = useCallback(
-    (title: string, options?: NotificationOptions) => {
-      if (typeof window === "undefined" || !("Notification" in window)) {
-        return null;
-      }
+  const notify = useCallback((title: string, options?: NotificationOptions) => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return null;
+    }
 
-      if (Notification.permission !== "granted") {
-        return null;
-      }
+    if (Notification.permission !== "granted") {
+      return null;
+    }
 
-      // Don't notify if tab is focused
-      if (document.visibilityState === "visible") {
-        return null;
-      }
+    // Don't notify if tab is focused
+    if (document.visibilityState === "visible") {
+      return null;
+    }
 
-      const notification = new Notification(title, {
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
-        ...options,
-      });
+    const notification = new Notification(title, {
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
+      ...options,
+    });
 
-      // Auto close after 5 seconds
-      setTimeout(() => notification.close(), 5000);
+    // Auto close after 5 seconds
+    setTimeout(() => notification.close(), 5000);
 
-      // Focus window on click
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
+    // Focus window on click
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
 
-      return notification;
-    },
-    []
-  );
+    return notification;
+  }, []);
 
   return {
     permission,

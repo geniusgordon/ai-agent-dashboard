@@ -23,7 +23,12 @@ export interface MessageInputProps {
   supportsImages?: boolean;
 }
 
-const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+const ACCEPTED_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function MessageInput({

@@ -103,7 +103,10 @@ function SessionDetailPage() {
 
       {/* Show reconnect banner if session is inactive */}
       {session.isActive === false && (
-        <ReconnectBanner onReconnect={reconnect} isReconnecting={isReconnecting} />
+        <ReconnectBanner
+          onReconnect={reconnect}
+          isReconnecting={isReconnecting}
+        />
       )}
 
       {pendingApproval && (

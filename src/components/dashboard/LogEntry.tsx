@@ -17,7 +17,7 @@ export interface LogEntryProps {
 // Get preview for collapsed view
 function getPreview(content: string, maxLength = 80): string {
   const trimmed = content.trim();
-  
+
   // For JSON objects/arrays, show a summary
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
     try {
@@ -33,7 +33,7 @@ function getPreview(content: string, maxLength = 80): string {
       // Not valid JSON, fall through to default
     }
   }
-  
+
   // Default: first line or truncated
   const firstLine = content.split("\n")[0];
   if (firstLine.length <= maxLength) return firstLine;
@@ -49,8 +49,10 @@ function isLongContent(content: string): boolean {
 function formatJson(str: string): string {
   // Check if it looks like JSON
   const trimmed = str.trim();
-  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || 
-      (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
     try {
       return JSON.stringify(JSON.parse(trimmed), null, 2);
     } catch {
@@ -136,7 +138,8 @@ export function LogEntry({ event }: LogEntryProps) {
   };
 
   const Icon = config.icon;
-  const displayContent = isCollapsible && !isExpanded ? getPreview(content) : content;
+  const displayContent =
+    isCollapsible && !isExpanded ? getPreview(content) : content;
 
   return (
     <div
@@ -152,7 +155,11 @@ export function LogEntry({ event }: LogEntryProps) {
         ${isCollapsible ? "cursor-pointer" : ""}
       `}
       onClick={isCollapsible ? () => setIsExpanded(!isExpanded) : undefined}
-      onKeyDown={isCollapsible ? (e) => e.key === "Enter" && setIsExpanded(!isExpanded) : undefined}
+      onKeyDown={
+        isCollapsible
+          ? (e) => e.key === "Enter" && setIsExpanded(!isExpanded)
+          : undefined
+      }
       role={isCollapsible ? "button" : undefined}
       tabIndex={isCollapsible ? 0 : undefined}
     >
@@ -174,8 +181,8 @@ export function LogEntry({ event }: LogEntryProps) {
         </button>
       </div>
       {isCollapsible ? (
-        <ChevronRight 
-          className={`size-3.5 shrink-0 mt-[3px] opacity-70 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} 
+        <ChevronRight
+          className={`size-3.5 shrink-0 mt-[3px] opacity-70 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
         />
       ) : isToolLoading ? (
         <Loader2 className="size-3.5 shrink-0 mt-[3px] animate-spin" />
@@ -196,7 +203,7 @@ export function LogEntry({ event }: LogEntryProps) {
             ))}
           </div>
         )}
-        {isToolCall || isCollapsible && !isExpanded ? (
+        {isToolCall || (isCollapsible && !isExpanded) ? (
           // Tool calls and collapsed content: plain text
           <span className="whitespace-pre-wrap break-all">
             {displayContent}
@@ -210,7 +217,10 @@ export function LogEntry({ event }: LogEntryProps) {
                   const match = /language-(\w+)/.exec(className || "");
                   const inline = !match;
                   return inline ? (
-                    <code className="bg-secondary/50 px-1 py-0.5 rounded text-[0.9em]" {...props}>
+                    <code
+                      className="bg-secondary/50 px-1 py-0.5 rounded text-[0.9em]"
+                      {...props}
+                    >
                       {children}
                     </code>
                   ) : (
@@ -241,12 +251,16 @@ export function LogEntry({ event }: LogEntryProps) {
             </Markdown>
           </div>
         )}
-        {isToolLoading && <span className="text-muted-foreground ml-2">Running...</span>}
+        {isToolLoading && (
+          <span className="text-muted-foreground ml-2">Running...</span>
+        )}
         {isToolCall && toolStatus === "completed" && (
           <span className="text-event-complete ml-2">✓</span>
         )}
         {isCollapsible && !isExpanded && (
-          <span className="text-muted-foreground/50 ml-1 text-xs">({content.split("\n").length} lines)</span>
+          <span className="text-muted-foreground/50 ml-1 text-xs">
+            ({content.split("\n").length} lines)
+          </span>
         )}
       </div>
     </div>

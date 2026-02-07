@@ -38,8 +38,7 @@ export function ApprovalBanner({
           {approval.options.map((option) => {
             const isAllow = option.kind.includes("allow");
             const isDenyOption = option.kind === "deny";
-            const isThisLoading =
-              isBusy && clickedOptionId === option.optionId;
+            const isThisLoading = isBusy && clickedOptionId === option.optionId;
             return (
               <button
                 key={option.optionId}

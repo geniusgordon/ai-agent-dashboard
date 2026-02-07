@@ -18,11 +18,10 @@ export function SessionLog({
   showScrollButton,
   onScrollToBottom,
 }: SessionLogProps) {
-
   return (
     <div className="flex-1 relative min-h-0">
       {/* Scrollable container */}
-      <div 
+      <div
         ref={containerRef}
         className="absolute inset-0 overflow-y-auto rounded-xl border border-border bg-background/50 font-mono text-sm shadow-lg"
       >

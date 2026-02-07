@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import {
   Bot,
+  FolderGit2,
   Hexagon,
   LayoutDashboard,
   MessageSquare,
@@ -40,6 +41,12 @@ import type { AgentSession, AgentType } from "@/lib/agents/types";
 
 const navItems = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
+  {
+    to: "/dashboard/projects",
+    label: "Projects",
+    icon: FolderGit2,
+    exact: false,
+  },
   {
     to: "/dashboard/sessions",
     label: "Sessions",

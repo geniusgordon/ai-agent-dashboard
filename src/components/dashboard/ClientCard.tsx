@@ -2,9 +2,11 @@
  * Client Card Component
  */
 
-import { FolderOpen, Plus, X } from "lucide-react";
+import { FolderGit2, FolderOpen, Plus, X } from "lucide-react";
+import { useBranchInfo } from "../../hooks/useBranchInfo";
 import type { AgentClient } from "../../lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
+import { BranchBadge } from "./BranchBadge";
 import { StatusBadge } from "./StatusBadge";
 
 interface ClientCardProps {
@@ -13,6 +15,7 @@ interface ClientCardProps {
   onCreateSession?: () => void;
   onStop?: () => void;
   isCreatingSession?: boolean;
+  onImportToProject?: (cwd: string) => void;
 }
 
 const agentAccentBorder: Record<string, string> = {
@@ -27,7 +30,12 @@ export function ClientCard({
   onCreateSession,
   onStop,
   isCreatingSession,
+  onImportToProject,
 }: ClientCardProps) {
+  const branchQuery = useBranchInfo(client.cwd);
+  const branch = branchQuery.data?.branch;
+  const isGitRepo = branchQuery.data?.isGitRepo;
+
   return (
     <div
       className={`
@@ -58,11 +66,14 @@ export function ClientCard({
         {client.id}
       </p>
 
-      {/* CWD */}
-      <p className="text-sm text-muted-foreground truncate mb-3 flex items-center gap-1.5">
-        <FolderOpen className="size-3.5 shrink-0" />
-        {client.cwd}
-      </p>
+      {/* CWD & Branch */}
+      <div className="mb-3 flex items-center gap-2 min-w-0">
+        <p className="text-sm text-muted-foreground truncate flex items-center gap-1.5">
+          <FolderOpen className="size-3.5 shrink-0" />
+          {client.cwd}
+        </p>
+        {branch && <BranchBadge branch={branch} size="sm" />}
+      </div>
 
       {/* Stats */}
       <div className="flex items-center justify-between text-sm">
@@ -94,6 +105,18 @@ export function ClientCard({
         <div className="mt-3 p-2 rounded bg-status-error/10 border border-status-error/20">
           <p className="text-xs text-status-error">{client.error}</p>
         </div>
+      )}
+
+      {/* Import to projects prompt */}
+      {isGitRepo && onImportToProject && (
+        <button
+          type="button"
+          onClick={() => onImportToProject(client.cwd)}
+          className="mt-3 w-full px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 border border-transparent hover:border-purple-500/20"
+        >
+          <FolderGit2 className="size-3" />
+          Add to Projects
+        </button>
       )}
     </div>
   );

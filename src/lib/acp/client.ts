@@ -303,8 +303,10 @@ export class ACPClient extends EventEmitter {
       ? (cwd ?? this.cwd).replace("~", process.env.HOME ?? "")
       : (cwd ?? this.cwd);
 
-    console.log(`[ACPClient] Loading session: ${sessionId} with cwd: ${expandedCwd}`);
-    const result = await this.connection.loadSession({ 
+    console.log(
+      `[ACPClient] Loading session: ${sessionId} with cwd: ${expandedCwd}`,
+    );
+    const result = await this.connection.loadSession({
       sessionId,
       cwd: expandedCwd,
       mcpServers: [],
