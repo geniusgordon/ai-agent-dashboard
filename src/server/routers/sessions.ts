@@ -7,7 +7,10 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "../../integrations/trpc/init.js";
-import { getAgentManager } from "../../lib/agents/index.js";
+import {
+  getAgentManager,
+  loadRecentDirectories,
+} from "../../lib/agents/index.js";
 
 const AgentTypeSchema = z.enum(["gemini", "claude-code", "codex"]);
 
@@ -60,6 +63,13 @@ export const sessionsRouter = createTRPCRouter({
       const manager = getAgentManager();
       return manager.getClient(input.clientId) ?? null;
     }),
+
+  /**
+   * List recently used working directories
+   */
+  listRecentDirectories: publicProcedure.query(() => {
+    return loadRecentDirectories();
+  }),
 
   // ---------------------------------------------------------------------------
   // Session Management

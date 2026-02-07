@@ -12,6 +12,7 @@ import {
   ACPClient,
   type PendingPermission,
 } from "../acp/index.js";
+import { recordRecentDirectory } from "./recent-dirs.js";
 import * as store from "./store.js";
 import type {
   AgentClient,
@@ -29,6 +30,18 @@ import type {
   SpawnClientOptions,
   UnsubscribeFn,
 } from "./types.js";
+
+const HOME_DIR = process.env.HOME ?? "";
+
+/**
+ * Collapse absolute home-prefixed paths back to ~ for display.
+ */
+function collapsePath(cwd: string): string {
+  if (HOME_DIR && cwd.startsWith(HOME_DIR)) {
+    return `~${cwd.slice(HOME_DIR.length)}`;
+  }
+  return cwd;
+}
 
 /**
  * Internal client state
@@ -124,6 +137,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       const capabilities = await acpClient.start();
       managed.status = "ready";
       managed.capabilities = capabilities;
+      recordRecentDirectory(options.cwd);
     } catch (error) {
       managed.status = "error";
       managed.error = error as Error;
@@ -274,7 +288,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         id: stored.id,
         clientId: stored.clientId,
         agentType: stored.agentType,
-        cwd: stored.cwd ?? "unknown",
+        cwd: collapsePath(stored.cwd ?? "unknown"),
         name: stored.name,
         status: stored.status,
         createdAt: new Date(stored.createdAt),
@@ -311,7 +325,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           id: s.id,
           clientId: s.clientId,
           agentType: s.agentType,
-          cwd: s.cwd ?? "unknown",
+          cwd: collapsePath(s.cwd ?? "unknown"),
           name: s.name,
           status: s.status,
           createdAt: new Date(s.createdAt),
@@ -1031,7 +1045,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       id: managed.id,
       agentType: managed.agentType,
       status: managed.status,
-      cwd: managed.cwd,
+      cwd: collapsePath(managed.cwd),
       createdAt: managed.createdAt,
       capabilities: managed.capabilities
         ? {
@@ -1068,7 +1082,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       clientId: managed.clientId,
       agentType: managed.agentType,
       status: managed.status,
-      cwd: managed.cwd,
+      cwd: collapsePath(managed.cwd),
       name: managed.name,
       createdAt: managed.createdAt,
       updatedAt: managed.updatedAt,
