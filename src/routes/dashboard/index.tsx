@@ -4,7 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, Monitor, Trash2 } from "lucide-react";
+import { ChevronDown, Clock, Monitor, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   AgentBadge,
@@ -25,6 +25,21 @@ const CWD_PRESETS = [
   { label: "Works", path: "~/Works" },
   { label: "Current", path: "." },
 ];
+
+const PRESET_PATHS = new Set(CWD_PRESETS.map((p) => p.path));
+
+function timeAgo(iso: string): string {
+  const seconds = Math.floor(
+    (Date.now() - new Date(iso).getTime()) / 1000,
+  );
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 export const Route = createFileRoute("/dashboard/")({
   component: DashboardOverview,
@@ -55,9 +70,15 @@ function DashboardOverview() {
   // Queries
   const clientsQuery = useQuery(trpc.sessions.listClients.queryOptions());
   const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
+  const recentDirsQuery = useQuery(
+    trpc.sessions.listRecentDirectories.queryOptions(),
+  );
 
   const clients = clientsQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
+  const recentDirs = (recentDirsQuery.data ?? []).filter(
+    (d) => !PRESET_PATHS.has(d.path),
+  );
 
   // Desktop notifications
   const { notify, permission, requestPermission } = useNotifications();
@@ -94,6 +115,9 @@ function DashboardOverview() {
         setSpawningType(null);
         queryClient.invalidateQueries({
           queryKey: trpc.sessions.listClients.queryKey(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.listRecentDirectories.queryKey(),
         });
       },
       onError: () => {
@@ -216,7 +240,10 @@ function DashboardOverview() {
                 <ChevronDown className={`size-4 transition-transform ${showCwdDropdown ? "rotate-180" : ""}`} />
               </button>
               {showCwdDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1">
+                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 max-h-64 overflow-y-auto">
+                  <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Presets
+                  </div>
                   {CWD_PRESETS.map((preset) => (
                     <button
                       key={preset.path}
@@ -235,6 +262,37 @@ function DashboardOverview() {
                       </div>
                     </button>
                   ))}
+                  {recentDirs.length > 0 && (
+                    <>
+                      <div className="border-t border-border my-1" />
+                      <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="size-3" />
+                        Recent
+                      </div>
+                      {recentDirs.map((dir) => (
+                        <button
+                          key={dir.path}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCwd(dir.path);
+                            setShowCwdDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 hover:bg-accent transition-colors cursor-pointer ${
+                            selectedCwd === dir.path ? "bg-accent/50" : ""
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-mono text-sm truncate">
+                              {dir.path}
+                            </div>
+                            <div className="text-xs text-muted-foreground ml-2 shrink-0">
+                              {timeAgo(dir.lastUsed)}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </div>

@@ -6,6 +6,7 @@
  */
 
 export { AgentManager, getAgentManager } from "./manager.js";
+export { loadRecentDirectories } from "./recent-dirs.js";
 
 export type {
   AgentCapabilities,
