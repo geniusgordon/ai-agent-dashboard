@@ -1,6 +1,8 @@
-import { ChevronRight, Loader2, User } from "lucide-react";
+import { Check, ChevronRight, Copy, Loader2, User } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   defaultEventConfig,
   eventConfig,
@@ -102,6 +104,14 @@ export function LogEntry({ event }: LogEntryProps) {
   // Collapsible for thinking and tool calls with long content
   const isCollapsible = (isThinking || isToolCall) && isLongContent(content);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger collapse/expand
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const Icon = config.icon;
   const displayContent = isCollapsible && !isExpanded ? getPreview(content) : content;
@@ -124,9 +134,23 @@ export function LogEntry({ event }: LogEntryProps) {
       role={isCollapsible ? "button" : undefined}
       tabIndex={isCollapsible ? 0 : undefined}
     >
-      <span className="shrink-0 text-muted-foreground/70 text-[11px] tabular-nums hidden sm:block w-[4.5rem] pt-0.5 select-none">
-        {formatTime(event.timestamp)}
-      </span>
+      <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+        <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
+          {formatTime(event.timestamp)}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-secondary/50 transition-all cursor-pointer"
+          title="Copy to clipboard"
+        >
+          {copied ? (
+            <Check className="size-3 text-action-success" />
+          ) : (
+            <Copy className="size-3 text-muted-foreground/50" />
+          )}
+        </button>
+      </div>
       {isCollapsible ? (
         <ChevronRight 
           className={`size-3.5 shrink-0 mt-[3px] opacity-70 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} 
@@ -143,9 +167,36 @@ export function LogEntry({ event }: LogEntryProps) {
             {displayContent}
           </span>
         ) : (
-          // Messages: render markdown
-          <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:bg-secondary/50 [&_pre]:p-2 [&_pre]:rounded [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_hr]:border-border [&_hr]:my-3">
-            <Markdown>{displayContent}</Markdown>
+          // Messages: render markdown with syntax highlighting
+          <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_hr]:border-border [&_hr]:my-3">
+            <Markdown
+              components={{
+                code({ className, children, ...props }) {
+                  const match = /language-(\w+)/.exec(className || "");
+                  const inline = !match;
+                  return inline ? (
+                    <code className="bg-secondary/50 px-1 py-0.5 rounded text-[0.9em]" {...props}>
+                      {children}
+                    </code>
+                  ) : (
+                    <SyntaxHighlighter
+                      style={oneDark}
+                      language={match[1]}
+                      PreTag="div"
+                      customStyle={{
+                        margin: "0.5rem 0",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.85em",
+                      }}
+                    >
+                      {String(children).replace(/\n$/, "")}
+                    </SyntaxHighlighter>
+                  );
+                },
+              }}
+            >
+              {displayContent}
+            </Markdown>
           </div>
         )}
         {isToolLoading && <span className="text-muted-foreground ml-2">Running...</span>}

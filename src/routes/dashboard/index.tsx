@@ -13,6 +13,7 @@ import {
   SessionCard,
 } from "../../components/dashboard";
 import { useAgentEvents } from "../../hooks/useAgentEvents";
+import { useNotifications } from "../../hooks/useNotifications";
 import { useTRPC } from "../../integrations/trpc/react";
 import type { AgentType } from "../../lib/agents/types";
 
@@ -58,6 +59,9 @@ function DashboardOverview() {
   const clients = clientsQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
 
+  // Desktop notifications
+  const { notify, permission, requestPermission } = useNotifications();
+
   // Subscribe to real-time events for status updates
   useAgentEvents({
     onEvent: (event) => {
@@ -70,9 +74,15 @@ function DashboardOverview() {
         });
       }
     },
-    onApproval: () => {
+    onApproval: (approval) => {
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.listSessions.queryKey(),
+      });
+      
+      // Send desktop notification
+      notify("🔔 Approval Required", {
+        body: `${approval.toolName}: ${approval.title}`,
+        tag: approval.id, // Prevent duplicates
       });
     },
   });
@@ -159,6 +169,16 @@ function DashboardOverview() {
             Manage your AI coding agents
           </p>
         </div>
+        {/* Notification permission button */}
+        {permission !== "granted" && (
+          <button
+            type="button"
+            onClick={requestPermission}
+            className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+          >
+            🔔 Enable Notifications
+          </button>
+        )}
       </div>
 
       {/* Quick Spawn */}

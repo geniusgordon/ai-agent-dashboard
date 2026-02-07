@@ -432,6 +432,19 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   // -------------------------------------------------------------------------
 
   /**
+   * Delete a session from disk (permanent)
+   */
+  deleteSession(sessionId: string): void {
+    // Remove from memory if exists
+    this.sessions.delete(sessionId);
+    this.sessionToClient.delete(sessionId);
+    this.sessionEvents.delete(sessionId);
+    
+    // Delete from disk
+    store.deleteSession(sessionId);
+  }
+
+  /**
    * Kill a specific session
    */
   killSession(sessionId: string): void {

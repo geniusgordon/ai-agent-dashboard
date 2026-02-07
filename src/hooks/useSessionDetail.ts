@@ -253,6 +253,16 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  const deleteMutation = useMutation(
+    trpc.sessions.deleteSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.listSessions.queryKey(),
+        });
+      },
+    }),
+  );
+
   // ---------------------------------------------------------------------------
   // Action callbacks
   // ---------------------------------------------------------------------------
@@ -275,6 +285,8 @@ export function useSessionDetail(sessionId: string) {
     setModeMutation.mutate({ sessionId, modeId });
 
   const reconnect = () => reconnectMutation.mutate({ sessionId });
+
+  const deleteSession = () => deleteMutation.mutate({ sessionId });
 
   const clearLogs = () => setEvents([]);
 
@@ -303,6 +315,7 @@ export function useSessionDetail(sessionId: string) {
     isDenying: denyMutation.isPending,
     isSettingMode: setModeMutation.isPending,
     isReconnecting: reconnectMutation.isPending,
+    isDeleting: deleteMutation.isPending,
 
     // Actions
     sendMessage,
@@ -312,6 +325,7 @@ export function useSessionDetail(sessionId: string) {
     renameSession,
     setMode,
     reconnect,
+    deleteSession,
     clearLogs,
     toggleAutoScroll,
   };

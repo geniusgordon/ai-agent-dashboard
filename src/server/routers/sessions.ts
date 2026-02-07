@@ -150,6 +150,17 @@ export const sessionsRouter = createTRPCRouter({
     }),
 
   /**
+   * Delete a session (permanent)
+   */
+  deleteSession: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      manager.deleteSession(input.sessionId);
+      return { success: true };
+    }),
+
+  /**
    * Kill a client (and all its sessions)
    */
   killClient: publicProcedure

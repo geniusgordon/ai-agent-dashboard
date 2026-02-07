@@ -5,7 +5,7 @@
  * all UI sections are individual components.
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import {
   ApprovalBanner,
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/dashboard/sessions/$sessionId")({
 
 function SessionDetailPage() {
   const { sessionId } = Route.useParams();
+  const navigate = useNavigate();
   const {
     session,
     events,
@@ -38,6 +39,7 @@ function SessionDetailPage() {
     isDenying,
     isSettingMode,
     isReconnecting,
+    isDeleting,
     sendMessage,
     approve,
     deny,
@@ -45,6 +47,7 @@ function SessionDetailPage() {
     renameSession,
     setMode,
     reconnect,
+    deleteSession,
     clearLogs,
     toggleAutoScroll,
   } = useSessionDetail(sessionId);
@@ -88,6 +91,11 @@ function SessionDetailPage() {
         isRenaming={isRenaming}
         onSetMode={setMode}
         isSettingMode={isSettingMode}
+        onDeleteSession={() => {
+          deleteSession();
+          navigate({ to: "/dashboard/sessions" });
+        }}
+        isDeleting={isDeleting}
       />
 
       {/* Show reconnect banner if session is inactive */}

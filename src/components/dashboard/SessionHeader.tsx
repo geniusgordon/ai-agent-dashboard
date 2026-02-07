@@ -25,6 +25,8 @@ export interface SessionHeaderProps {
   isRenaming: boolean;
   onSetMode?: (modeId: string) => void;
   isSettingMode?: boolean;
+  onDeleteSession?: () => void;
+  isDeleting?: boolean;
 }
 
 export function SessionHeader({
@@ -39,6 +41,8 @@ export function SessionHeader({
   isRenaming,
   onSetMode,
   isSettingMode,
+  onDeleteSession,
+  isDeleting,
 }: SessionHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState("");
@@ -226,7 +230,7 @@ export function SessionHeader({
             {autoScroll ? "Auto-scroll" : "Paused"}
           </span>
         </button>
-        {session.status !== "completed" && session.status !== "killed" && (
+        {session.status !== "completed" && session.status !== "killed" && session.isActive !== false && (
           <button
             type="button"
             onClick={() => {
@@ -241,6 +245,25 @@ export function SessionHeader({
             <Square className="size-3.5" />
             <span className="hidden sm:inline">
               {isKilling ? "Killing..." : "Kill"}
+            </span>
+          </button>
+        )}
+        {/* Delete button for inactive sessions */}
+        {session.isActive === false && onDeleteSession && (
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Delete this session permanently? This cannot be undone.")) {
+                onDeleteSession();
+              }
+            }}
+            disabled={isDeleting}
+            className="p-2 sm:px-3 sm:py-1.5 rounded-lg text-sm bg-action-danger/20 text-action-danger hover:bg-action-danger/30 transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+            title="Delete session"
+          >
+            <Trash2 className="size-3.5" />
+            <span className="hidden sm:inline">
+              {isDeleting ? "Deleting..." : "Delete"}
             </span>
           </button>
         )}
