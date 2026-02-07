@@ -6,7 +6,7 @@
  * route params). Renders an Outlet for nested routes.
  */
 
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard/p/$projectId")({
   component: ProjectLayout,

@@ -12,6 +12,7 @@ export { LogEntry } from "./LogEntry";
 export { type ImageAttachment, MessageInput } from "./MessageInput";
 export { ProjectCard } from "./ProjectCard";
 export { ProjectSpawnFlow } from "./ProjectSpawnFlow";
+export { ProjectSwitcher } from "./ProjectSwitcher";
 export { ReconnectBanner } from "./ReconnectBanner";
 export { SessionCard } from "./SessionCard";
 export { SessionHeader } from "./SessionHeader";
