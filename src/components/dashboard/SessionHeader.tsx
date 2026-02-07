@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { AgentBadge, StatusBadge } from "@/components/dashboard";
+import { AgentBadge, BranchBadge, StatusBadge } from "@/components/dashboard";
 import type { AgentSession } from "@/lib/agents/types";
 
 export interface SessionHeaderProps {
@@ -29,6 +29,8 @@ export interface SessionHeaderProps {
   isDeleting?: boolean;
   /** Override back-link target (defaults to /dashboard) */
   backTo?: string;
+  /** Branch name for the worktree this session is assigned to */
+  branch?: string;
 }
 
 export function SessionHeader({
@@ -46,6 +48,7 @@ export function SessionHeader({
   onDeleteSession,
   isDeleting,
   backTo = "/dashboard",
+  branch,
 }: SessionHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState("");
@@ -88,6 +91,7 @@ export function SessionHeader({
           <div className="flex items-center gap-2 flex-wrap">
             <AgentBadge type={session.agentType} size="sm" />
             <StatusBadge status={session.status} />
+            {branch && <BranchBadge branch={branch} size="sm" />}
             {/* Mode Selector */}
             {session.availableModes && session.availableModes.length > 0 && (
               <div className="relative" ref={modeDropdownRef}>

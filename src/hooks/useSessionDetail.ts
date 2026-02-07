@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageAttachment } from "@/components/dashboard";
 import { useTRPC } from "@/integrations/trpc/react";
 import { extractContent } from "@/lib/agents/event-utils";
@@ -108,18 +108,25 @@ export function useSessionDetail(sessionId: string) {
     }
   }, [eventsQuery.data, events.length]);
 
-  // Track scroll position — single listener drives both isNearBottom ref
-  // and showScrollButton state. Uses rAF throttle to avoid layout thrashing.
-  useEffect(() => {
-    const container = logContainerRef.current;
-    if (!container) return;
+  // Track scroll position — callback ref attaches/detaches the listener
+  // when the DOM element mounts/unmounts (survives conditional rendering).
+  const scrollCleanupRef = useRef<(() => void) | null>(null);
+  const logContainerCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    // Detach previous listener
+    if (scrollCleanupRef.current) {
+      scrollCleanupRef.current();
+      scrollCleanupRef.current = null;
+    }
+
+    logContainerRef.current = node;
+    if (!node) return;
 
     let ticking = false;
     const handleScroll = () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        const { scrollTop, scrollHeight, clientHeight } = container;
+        const { scrollTop, scrollHeight, clientHeight } = node;
         const nearBottom =
           scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_THRESHOLD;
         isNearBottomRef.current = nearBottom;
@@ -142,8 +149,9 @@ export function useSessionDetail(sessionId: string) {
       });
     };
 
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
+    node.addEventListener("scroll", handleScroll, { passive: true });
+    scrollCleanupRef.current = () =>
+      node.removeEventListener("scroll", handleScroll);
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -397,7 +405,7 @@ export function useSessionDetail(sessionId: string) {
     showScrollButton,
     supportsImages,
     logsEndRef,
-    logContainerRef,
+    logContainerRef: logContainerCallbackRef,
 
     // Loading states
     isLoading: sessionQuery.isLoading,

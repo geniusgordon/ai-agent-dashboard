@@ -10,7 +10,7 @@
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useMatchRoute } from "@tanstack/react-router";
+import { Link, useLocation, useMatchRoute } from "@tanstack/react-router";
 import {
   Bot,
   GitBranch,
@@ -94,6 +94,18 @@ export function Sidebar() {
     projectMatch && typeof projectMatch === "object"
       ? (projectMatch as { projectId: string }).projectId
       : null;
+
+  // Derive active sessionId from the current URL path.
+  // useLocation subscribes to route changes, ensuring re-renders on navigation.
+  const location = useLocation();
+  const activeSessionId = (() => {
+    const segments = location.pathname.split("/");
+    const sessionsIdx = segments.lastIndexOf("sessions");
+    if (sessionsIdx !== -1 && sessionsIdx < segments.length - 1) {
+      return segments[sessionsIdx + 1] || null;
+    }
+    return null;
+  })();
 
   // Fetch current project when in project context
   const projectQuery = useQuery({
@@ -199,12 +211,14 @@ export function Sidebar() {
             worktrees={worktreesQuery.data ?? []}
             assignments={assignmentsQuery.data ?? []}
             sessions={activeSessions}
+            activeSessionId={activeSessionId}
             onNavigate={handleNavClick}
           />
         ) : (
           activeSessions.length > 0 && (
             <GlobalActiveAgents
               sessions={activeSessions}
+              activeSessionId={activeSessionId}
               onNavigate={handleNavClick}
             />
           )
@@ -341,12 +355,14 @@ function ProjectAgents({
   worktrees,
   assignments,
   sessions,
+  activeSessionId,
   onNavigate,
 }: {
   projectId: string;
   worktrees: Worktree[];
   assignments: AgentWorktreeAssignment[];
   sessions: AgentSession[];
+  activeSessionId: string | null;
   onNavigate: () => void;
 }) {
   // Build a map: worktreeId -> session[]
@@ -380,6 +396,7 @@ function ProjectAgents({
                 projectId={projectId}
                 worktree={worktree}
                 sessions={sessionMap.get(worktree.id) ?? []}
+                activeSessionId={activeSessionId}
                 onNavigate={onNavigate}
               />
             ))}
@@ -394,11 +411,13 @@ function WorktreeAgentGroup({
   projectId,
   worktree,
   sessions,
+  activeSessionId,
   onNavigate,
 }: {
   projectId: string;
   worktree: Worktree;
   sessions: AgentSession[];
+  activeSessionId: string | null;
   onNavigate: () => void;
 }) {
   return (
@@ -415,7 +434,11 @@ function WorktreeAgentGroup({
 
           return (
             <SidebarMenuSubItem key={session.id}>
-              <SidebarMenuSubButton asChild size="sm">
+              <SidebarMenuSubButton
+                asChild
+                size="sm"
+                isActive={session.id === activeSessionId}
+              >
                 <Link
                   to="/dashboard/p/$projectId/sessions/$sessionId"
                   params={{ projectId, sessionId: session.id }}
@@ -442,9 +465,11 @@ function WorktreeAgentGroup({
 
 function GlobalActiveAgents({
   sessions,
+  activeSessionId,
   onNavigate,
 }: {
   sessions: AgentSession[];
+  activeSessionId: string | null;
   onNavigate: () => void;
 }) {
   return (
@@ -458,6 +483,7 @@ function GlobalActiveAgents({
               <ActiveSessionItem
                 key={session.id}
                 session={session}
+                isActive={session.id === activeSessionId}
                 onNavigate={onNavigate}
               />
             ))}
@@ -470,9 +496,11 @@ function GlobalActiveAgents({
 
 function ActiveSessionItem({
   session,
+  isActive,
   onNavigate,
 }: {
   session: AgentSession;
+  isActive: boolean;
   onNavigate: () => void;
 }) {
   const Icon = agentIcons[session.agentType];
@@ -482,6 +510,7 @@ function ActiveSessionItem({
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
+        isActive={isActive}
         tooltip={session.name || session.id.slice(0, 8)}
         size="sm"
       >

@@ -1,12 +1,12 @@
 import { ArrowDown, MessageSquare } from "lucide-react";
-import type { RefObject } from "react";
+import type { Ref, RefObject } from "react";
 import type { AgentEvent } from "@/lib/agents/types";
 import { LogEntry } from "./LogEntry";
 
 export interface SessionLogProps {
   events: AgentEvent[];
   logsEndRef: RefObject<HTMLDivElement | null>;
-  containerRef?: RefObject<HTMLDivElement | null>;
+  containerRef?: Ref<HTMLDivElement>;
   showScrollButton: boolean;
   onScrollToBottom: () => void;
 }

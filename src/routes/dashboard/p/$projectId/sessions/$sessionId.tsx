@@ -5,6 +5,7 @@
  * Reuses useSessionDetail for all orchestration logic.
  */
 
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import {
@@ -15,6 +16,7 @@ import {
   SessionLog,
 } from "@/components/dashboard";
 import { useSessionDetail } from "@/hooks/useSessionDetail";
+import { useTRPC } from "@/integrations/trpc/react";
 
 export const Route = createFileRoute(
   "/dashboard/p/$projectId/sessions/$sessionId",
@@ -25,6 +27,26 @@ export const Route = createFileRoute(
 function ProjectSessionDetailPage() {
   const { projectId, sessionId } = Route.useParams();
   const navigate = useNavigate();
+  const trpc = useTRPC();
+
+  // Look up worktree branch for this session
+  const assignmentsQuery = useQuery(
+    trpc.projects.getAssignments.queryOptions({ projectId }),
+  );
+  const worktreesQuery = useQuery(
+    trpc.worktrees.list.queryOptions({ projectId }),
+  );
+  const branch = (() => {
+    const assignment = assignmentsQuery.data?.find(
+      (a) => a.sessionId === sessionId,
+    );
+    if (!assignment) return undefined;
+    const worktree = worktreesQuery.data?.find(
+      (w) => w.id === assignment.worktreeId,
+    );
+    return worktree?.branch;
+  })();
+
   const {
     session,
     events,
@@ -106,6 +128,7 @@ function ProjectSessionDetailPage() {
           });
         }}
         isDeleting={isDeleting}
+        branch={branch}
       />
 
       {session.isActive === false && (
