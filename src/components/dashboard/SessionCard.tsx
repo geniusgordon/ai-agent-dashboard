@@ -15,6 +15,8 @@ import { StatusBadge } from "./StatusBadge";
 
 interface SessionCardProps {
   session: AgentSession;
+  /** When set, links to project-scoped session detail route */
+  projectId?: string;
 }
 
 const statusLeftBorder: Record<string, string> = {
@@ -27,7 +29,7 @@ const statusLeftBorder: Record<string, string> = {
   idle: "border-l-muted-foreground",
 };
 
-export function SessionCard({ session }: SessionCardProps) {
+export function SessionCard({ session, projectId }: SessionCardProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -62,8 +64,16 @@ export function SessionCard({ session }: SessionCardProps) {
 
   return (
     <Link
-      to="/dashboard/sessions/$sessionId"
-      params={{ sessionId: session.id }}
+      to={
+        projectId
+          ? "/dashboard/p/$projectId/sessions/$sessionId"
+          : "/dashboard/sessions/$sessionId"
+      }
+      params={
+        projectId
+          ? { projectId, sessionId: session.id }
+          : { sessionId: session.id }
+      }
       className={`
         block p-5 rounded-xl border transition-all duration-200 cursor-pointer group
         border-l-2 shadow-sm
