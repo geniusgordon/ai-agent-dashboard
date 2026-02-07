@@ -56,6 +56,8 @@ interface ManagedSession {
   name?: string;
   createdAt: Date;
   updatedAt: Date;
+  availableModes?: Array<{ id: string; name: string; description?: string }>;
+  currentModeId?: string;
 }
 
 /**
@@ -229,6 +231,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       cwd,
       createdAt: new Date(),
       updatedAt: new Date(),
+      availableModes: acpSession.availableModes,
+      currentModeId: acpSession.currentModeId,
     };
 
     this.sessions.set(session.id, session);
@@ -441,6 +445,35 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       session.updatedAt = new Date();
       throw error;
     }
+  }
+
+  /**
+   * Set session mode (e.g., "ask", "code", "architect")
+   */
+  async setMode(sessionId: string, modeId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    const managed = this.clients.get(session.clientId);
+    if (!managed) {
+      throw new Error(`Client not found: ${session.clientId}`);
+    }
+
+    await managed.acpClient.setMode(sessionId, modeId);
+
+    // Update local session state
+    session.currentModeId = modeId;
+    session.updatedAt = new Date();
+
+    this.emitEvent({
+      type: "message",
+      clientId: session.clientId,
+      sessionId,
+      timestamp: new Date(),
+      payload: { content: `Mode changed to: ${modeId}`, isSystem: true },
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -789,6 +822,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       name: managed.name,
       createdAt: managed.createdAt,
       updatedAt: managed.updatedAt,
+      availableModes: managed.availableModes,
+      currentModeId: managed.currentModeId,
     };
   }
 

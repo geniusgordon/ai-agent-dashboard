@@ -40,6 +40,10 @@ export interface AgentSession {
   error?: string;
   /** Whether this session has an active client connection */
   isActive?: boolean;
+  /** Available modes for this session */
+  availableModes?: SessionMode[];
+  /** Current mode ID */
+  currentModeId?: string;
 }
 
 export interface AgentClient {
@@ -69,6 +73,15 @@ export interface SpawnClientOptions {
   agentType: AgentType;
   cwd: string;
   env?: Record<string, string>;
+}
+
+/**
+ * Session mode info
+ */
+export interface SessionMode {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export interface CreateSessionOptions {

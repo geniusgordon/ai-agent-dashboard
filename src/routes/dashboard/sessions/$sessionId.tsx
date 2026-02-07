@@ -35,11 +35,13 @@ function SessionDetailPage() {
     isRenaming,
     isApproving,
     isDenying,
+    isSettingMode,
     sendMessage,
     approve,
     deny,
     killSession,
     renameSession,
+    setMode,
     clearLogs,
     toggleAutoScroll,
   } = useSessionDetail(sessionId);
@@ -81,6 +83,8 @@ function SessionDetailPage() {
         isKilling={isKilling}
         onRename={renameSession}
         isRenaming={isRenaming}
+        onSetMode={setMode}
+        isSettingMode={isSettingMode}
       />
 
       {pendingApproval && (

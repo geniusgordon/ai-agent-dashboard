@@ -1,4 +1,5 @@
-import { Loader2, User } from "lucide-react";
+import { ChevronRight, Loader2, User } from "lucide-react";
+import { useState } from "react";
 import {
   defaultEventConfig,
   eventConfig,
@@ -8,6 +9,18 @@ import type { AgentEvent } from "@/lib/agents/types";
 
 export interface LogEntryProps {
   event: AgentEvent;
+}
+
+// Get first line or truncate for collapsed view
+function getPreview(content: string, maxLength = 80): string {
+  const firstLine = content.split("\n")[0];
+  if (firstLine.length <= maxLength) return firstLine;
+  return `${firstLine.slice(0, maxLength)}…`;
+}
+
+// Check if content is long enough to be collapsible
+function isLongContent(content: string): boolean {
+  return content.length > 120 || content.includes("\n");
 }
 
 export function LogEntry({ event }: LogEntryProps) {
@@ -46,7 +59,12 @@ export function LogEntry({ event }: LogEntryProps) {
     content = JSON.stringify(payload);
   }
 
+  // Collapsible for thinking and tool calls with long content
+  const isCollapsible = (isThinking || isToolCall) && isLongContent(content);
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const Icon = config.icon;
+  const displayContent = isCollapsible && !isExpanded ? getPreview(content) : content;
 
   return (
     <div
@@ -59,21 +77,33 @@ export function LogEntry({ event }: LogEntryProps) {
         ${isThinking ? "opacity-70 italic" : ""}
         ${isToolLoading ? "bg-event-tool/5" : ""}
         ${config.color}
+        ${isCollapsible ? "cursor-pointer" : ""}
       `}
+      onClick={isCollapsible ? () => setIsExpanded(!isExpanded) : undefined}
+      onKeyDown={isCollapsible ? (e) => e.key === "Enter" && setIsExpanded(!isExpanded) : undefined}
+      role={isCollapsible ? "button" : undefined}
+      tabIndex={isCollapsible ? 0 : undefined}
     >
       <span className="shrink-0 text-muted-foreground/70 text-[11px] tabular-nums hidden sm:block w-[4.5rem] pt-0.5 select-none">
         {formatTime(event.timestamp)}
       </span>
-      {isToolLoading ? (
+      {isCollapsible ? (
+        <ChevronRight 
+          className={`size-3.5 shrink-0 mt-[3px] opacity-70 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} 
+        />
+      ) : isToolLoading ? (
         <Loader2 className="size-3.5 shrink-0 mt-[3px] animate-spin" />
       ) : (
         <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
       )}
       <span className="whitespace-pre-wrap break-all flex-1 text-[13px] leading-relaxed">
-        {content}
+        {displayContent}
         {isToolLoading && <span className="text-muted-foreground ml-2">Running...</span>}
         {isToolCall && toolStatus === "completed" && (
           <span className="text-event-complete ml-2">✓</span>
+        )}
+        {isCollapsible && !isExpanded && (
+          <span className="text-muted-foreground/50 ml-1 text-xs">({content.split("\n").length} lines)</span>
         )}
       </span>
     </div>

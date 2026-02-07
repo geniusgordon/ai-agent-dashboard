@@ -205,6 +205,16 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  const setModeMutation = useMutation(
+    trpc.sessions.setMode.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
+      },
+    }),
+  );
+
   // ---------------------------------------------------------------------------
   // Action callbacks
   // ---------------------------------------------------------------------------
@@ -222,6 +232,9 @@ export function useSessionDetail(sessionId: string) {
 
   const renameSession = (name: string) =>
     renameSessionMutation.mutate({ sessionId, name });
+
+  const setMode = (modeId: string) =>
+    setModeMutation.mutate({ sessionId, modeId });
 
   const clearLogs = () => setEvents([]);
 
@@ -248,6 +261,7 @@ export function useSessionDetail(sessionId: string) {
     isRenaming: renameSessionMutation.isPending,
     isApproving: approveMutation.isPending,
     isDenying: denyMutation.isPending,
+    isSettingMode: setModeMutation.isPending,
 
     // Actions
     sendMessage,
@@ -255,6 +269,7 @@ export function useSessionDetail(sessionId: string) {
     deny,
     killSession,
     renameSession,
+    setMode,
     clearLogs,
     toggleAutoScroll,
   };

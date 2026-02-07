@@ -58,6 +58,15 @@ const DEFAULT_COMMANDS: Record<AgentType, { command: string; args: string[] }> =
   };
 
 /**
+ * Session mode info
+ */
+export interface SessionMode {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+/**
  * Session state
  */
 export interface Session {
@@ -65,6 +74,8 @@ export interface Session {
   agentType: AgentType;
   cwd: string;
   createdAt: Date;
+  availableModes?: SessionMode[];
+  currentModeId?: string;
 }
 
 /**
@@ -204,12 +215,22 @@ export class ACPClient extends EventEmitter {
       mcpServers,
     });
     console.log(`[ACPClient] Session created: ${result.sessionId}`);
+    if (result.modes) {
+      console.log(`[ACPClient] Available modes:`, result.modes.availableModes);
+      console.log(`[ACPClient] Current mode:`, result.modes.currentModeId);
+    }
 
     const session: Session = {
       id: result.sessionId,
       agentType: this.config.type,
       cwd,
       createdAt: new Date(),
+      availableModes: result.modes?.availableModes?.map((m) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description ?? undefined,
+      })),
+      currentModeId: result.modes?.currentModeId,
     };
 
     this.sessions.set(session.id, session);
@@ -238,6 +259,31 @@ export class ACPClient extends EventEmitter {
     text: string,
   ): Promise<acp.PromptResponse> {
     return this.prompt(sessionId, [{ type: "text", text }]);
+  }
+
+  /**
+   * Set session mode (e.g., "ask", "code", "architect")
+   */
+  async setMode(sessionId: string, modeId: string): Promise<void> {
+    if (!this.connection) {
+      throw new Error("Client not started. Call start() first.");
+    }
+
+    console.log(`[ACPClient] Setting mode for session ${sessionId}: ${modeId}`);
+    await this.connection.setSessionMode({ sessionId, modeId });
+
+    // Update local session state
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.currentModeId = modeId;
+    }
+  }
+
+  /**
+   * Get session by ID
+   */
+  getSession(sessionId: string): Session | undefined {
+    return this.sessions.get(sessionId);
   }
 
   /**

@@ -4,8 +4,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Monitor, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, Monitor, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import {
   AgentBadge,
   ClientCard,
@@ -16,6 +16,15 @@ import { useAgentEvents } from "../../hooks/useAgentEvents";
 import { useTRPC } from "../../integrations/trpc/react";
 import type { AgentType } from "../../lib/agents/types";
 
+// Preset working directories
+const CWD_PRESETS = [
+  { label: "Home", path: "~" },
+  { label: "Projects", path: "~/Projects" },
+  { label: "Playground", path: "~/Playground" },
+  { label: "Works", path: "~/Works" },
+  { label: "Current", path: "." },
+];
+
 export const Route = createFileRoute("/dashboard/")({
   component: DashboardOverview,
 });
@@ -23,8 +32,24 @@ export const Route = createFileRoute("/dashboard/")({
 function DashboardOverview() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [selectedCwd, setSelectedCwd] = useState(process.cwd?.() ?? "/tmp");
+  const [selectedCwd, setSelectedCwd] = useState("~");
   const [spawningType, setSpawningType] = useState<AgentType | null>(null);
+  const [showCwdDropdown, setShowCwdDropdown] = useState(false);
+  const cwdDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        cwdDropdownRef.current &&
+        !cwdDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowCwdDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Queries
   const clientsQuery = useQuery(trpc.sessions.listClients.queryOptions());
@@ -140,7 +165,7 @@ function DashboardOverview() {
       <div className="p-6 rounded-xl border border-border bg-card/30">
         <h2 className="text-lg font-semibold mb-4">Spawn Agent</h2>
 
-        {/* CWD Input */}
+        {/* CWD Input with Presets */}
         <div className="mb-4">
           <label
             htmlFor="cwd"
@@ -148,18 +173,52 @@ function DashboardOverview() {
           >
             Working Directory
           </label>
-          <input
-            id="cwd"
-            type="text"
-            value={selectedCwd}
-            onChange={(e) => setSelectedCwd(e.target.value)}
-            className="
-              w-full px-4 py-2 rounded-lg
-              bg-background border border-input
-              text-foreground font-mono text-sm
-              focus:outline-none focus:ring-2 focus:ring-primary/50
-            "
-          />
+          <div className="flex gap-2">
+            <div className="relative flex-1" ref={cwdDropdownRef}>
+              <input
+                id="cwd"
+                type="text"
+                value={selectedCwd}
+                onChange={(e) => setSelectedCwd(e.target.value)}
+                className="
+                  w-full px-4 py-2 pr-10 rounded-lg
+                  bg-background border border-input
+                  text-foreground font-mono text-sm
+                  focus:outline-none focus:ring-2 focus:ring-primary/50
+                "
+                placeholder="Enter path or select preset..."
+              />
+              <button
+                type="button"
+                onClick={() => setShowCwdDropdown(!showCwdDropdown)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <ChevronDown className={`size-4 transition-transform ${showCwdDropdown ? "rotate-180" : ""}`} />
+              </button>
+              {showCwdDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1">
+                  {CWD_PRESETS.map((preset) => (
+                    <button
+                      key={preset.path}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCwd(preset.path);
+                        setShowCwdDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 hover:bg-accent transition-colors cursor-pointer ${
+                        selectedCwd === preset.path ? "bg-accent/50" : ""
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{preset.label}</div>
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {preset.path}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-3">

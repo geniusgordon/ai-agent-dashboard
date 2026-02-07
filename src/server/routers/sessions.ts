@@ -172,6 +172,17 @@ export const sessionsRouter = createTRPCRouter({
     }),
 
   /**
+   * Set session mode (e.g., "ask", "code", "architect")
+   */
+  setMode: publicProcedure
+    .input(z.object({ sessionId: z.string(), modeId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      await manager.setMode(input.sessionId, input.modeId);
+      return { success: true };
+    }),
+
+  /**
    * Check if a client is still alive
    */
   isClientAlive: publicProcedure
