@@ -37,7 +37,7 @@ const HOME_DIR = process.env.HOME ?? "";
  * Collapse absolute home-prefixed paths back to ~ for display.
  */
 function collapsePath(cwd: string): string {
-  if (HOME_DIR && cwd.startsWith(HOME_DIR)) {
+  if (HOME_DIR && (cwd === HOME_DIR || cwd.startsWith(`${HOME_DIR}/`))) {
     return `~${cwd.slice(HOME_DIR.length)}`;
   }
   return cwd;
@@ -137,7 +137,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       const capabilities = await acpClient.start();
       managed.status = "ready";
       managed.capabilities = capabilities;
-      recordRecentDirectory(options.cwd);
+      recordRecentDirectory(collapsePath(options.cwd));
     } catch (error) {
       managed.status = "error";
       managed.error = error as Error;
@@ -337,9 +337,11 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     const filtered = clientId
       ? allSessions.filter((s) => s.clientId === clientId)
       : allSessions;
-    
+
     // Sort by createdAt descending (newest first)
-    return filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return filtered.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -383,19 +385,23 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     }
 
     const supportsLoad = managed.acpClient.supportsLoadSession();
-    
+
     if (supportsLoad) {
       // Load existing session
       const sessionCwd = stored.cwd ?? process.cwd();
-      console.log(`[reconnectSession] Loading session ${sessionId} with loadSession, cwd: ${sessionCwd}`);
+      console.log(
+        `[reconnectSession] Loading session ${sessionId} with loadSession, cwd: ${sessionCwd}`,
+      );
       try {
         await managed.acpClient.loadSession(sessionId, sessionCwd);
       } catch (error) {
         console.error(`[reconnectSession] loadSession failed:`, error);
         // Fall back to creating new session
         console.log(`[reconnectSession] Falling back to new session`);
-        const newSession = await managed.acpClient.createSession(stored.cwd ?? process.cwd());
-        
+        const newSession = await managed.acpClient.createSession(
+          stored.cwd ?? process.cwd(),
+        );
+
         // Update stored session to point to new client
         const session: ManagedSession = {
           id: newSession.id,
@@ -416,7 +422,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         return this.toAgentSession(session);
       }
     } else {
-      console.log(`[reconnectSession] Agent doesn't support loadSession, creating new session`);
+      console.log(
+        `[reconnectSession] Agent doesn't support loadSession, creating new session`,
+      );
     }
 
     // Get the loaded session from ACP client (has modes info)
@@ -464,7 +472,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     this.sessions.delete(sessionId);
     this.sessionToClient.delete(sessionId);
     this.sessionEvents.delete(sessionId);
-    
+
     // Delete from disk
     store.deleteSession(sessionId);
   }
@@ -572,7 +580,10 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     }
 
     // Emit user message event immediately so it shows in the chat log
-    const eventPayload: Record<string, unknown> = { content: message, isUser: true };
+    const eventPayload: Record<string, unknown> = {
+      content: message,
+      isUser: true,
+    };
     if (contentBlocks && contentBlocks.length > 0) {
       eventPayload.images = contentBlocks.map((b) => ({
         mimeType: b.mimeType,
@@ -622,7 +633,11 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         if (!queue || queue.length === 0) break;
 
         const current = this.sessions.get(sessionId);
-        if (!current || current.status === "killed" || current.status === "error") {
+        if (
+          !current ||
+          current.status === "killed" ||
+          current.status === "error"
+        ) {
           this.drainQueue(sessionId, "Session is no longer active");
           break;
         }
@@ -966,13 +981,14 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         };
 
       case "agent_message_chunk": {
-        const content = update.content.type === "text" ? update.content.text : "";
-        
+        const content =
+          update.content.type === "text" ? update.content.text : "";
+
         // Filter out system messages like "Mode changed to: xxx"
         if (content.startsWith("Mode changed to:")) {
           return null;
         }
-        
+
         return {
           type: "message",
           clientId,
