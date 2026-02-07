@@ -144,7 +144,7 @@ export function LogEntry({ event }: LogEntryProps) {
           </span>
         ) : (
           // Messages: render markdown
-          <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:bg-secondary/50 [&_pre]:p-2 [&_pre]:rounded [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_hr]:border-border">
+          <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:bg-secondary/50 [&_pre]:p-2 [&_pre]:rounded [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_hr]:border-border [&_hr]:my-3">
             <Markdown>{displayContent}</Markdown>
           </div>
         )}
