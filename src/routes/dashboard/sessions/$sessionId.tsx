@@ -72,7 +72,7 @@ function SessionDetailPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem-2rem)] sm:h-[calc(100vh-3.5rem-3rem)] lg:h-[calc(100vh-3.5rem-4rem)] flex flex-col gap-3">
+    <div className="h-[calc(100dvh-3.5rem-2rem)] sm:h-[calc(100dvh-3.5rem-3rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col gap-3">
       <SessionHeader
         session={session}
         connected={connected}
