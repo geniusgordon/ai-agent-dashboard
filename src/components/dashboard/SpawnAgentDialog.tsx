@@ -18,7 +18,7 @@ import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
 
-const agentTypes: AgentType[] = ["gemini", "claude-code", "codex"];
+const agentTypes: AgentType[] = ["claude-code", "codex", "gemini"];
 
 interface SpawnAgentDialogProps {
   projectId: string;
