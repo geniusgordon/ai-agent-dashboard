@@ -96,6 +96,36 @@ export interface ACPClientEvents {
     update: acp.SessionNotification,
   ) => void;
   "permission:request": (permission: PendingPermission) => void;
+  "terminal:created": (event: {
+    terminalId: string;
+    sessionId: string;
+    cwd: string;
+    command: string;
+    args: string[];
+    outputByteLimit?: number;
+    startedAt: number;
+  }) => void;
+  "terminal:exit": (event: {
+    terminalId: string;
+    sessionId: string;
+    cwd: string;
+    command: string;
+    args: string[];
+    output: string;
+    truncated: boolean;
+    exitStatus: { exitCode: number | null; signal: string | null };
+    startedAt: number;
+    endedAt: number;
+    durationMs: number;
+  }) => void;
+  "terminal:error": (event: {
+    terminalId: string;
+    sessionId: string;
+    cwd: string;
+    command: string;
+    args: string[];
+    message: string;
+  }) => void;
   "agent:ready": (capabilities: acp.InitializeResponse) => void;
   "agent:error": (error: Error) => void;
   "agent:exit": (code: number | null) => void;
@@ -114,6 +144,10 @@ interface TerminalState {
     (status: { exitCode: number | null; signal: string | null }) => void
   >;
   sessionId: string;
+  cwd: string;
+  command: string;
+  args: string[];
+  startedAt: number;
 }
 
 /**
@@ -524,6 +558,14 @@ export class ACPClient extends EventEmitter {
 
         const session = this.sessions.get(params.sessionId);
         const cwd = params.cwd ?? session?.cwd ?? this.cwd;
+        const startedAt = Date.now();
+
+        const useShell =
+          (!params.args || params.args.length === 0) &&
+          /[;&|><()[\]{}'"`$\\\n\t ]/.test(params.command);
+
+        const command = useShell ? "bash" : params.command;
+        const args = useShell ? ["-lc", params.command] : params.args ?? [];
 
         const env: Record<string, string> = {
           ...(process.env as Record<string, string>),
@@ -534,7 +576,7 @@ export class ACPClient extends EventEmitter {
           }
         }
 
-        const child = spawn(params.command, params.args ?? [], {
+        const child = spawn(command, args, {
           cwd,
           env,
           stdio: ["ignore", "pipe", "pipe"],
@@ -548,6 +590,10 @@ export class ACPClient extends EventEmitter {
           exitStatus: null,
           exitWaiters: [],
           sessionId: params.sessionId,
+          cwd,
+          command,
+          args,
+          startedAt,
         };
 
         const appendOutput = (chunk: Buffer) => {
@@ -573,6 +619,21 @@ export class ACPClient extends EventEmitter {
             waiter(state.exitStatus);
           }
           state.exitWaiters.length = 0;
+
+          const endedAt = Date.now();
+          this.emit("terminal:exit", {
+            terminalId,
+            sessionId: state.sessionId,
+            cwd: state.cwd,
+            command: state.command,
+            args: state.args,
+            output: state.output,
+            truncated: state.truncated,
+            exitStatus: state.exitStatus,
+            startedAt: state.startedAt,
+            endedAt,
+            durationMs: Math.max(0, endedAt - state.startedAt),
+          });
         });
 
         child.on("error", (err) => {
@@ -580,6 +641,14 @@ export class ACPClient extends EventEmitter {
             `[ACPClient] Terminal ${terminalId} error:`,
             err.message,
           );
+          this.emit("terminal:error", {
+            terminalId,
+            sessionId: state.sessionId,
+            cwd: state.cwd,
+            command: state.command,
+            args: state.args,
+            message: err.message,
+          });
           if (!state.exitStatus) {
             state.exitStatus = { exitCode: 1, signal: null };
             state.output += `\nError: ${err.message}\n`;
@@ -592,8 +661,17 @@ export class ACPClient extends EventEmitter {
 
         this.terminals.set(terminalId, state);
         console.log(
-          `[ACPClient] Terminal created: ${terminalId} (command: ${params.command}, cwd: ${cwd})`,
+          `[ACPClient] Terminal created: ${terminalId} (command: ${command}, cwd: ${cwd})`,
         );
+        this.emit("terminal:created", {
+          terminalId,
+          sessionId: params.sessionId,
+          cwd,
+          command,
+          args,
+          outputByteLimit: params.outputByteLimit ?? undefined,
+          startedAt,
+        });
 
         return { terminalId };
       },
