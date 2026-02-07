@@ -1,5 +1,8 @@
 /**
- * React hook for subscribing to real-time agent events via SSE
+ * React hook for subscribing to real-time agent events via SSE.
+ *
+ * Callbacks are stored in refs so the SSE connection only reconnects
+ * when sessionId or enabled changes — not when handler identity changes.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,10 +27,16 @@ export function useAgentEvents({
   enabled = true,
 }: UseAgentEventsOptions) {
   const eventSourceRef = useRef<EventSource | null>(null);
+  const onEventRef = useRef(onEvent);
+  const onApprovalRef = useRef(onApproval);
   const [state, setState] = useState<ConnectionState>({
     connected: false,
     error: null,
   });
+
+  // Keep refs in sync with latest callbacks
+  onEventRef.current = onEvent;
+  onApprovalRef.current = onApproval;
 
   const connect = useCallback(() => {
     if (!enabled) return;
@@ -69,7 +78,7 @@ export function useAgentEvents({
         }
 
         if (data.type === "approval-request") {
-          onApproval?.({
+          onApprovalRef.current?.({
             ...data,
             createdAt: new Date(data.createdAt),
           });
@@ -77,7 +86,7 @@ export function useAgentEvents({
         }
 
         // Regular agent event
-        onEvent?.({
+        onEventRef.current?.({
           ...data,
           timestamp: new Date(data.timestamp),
         });
@@ -85,7 +94,7 @@ export function useAgentEvents({
         console.error("Error parsing SSE event:", e);
       }
     };
-  }, [sessionId, onEvent, onApproval, enabled]);
+  }, [sessionId, enabled]);
 
   useEffect(() => {
     connect();

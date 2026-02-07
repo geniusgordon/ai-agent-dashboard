@@ -4,12 +4,14 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ImageAttachment } from "@/components/dashboard";
 import { useTRPC } from "@/integrations/trpc/react";
 import { extractContent } from "@/lib/agents/event-utils";
 import type { AgentEvent, ApprovalRequest } from "@/lib/agents/types";
 import { useAgentEvents } from "./useAgentEvents";
+
+const NEAR_BOTTOM_THRESHOLD = 100;
 
 export function useSessionDetail(sessionId: string) {
   const trpc = useTRPC();
@@ -17,11 +19,16 @@ export function useSessionDetail(sessionId: string) {
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
-  const [isNearBottom, setIsNearBottom] = useState(true);
+  const autoScrollRef = useRef(true);
+  const isNearBottomRef = useRef(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const [events, setEvents] = useState<AgentEvent[]>([]);
+  const eventsRef = useRef(events);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
   const initialScrollDone = useRef(false);
+  const lastEventTimeRef = useRef(0);
+  const scrollScheduledRef = useRef(false);
 
   // ---------------------------------------------------------------------------
   // Queries
@@ -34,11 +41,14 @@ export function useSessionDetail(sessionId: string) {
 
   // Get client to check capabilities
   const clientQuery = useQuery({
-    ...trpc.sessions.getClient.queryOptions({ clientId: session?.clientId ?? "" }),
+    ...trpc.sessions.getClient.queryOptions({
+      clientId: session?.clientId ?? "",
+    }),
     enabled: !!session?.clientId,
   });
   const client = clientQuery.data;
-  const supportsImages = client?.capabilities?.promptCapabilities?.image ?? false;
+  const supportsImages =
+    client?.capabilities?.promptCapabilities?.image ?? false;
 
   const eventsQuery = useQuery(
     trpc.sessions.getSessionEvents.queryOptions({ sessionId }),
@@ -57,6 +67,9 @@ export function useSessionDetail(sessionId: string) {
       }
     }
   }, [approvalsQuery.data, sessionId, pendingApproval]);
+
+  // Keep eventsRef in sync for use in scroll handler
+  eventsRef.current = events;
 
   // Load event history on mount and scroll to bottom
   useEffect(() => {
@@ -81,88 +94,126 @@ export function useSessionDetail(sessionId: string) {
     }
   }, [eventsQuery.data, events.length]);
 
-  // Track scroll position to detect if user is near bottom
+  // Track scroll position — single listener drives both isNearBottom ref
+  // and showScrollButton state. Uses rAF throttle to avoid layout thrashing.
   useEffect(() => {
     const container = logContainerRef.current;
     if (!container) return;
 
+    let ticking = false;
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setIsNearBottom(nearBottom);
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const nearBottom =
+          scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_THRESHOLD;
+        isNearBottomRef.current = nearBottom;
+
+        // Show scroll button when user is away from bottom
+        setShowScrollButton(!nearBottom && eventsRef.current.length > 0);
+
+        // Auto-pause when user scrolls away from bottom
+        if (!nearBottom && autoScrollRef.current) {
+          autoScrollRef.current = false;
+          setAutoScroll(false);
+        }
+        // Re-engage when user scrolls back to bottom
+        if (nearBottom && !autoScrollRef.current) {
+          autoScrollRef.current = true;
+          setAutoScroll(true);
+        }
+
+        ticking = false;
+      });
     };
 
-    container.addEventListener("scroll", handleScroll);
+    container.addEventListener("scroll", handleScroll, { passive: true });
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Auto-scroll
+  // Auto-scroll — reads from refs to avoid closure/re-render issues
   // ---------------------------------------------------------------------------
 
-  const scrollToBottom = useCallback(() => {
-    // Only auto-scroll if user is near bottom AND autoScroll is enabled
-    if (autoScroll && isNearBottom && logsEndRef.current) {
+  const scheduleScroll = () => {
+    if (!autoScrollRef.current || !logsEndRef.current) return;
+    if (scrollScheduledRef.current) return;
+
+    scrollScheduledRef.current = true;
+    requestAnimationFrame(() => {
+      scrollScheduledRef.current = false;
+      if (!autoScrollRef.current || !logsEndRef.current) return;
+
+      // Use instant scroll during rapid streaming to prevent jitter
+      const now = Date.now();
+      const timeSinceLastEvent = now - lastEventTimeRef.current;
+      const behavior = timeSinceLastEvent < 150 ? "instant" : "smooth";
+
+      logsEndRef.current.scrollIntoView({ behavior });
+    });
+  };
+
+  const manualScrollToBottom = () => {
+    if (logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [autoScroll, isNearBottom]);
+    // Re-engage auto-scroll
+    autoScrollRef.current = true;
+    setAutoScroll(true);
+  };
 
   // ---------------------------------------------------------------------------
   // SSE event handling with merge logic
   // ---------------------------------------------------------------------------
 
-  const handleEvent = useCallback(
-    (event: AgentEvent) => {
-      setEvents((prev) => {
-        // Try to merge consecutive message/thinking chunks
-        if (prev.length > 0) {
-          const last = prev[prev.length - 1];
-          const lastPayload = last.payload as Record<string, unknown>;
-          const newPayload = event.payload as Record<string, unknown>;
+  const handleEvent = (event: AgentEvent) => {
+    setEvents((prev) => {
+      // Try to merge consecutive message/thinking chunks
+      if (prev.length > 0) {
+        const last = prev[prev.length - 1];
+        const lastPayload = last.payload as Record<string, unknown>;
+        const newPayload = event.payload as Record<string, unknown>;
 
-          const lastIsUser = lastPayload.isUser === true;
-          const newIsUser = newPayload.isUser === true;
-          const canMerge =
-            last.type === event.type &&
-            (event.type === "message" || event.type === "thinking") &&
-            last.sessionId === event.sessionId &&
-            lastIsUser === newIsUser;
+        const lastIsUser = lastPayload.isUser === true;
+        const newIsUser = newPayload.isUser === true;
+        const canMerge =
+          last.type === event.type &&
+          (event.type === "message" || event.type === "thinking") &&
+          last.sessionId === event.sessionId &&
+          lastIsUser === newIsUser;
 
-          if (canMerge) {
-            const lastContent = extractContent(lastPayload);
-            const newContent = extractContent(newPayload);
-            const merged = {
-              ...last,
-              payload: { ...lastPayload, content: lastContent + newContent },
-              timestamp: event.timestamp,
-            };
-            return [...prev.slice(0, -1), merged];
-          }
+        if (canMerge) {
+          const lastContent = extractContent(lastPayload);
+          const newContent = extractContent(newPayload);
+          const merged = {
+            ...last,
+            payload: { ...lastPayload, content: lastContent + newContent },
+            timestamp: event.timestamp,
+          };
+          return [...prev.slice(0, -1), merged];
         }
-        return [...prev, event];
-      });
-
-      requestAnimationFrame(scrollToBottom);
-
-      if (event.type === "complete" || event.type === "error") {
-        setPendingApproval(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
-        });
       }
-    },
-    [queryClient, sessionId, trpc.sessions.getSession, scrollToBottom],
-  );
+      return [...prev, event];
+    });
 
-  const handleApproval = useCallback(
-    (approval: ApprovalRequest) => {
-      setPendingApproval(approval);
+    lastEventTimeRef.current = Date.now();
+    scheduleScroll();
+
+    if (event.type === "complete" || event.type === "error") {
+      setPendingApproval(null);
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
       });
-    },
-    [queryClient, sessionId, trpc.sessions.getSession],
-  );
+    }
+  };
+
+  const handleApproval = (approval: ApprovalRequest) => {
+    setPendingApproval(approval);
+    queryClient.invalidateQueries({
+      queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+    });
+  };
 
   const { connected } = useAgentEvents({
     sessionId,
@@ -304,7 +355,19 @@ export function useSessionDetail(sessionId: string) {
 
   const clearLogs = () => setEvents([]);
 
-  const toggleAutoScroll = () => setAutoScroll((prev) => !prev);
+  const toggleAutoScroll = () => {
+    setAutoScroll((prev) => {
+      const next = !prev;
+      autoScrollRef.current = next;
+      // When re-enabling, immediately scroll to bottom
+      if (next) {
+        requestAnimationFrame(() => {
+          logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        });
+      }
+      return next;
+    });
+  };
 
   // ---------------------------------------------------------------------------
   // Return value
@@ -317,6 +380,7 @@ export function useSessionDetail(sessionId: string) {
     pendingApproval,
     connected,
     autoScroll,
+    showScrollButton,
     supportsImages,
     logsEndRef,
     logContainerRef,
@@ -343,5 +407,6 @@ export function useSessionDetail(sessionId: string) {
     deleteSession,
     clearLogs,
     toggleAutoScroll,
+    manualScrollToBottom,
   };
 }

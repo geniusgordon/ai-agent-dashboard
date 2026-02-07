@@ -29,6 +29,7 @@ function SessionDetailPage() {
     pendingApproval,
     connected,
     autoScroll,
+    showScrollButton,
     supportsImages,
     logsEndRef,
     logContainerRef,
@@ -51,6 +52,7 @@ function SessionDetailPage() {
     deleteSession,
     clearLogs,
     toggleAutoScroll,
+    manualScrollToBottom,
   } = useSessionDetail(sessionId);
 
   if (isLoading) {
@@ -114,7 +116,13 @@ function SessionDetailPage() {
         />
       )}
 
-      <SessionLog events={events} logsEndRef={logsEndRef} containerRef={logContainerRef} />
+      <SessionLog
+        events={events}
+        logsEndRef={logsEndRef}
+        containerRef={logContainerRef}
+        showScrollButton={showScrollButton}
+        onScrollToBottom={manualScrollToBottom}
+      />
 
       {session.status !== "completed" &&
         session.status !== "killed" &&
