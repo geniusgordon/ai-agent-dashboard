@@ -98,6 +98,13 @@ SSE endpoint at `/api/events` (defined in `src/routes/api.events.ts`) streams `A
 
 Managed via T3 Env in `src/env.ts`. Server vars are unprefixed, client vars require `VITE_` prefix.
 
+## Docs
+
+- `docs/ARCHITECTURE.md` — Detailed architecture (system diagram, directory structure, data model, event flow)
+- `docs/done/YYYY-MM-DD-<title>.md` — Completed feature specs
+- `docs/learnings/YYYY-MM-DD-<title>.md` — Research notes and learnings
+- `docs/issues/` — Known issues and bugs
+
 ## Key Patterns
 
 - **Singleton managers**: `getAgentManager()` and `getProjectManager()` return server-side singletons — all tRPC routes share these instances.
