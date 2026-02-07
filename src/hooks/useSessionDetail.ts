@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ImageAttachment } from "@/components/dashboard";
 import { useTRPC } from "@/integrations/trpc/react";
 import { extractContent } from "@/lib/agents/event-utils";
@@ -41,11 +41,14 @@ export function useSessionDetail(sessionId: string) {
 
   // Get client to check capabilities
   const clientQuery = useQuery({
-    ...trpc.sessions.getClient.queryOptions({ clientId: session?.clientId ?? "" }),
+    ...trpc.sessions.getClient.queryOptions({
+      clientId: session?.clientId ?? "",
+    }),
     enabled: !!session?.clientId,
   });
   const client = clientQuery.data;
-  const supportsImages = client?.capabilities?.promptCapabilities?.image ?? false;
+  const supportsImages =
+    client?.capabilities?.promptCapabilities?.image ?? false;
 
   const eventsQuery = useQuery(
     trpc.sessions.getSessionEvents.queryOptions({ sessionId }),
@@ -133,7 +136,7 @@ export function useSessionDetail(sessionId: string) {
   // Auto-scroll — reads from refs to avoid closure/re-render issues
   // ---------------------------------------------------------------------------
 
-  const scheduleScroll = useCallback(() => {
+  const scheduleScroll = () => {
     if (!autoScrollRef.current || !logsEndRef.current) return;
     if (scrollScheduledRef.current) return;
 
@@ -149,74 +152,68 @@ export function useSessionDetail(sessionId: string) {
 
       logsEndRef.current.scrollIntoView({ behavior });
     });
-  }, []);
+  };
 
-  const manualScrollToBottom = useCallback(() => {
+  const manualScrollToBottom = () => {
     if (logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
     // Re-engage auto-scroll
     autoScrollRef.current = true;
     setAutoScroll(true);
-  }, []);
+  };
 
   // ---------------------------------------------------------------------------
   // SSE event handling with merge logic
   // ---------------------------------------------------------------------------
 
-  const handleEvent = useCallback(
-    (event: AgentEvent) => {
-      setEvents((prev) => {
-        // Try to merge consecutive message/thinking chunks
-        if (prev.length > 0) {
-          const last = prev[prev.length - 1];
-          const lastPayload = last.payload as Record<string, unknown>;
-          const newPayload = event.payload as Record<string, unknown>;
+  const handleEvent = (event: AgentEvent) => {
+    setEvents((prev) => {
+      // Try to merge consecutive message/thinking chunks
+      if (prev.length > 0) {
+        const last = prev[prev.length - 1];
+        const lastPayload = last.payload as Record<string, unknown>;
+        const newPayload = event.payload as Record<string, unknown>;
 
-          const lastIsUser = lastPayload.isUser === true;
-          const newIsUser = newPayload.isUser === true;
-          const canMerge =
-            last.type === event.type &&
-            (event.type === "message" || event.type === "thinking") &&
-            last.sessionId === event.sessionId &&
-            lastIsUser === newIsUser;
+        const lastIsUser = lastPayload.isUser === true;
+        const newIsUser = newPayload.isUser === true;
+        const canMerge =
+          last.type === event.type &&
+          (event.type === "message" || event.type === "thinking") &&
+          last.sessionId === event.sessionId &&
+          lastIsUser === newIsUser;
 
-          if (canMerge) {
-            const lastContent = extractContent(lastPayload);
-            const newContent = extractContent(newPayload);
-            const merged = {
-              ...last,
-              payload: { ...lastPayload, content: lastContent + newContent },
-              timestamp: event.timestamp,
-            };
-            return [...prev.slice(0, -1), merged];
-          }
+        if (canMerge) {
+          const lastContent = extractContent(lastPayload);
+          const newContent = extractContent(newPayload);
+          const merged = {
+            ...last,
+            payload: { ...lastPayload, content: lastContent + newContent },
+            timestamp: event.timestamp,
+          };
+          return [...prev.slice(0, -1), merged];
         }
-        return [...prev, event];
-      });
-
-      lastEventTimeRef.current = Date.now();
-      scheduleScroll();
-
-      if (event.type === "complete" || event.type === "error") {
-        setPendingApproval(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
-        });
       }
-    },
-    [queryClient, sessionId, trpc.sessions.getSession, scheduleScroll],
-  );
+      return [...prev, event];
+    });
 
-  const handleApproval = useCallback(
-    (approval: ApprovalRequest) => {
-      setPendingApproval(approval);
+    lastEventTimeRef.current = Date.now();
+    scheduleScroll();
+
+    if (event.type === "complete" || event.type === "error") {
+      setPendingApproval(null);
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
       });
-    },
-    [queryClient, sessionId, trpc.sessions.getSession],
-  );
+    }
+  };
+
+  const handleApproval = (approval: ApprovalRequest) => {
+    setPendingApproval(approval);
+    queryClient.invalidateQueries({
+      queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+    });
+  };
 
   const { connected } = useAgentEvents({
     sessionId,
