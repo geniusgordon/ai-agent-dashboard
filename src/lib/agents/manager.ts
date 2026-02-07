@@ -394,6 +394,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       console.log(`[reconnectSession] Agent doesn't support loadSession, creating new session`);
     }
 
+    // Get the loaded session from ACP client (has modes info)
+    const acpSession = managed.acpClient.getSession(sessionId);
+
     // Create managed session pointing to new client
     const session: ManagedSession = {
       id: sessionId,
@@ -404,6 +407,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       name: stored.name,
       createdAt: new Date(stored.createdAt),
       updatedAt: new Date(),
+      availableModes: acpSession?.availableModes,
+      currentModeId: acpSession?.currentModeId,
     };
 
     this.sessions.set(sessionId, session);

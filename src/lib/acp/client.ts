@@ -315,9 +315,9 @@ export class ACPClient extends EventEmitter {
     }
 
     const session: Session = {
-      id: result.sessionId,
+      id: sessionId, // Use the sessionId we passed in
       agentType: this.config.type,
-      cwd: "", // Will be updated from stored session
+      cwd: expandedCwd,
       createdAt: new Date(),
       availableModes: result.modes?.availableModes?.map((m) => ({
         id: m.id,
@@ -327,7 +327,7 @@ export class ACPClient extends EventEmitter {
       currentModeId: result.modes?.currentModeId,
     };
 
-    this.sessions.set(session.id, session);
+    this.sessions.set(sessionId, session);
     return session;
   }
 
