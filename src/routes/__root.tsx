@@ -45,6 +45,7 @@ function RootComponent() {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static theme-detection script to prevent FOUC — no user input */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="bg-background text-foreground">

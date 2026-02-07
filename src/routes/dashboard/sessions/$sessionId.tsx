@@ -26,6 +26,8 @@ function SessionDetailPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isAutoScroll, setIsAutoScroll] = useState(true);
+  const isAutoScrollRef = useRef(true);
+  isAutoScrollRef.current = isAutoScroll;
 
   const sessionQuery = useQuery(
     trpc.sessions.getSession.queryOptions({ sessionId }),
@@ -45,16 +47,15 @@ function SessionDetailPage() {
         queryClient.invalidateQueries({
           queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
         });
+        // Scroll after React commits the new event to the DOM
+        if (isAutoScrollRef.current) {
+          requestAnimationFrame(() => {
+            scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+          });
+        }
       }
     },
   });
-
-  // Auto-scroll to bottom when new events arrive (only if user hasn't scrolled up)
-  useEffect(() => {
-    if (isAutoScroll && scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [events.length, isAutoScroll]);
 
   // Track scroll position to detect if user has scrolled up
   useEffect(() => {

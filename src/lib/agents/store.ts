@@ -172,8 +172,7 @@ function migrateJsonSessionsIfNeeded(): void {
         );
 
         if (legacy.events && legacy.events.length > 0) {
-          const lines =
-            legacy.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+          const lines = `${legacy.events.map((e) => JSON.stringify(e)).join("\n")}\n`;
           writeFileSync(getEventsPath(legacy.id), lines);
         }
       } catch (err) {
@@ -236,8 +235,7 @@ export function saveSession(
 
   if (events.length > 0) {
     ensureEventsDir();
-    const lines =
-      events.map((e) => JSON.stringify(toStoredEvent(e))).join("\n") + "\n";
+    const lines = `${events.map((e) => JSON.stringify(toStoredEvent(e))).join("\n")}\n`;
     writeFileSync(getEventsPath(session.id), lines);
   }
 }
@@ -364,7 +362,7 @@ function debouncedUpdatedAt(sessionId: string): void {
  */
 export function appendSessionEvent(sessionId: string, event: AgentEvent): void {
   ensureEventsDir();
-  const line = JSON.stringify(toStoredEvent(event)) + "\n";
+  const line = `${JSON.stringify(toStoredEvent(event))}\n`;
   appendFileSync(getEventsPath(sessionId), line);
 
   debouncedUpdatedAt(sessionId);

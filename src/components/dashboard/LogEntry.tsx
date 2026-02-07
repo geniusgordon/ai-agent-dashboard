@@ -142,6 +142,7 @@ export function LogEntry({ event }: LogEntryProps) {
     isCollapsible && !isExpanded ? getPreview(content) : content;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: role/tabIndex/handlers are all conditionally set together when isCollapsible
     <div
       className={`
         group flex gap-2.5 py-2 px-3 rounded-md border-l-2
