@@ -24,21 +24,24 @@ export function useTheme() {
 
 export function useThemeProvider() {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage or system preference
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("theme") as Theme | null;
-      if (stored) return stored;
-      if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-        return "light";
-      }
+    // SSR: default to dark, client will sync from DOM
+    if (typeof window === "undefined") return "dark";
+    // Client: read from DOM class (set by inline script)
+    if (document.documentElement.classList.contains("light")) return "light";
+    if (document.documentElement.classList.contains("dark")) return "dark";
+    // Fallback: check localStorage or system preference
+    const stored = localStorage.getItem("theme") as Theme | null;
+    if (stored) return stored;
+    if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+      return "light";
     }
     return "dark";
   });
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
-    document.documentElement.classList.toggle("light", theme === "light");
-    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));

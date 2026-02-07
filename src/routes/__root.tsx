@@ -27,6 +27,17 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: RootComponent,
 });
 
+// Inline script to prevent FOUC (Flash of Unstyled Content)
+const themeScript = `
+(function() {
+  var theme = localStorage.getItem('theme');
+  if (!theme) {
+    theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  document.documentElement.classList.add(theme);
+})();
+`;
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -34,6 +45,7 @@ function RootComponent() {
     <html lang="en">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="bg-background text-foreground">
         <Provider queryClient={queryClient}>
