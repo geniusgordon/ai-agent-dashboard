@@ -41,6 +41,8 @@ interface StoredSession {
   status: SessionStatus;
   createdAt: string;
   updatedAt: string;
+  availableModes?: Array<{ id: string; name: string; description?: string }>;
+  currentModeId?: string;
   events: StoredEvent[];
 }
 
@@ -76,6 +78,8 @@ export function saveSession(
     status: SessionStatus;
     createdAt: Date;
     updatedAt: Date;
+    availableModes?: Array<{ id: string; name: string; description?: string }>;
+    currentModeId?: string;
   },
   events: AgentEvent[],
 ): void {
@@ -90,6 +94,8 @@ export function saveSession(
     status: session.status,
     createdAt: session.createdAt.toISOString(),
     updatedAt: session.updatedAt.toISOString(),
+    availableModes: session.availableModes,
+    currentModeId: session.currentModeId,
     events: events.map((e) => ({
       type: e.type,
       clientId: e.clientId,
@@ -190,6 +196,21 @@ export function updateSessionName(sessionId: string, name: string): void {
   const stored = loadSession(sessionId);
   if (stored) {
     stored.name = name;
+    stored.updatedAt = new Date().toISOString();
+    writeFileSync(getSessionPath(sessionId), JSON.stringify(stored, null, 2));
+  }
+}
+
+/**
+ * Update session mode on disk
+ */
+export function updateSessionMode(
+  sessionId: string,
+  currentModeId: string,
+): void {
+  const stored = loadSession(sessionId);
+  if (stored) {
+    stored.currentModeId = currentModeId;
     stored.updatedAt = new Date().toISOString();
     writeFileSync(getSessionPath(sessionId), JSON.stringify(stored, null, 2));
   }

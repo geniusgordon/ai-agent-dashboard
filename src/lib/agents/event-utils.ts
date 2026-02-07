@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Inbox,
   MessageSquare,
+  RefreshCw,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -65,6 +66,11 @@ export const eventConfig: Record<string, EventStyleConfig> = {
     icon: ClipboardList,
     color: "text-event-plan",
     borderColor: "border-l-event-plan/50",
+  },
+  "mode-change": {
+    icon: RefreshCw,
+    color: "text-muted-foreground",
+    borderColor: "border-l-border",
   },
   complete: {
     icon: CheckCircle2,
