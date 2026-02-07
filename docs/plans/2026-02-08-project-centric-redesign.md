@@ -192,4 +192,4 @@ Commit: `0a029cf` — `feat: project-scoped session list and approvals pages (Ph
 
 Note: `/dashboard/sessions/$sessionId` kept as fallback for global sidebar active-agent links.
 
-Commit: `TBD` — `feat: remove old routes and update stale links (Phase 6)`
+Commit: `3cdd367` — `feat: remove old routes and update stale links (Phase 6)`
