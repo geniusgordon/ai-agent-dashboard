@@ -94,7 +94,7 @@ export function WorktreeDeleteDialog({
             type="button"
             onClick={() => onConfirm(deleteBranch)}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-action-danger text-white hover:bg-action-danger/90 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Trash2 className="size-4" />
             {isDeleting ? "Deleting..." : "Delete"}
