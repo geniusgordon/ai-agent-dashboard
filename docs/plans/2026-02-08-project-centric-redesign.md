@@ -184,8 +184,12 @@ Commit: `252d6ce` — `feat: build project overview with worktree grid and inlin
 
 Commit: `0a029cf` — `feat: project-scoped session list and approvals pages (Phase 5)`
 
-### Phase 6: Cleanup
+### Phase 6: Cleanup — DONE
 
-16. **Remove old routes** — Delete `/dashboard/sessions`, `/dashboard/approvals`, `/dashboard/projects` routes
-17. **Update all internal links** — Sidebar, cards, breadcrumbs all point to new routes
-18. **Mobile responsiveness** — Test and fix sidebar/overview on mobile
+16. ~~**Remove old routes** — Delete `/dashboard/sessions/index`, `/dashboard/approvals`, `/dashboard/projects/index`, `/dashboard/projects/$projectId` routes~~
+17. ~~**Update all internal links** — SessionHeader back-link now context-aware via `backTo` prop; global session detail links updated to `/dashboard`~~
+18. **Mobile responsiveness** — Manual testing TODO
+
+Note: `/dashboard/sessions/$sessionId` kept as fallback for global sidebar active-agent links.
+
+Commit: `TBD` — `feat: remove old routes and update stale links (Phase 6)`

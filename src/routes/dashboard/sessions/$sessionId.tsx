@@ -70,7 +70,7 @@ function SessionDetailPage() {
         <p className="text-muted-foreground mb-2">Session not found</p>
         <p className="text-sm text-muted-foreground font-mono">{sessionId}</p>
         <Link
-          to="/dashboard/sessions"
+          to="/dashboard"
           className="mt-4 inline-flex items-center gap-1.5 text-primary hover:text-primary/80"
         >
           <ArrowLeft className="size-4" />
@@ -96,7 +96,7 @@ function SessionDetailPage() {
         isSettingMode={isSettingMode}
         onDeleteSession={() => {
           deleteSession();
-          navigate({ to: "/dashboard/sessions" });
+          navigate({ to: "/dashboard" });
         }}
         isDeleting={isDeleting}
       />

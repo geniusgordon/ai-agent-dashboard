@@ -27,6 +27,8 @@ export interface SessionHeaderProps {
   isSettingMode?: boolean;
   onDeleteSession?: () => void;
   isDeleting?: boolean;
+  /** Override back-link target (defaults to /dashboard) */
+  backTo?: string;
 }
 
 export function SessionHeader({
@@ -43,6 +45,7 @@ export function SessionHeader({
   isSettingMode,
   onDeleteSession,
   isDeleting,
+  backTo = "/dashboard",
 }: SessionHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState("");
@@ -76,7 +79,7 @@ export function SessionHeader({
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1 min-w-[200px]">
         <Link
-          to="/dashboard/sessions"
+          to={backTo}
           className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-200 cursor-pointer shrink-0"
         >
           <ArrowLeft className="size-4" />

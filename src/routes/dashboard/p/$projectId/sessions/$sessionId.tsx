@@ -97,6 +97,7 @@ function ProjectSessionDetailPage() {
         isRenaming={isRenaming}
         onSetMode={setMode}
         isSettingMode={isSettingMode}
+        backTo={`/dashboard/p/${projectId}/sessions`}
         onDeleteSession={() => {
           deleteSession();
           navigate({
