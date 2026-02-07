@@ -116,7 +116,7 @@ export function LogEntry({ event }: LogEntryProps) {
       ) : (
         <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
       )}
-      <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] flex-1 text-[13px] leading-relaxed overflow-x-auto min-w-0">
+      <div className="whitespace-pre-wrap break-words flex-1 text-[13px] leading-relaxed overflow-x-auto min-w-0">
         {displayContent}
         {isToolLoading && <span className="text-muted-foreground ml-2">Running...</span>}
         {isToolCall && toolStatus === "completed" && (
