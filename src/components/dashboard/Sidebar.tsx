@@ -262,36 +262,45 @@ export function Sidebar() {
 function GlobalNav({ onNavigate }: { onNavigate: () => void }) {
   const matchRoute = useMatchRoute();
 
+  const isNewProject = !!matchRoute({
+    to: "/dashboard/projects/new" as const,
+    fuzzy: false,
+  });
+
   const items = [
     {
       to: "/dashboard" as const,
       label: "Home",
       icon: LayoutDashboard,
-      exact: true,
+      // Active for all /dashboard/* routes, unless a more specific item matches
+      isActive:
+        !isNewProject &&
+        !!matchRoute({ to: "/dashboard" as const, fuzzy: true }),
     },
     {
       to: "/dashboard/projects/new" as const,
       label: "New Project",
       icon: Plus,
-      exact: true,
+      isActive: isNewProject,
     },
   ];
 
   return (
     <>
-      {items.map((item) => {
-        const isActive = !!matchRoute({ to: item.to, fuzzy: !item.exact });
-        return (
-          <SidebarMenuItem key={item.to}>
-            <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-              <Link to={item.to} onClick={onNavigate}>
-                <item.icon />
-                <span>{item.label}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        );
-      })}
+      {items.map((item) => (
+        <SidebarMenuItem key={item.to}>
+          <SidebarMenuButton
+            asChild
+            isActive={item.isActive}
+            tooltip={item.label}
+          >
+            <Link to={item.to} onClick={onNavigate}>
+              <item.icon />
+              <span>{item.label}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
     </>
   );
 }
