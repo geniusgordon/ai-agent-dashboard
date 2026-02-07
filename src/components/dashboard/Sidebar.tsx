@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
   Sidebar as SidebarRoot,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -46,6 +47,12 @@ const navItems = [
 export function Sidebar() {
   const matchRoute = useMatchRoute();
   const { theme, toggleTheme } = useTheme();
+  const { setOpenMobile } = useSidebar();
+
+  // Close mobile sidebar when navigating
+  const handleNavClick = () => {
+    setOpenMobile(false);
+  };
 
   return (
     <SidebarRoot collapsible="icon">
@@ -54,7 +61,7 @@ export function Sidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
+              <Link to="/dashboard" onClick={handleNavClick}>
                 <div className="size-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
                   AI
                 </div>
@@ -85,7 +92,7 @@ export function Sidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                     >
-                      <Link to={item.to}>
+                      <Link to={item.to} onClick={handleNavClick}>
                         <item.icon />
                         <span>{item.label}</span>
                       </Link>
