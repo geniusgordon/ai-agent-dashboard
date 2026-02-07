@@ -177,8 +177,8 @@ export function useSessionDetail(sessionId: string) {
 
   const approveMutation = useMutation(
     trpc.approvals.approve.mutationOptions({
-      onMutate: () => setPendingApproval(null),
       onSuccess: () => {
+        setPendingApproval(null);
         queryClient.invalidateQueries({
           queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
         });
@@ -191,8 +191,8 @@ export function useSessionDetail(sessionId: string) {
 
   const denyMutation = useMutation(
     trpc.approvals.deny.mutationOptions({
-      onMutate: () => setPendingApproval(null),
       onSuccess: () => {
+        setPendingApproval(null);
         queryClient.invalidateQueries({
           queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
         });
