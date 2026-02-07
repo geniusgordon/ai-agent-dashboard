@@ -91,7 +91,7 @@ SSE endpoint at `/api/events` (defined in `src/routes/api.events.ts`) streams `A
 ### UI Components
 
 - `src/components/ui/` — shadcn/ui components (new-york style, zinc base color). Add new ones with: `pnpm dlx shadcn@latest add <component>`
-- `src/components/dashboard/` — Dashboard-specific components (`DashboardLayout`, `SessionCard`, `ClientCard`, `AgentBadge`, `StatusBadge`, `ErrorDisplay`, `ProjectCard`, `WorktreeCard`, `WorktreeCreateDialog`, `WorktreeAgentMap`, `ProjectSpawnFlow`, `BranchBadge`)
+- `src/components/dashboard/` — Dashboard-specific components. Exported via barrel file `index.ts` — **new components must be added to `index.ts`** or imports from `@/components/dashboard` will fail at build time.
 - Theme: dark/light mode via `useTheme` hook (`src/hooks/useTheme.ts`), persisted to localStorage
 
 ### Environment Variables
@@ -107,6 +107,7 @@ Managed via T3 Env in `src/env.ts`. Server vars are unprefixed, client vars requ
 
 ## Key Patterns
 
+- **tRPC hooks — decoupled style only**: Because TanStack Start does SSR, **never** use `trpc.foo.useQuery()` / `trpc.foo.useMutation()` (proxy style). Always use the decoupled pattern: `useQuery(trpc.foo.queryOptions(...))` / `useMutation(trpc.foo.mutationOptions(...))`. The proxy style crashes during SSR with `contextMap[utilName] is not a function`. See `src/hooks/useSessionDetail.ts` for the canonical example.
 - **Singleton managers**: `getAgentManager()` and `getProjectManager()` return server-side singletons — all tRPC routes share these instances.
 - **Two ACP abstraction levels**: `src/lib/acp/` is the raw protocol layer; `src/lib/agents/` is the app-level abstraction. tRPC routers only import from `src/lib/agents/`.
 - **Event flow**: ACP agent → `ACPClient` events → `AgentManager` normalizes → emits on EventEmitter → SSE endpoint streams to browser → `useAgentEvents` hook delivers to React components.

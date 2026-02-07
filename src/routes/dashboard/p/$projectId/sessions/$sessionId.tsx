@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   AlertCircle,
@@ -34,10 +34,18 @@ function ProjectSessionDetailPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isAutoScroll, setIsAutoScroll] = useState(true);
 
-  const sessionQuery = trpc.sessions.get.useQuery({ sessionId });
-  const projectQuery = trpc.projects.get.useQuery({ id: projectId });
-  const sendMessageMutation = trpc.sessions.sendMessage.useMutation();
-  const killSessionMutation = trpc.sessions.killSession.useMutation();
+  const sessionQuery = useQuery(
+    trpc.sessions.getSession.queryOptions({ sessionId }),
+  );
+  const projectQuery = useQuery(
+    trpc.projects.get.queryOptions({ id: projectId }),
+  );
+  const sendMessageMutation = useMutation(
+    trpc.sessions.sendMessage.mutationOptions(),
+  );
+  const killSessionMutation = useMutation(
+    trpc.sessions.killSession.mutationOptions(),
+  );
 
   // Listen for real-time events
   useAgentEvents({
@@ -45,7 +53,7 @@ function ProjectSessionDetailPage() {
       if (event.sessionId === sessionId) {
         setEvents((prev) => [...prev, event]);
         queryClient.invalidateQueries({
-          queryKey: trpc.sessions.get.queryKey({ sessionId }),
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
         });
       }
     },
@@ -96,7 +104,7 @@ function ProjectSessionDetailPage() {
     try {
       await killSessionMutation.mutateAsync({ sessionId });
       queryClient.invalidateQueries({
-        queryKey: trpc.sessions.get.queryKey({ sessionId }),
+        queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
       });
     } catch (_error) {
       // Error is handled by mutation state
