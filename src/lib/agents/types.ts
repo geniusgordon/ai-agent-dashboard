@@ -22,6 +22,16 @@ export type SessionStatus =
   | "error"
   | "killed";
 
+const TERMINAL_STATUSES: ReadonlySet<SessionStatus> = new Set([
+  "completed",
+  "error",
+  "killed",
+]);
+
+export function isSessionActive(status: SessionStatus): boolean {
+  return !TERMINAL_STATUSES.has(status);
+}
+
 export type ClientStatus = "starting" | "ready" | "error" | "stopped";
 
 // =============================================================================

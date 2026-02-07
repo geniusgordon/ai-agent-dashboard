@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentEvent } from "@/lib/agents/types";
+import { isSessionActive } from "@/lib/agents/types";
 
 export const Route = createFileRoute("/dashboard/sessions/$sessionId")({
   component: SessionDetailPage,
@@ -172,7 +173,7 @@ function SessionDetailPage() {
       </Card>
 
       {/* Message input */}
-      {session.status === "running" && (
+      {isSessionActive(session.status) && (
         <div className="flex gap-2">
           <Input
             value={message}

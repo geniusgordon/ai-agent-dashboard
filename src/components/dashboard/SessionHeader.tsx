@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { AgentSession } from "@/lib/agents/types";
+import { isSessionActive } from "@/lib/agents/types";
 
 export interface SessionHeaderProps {
   session: AgentSession;
@@ -46,7 +47,7 @@ export function SessionHeader({
           <StatusBadge status={session.status} />
         </div>
 
-        {session.status === "running" && (
+        {isSessionActive(session.status) && (
           <Button
             variant="destructive"
             size="sm"
