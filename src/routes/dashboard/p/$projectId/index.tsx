@@ -18,13 +18,16 @@ import {
 import { useState } from "react";
 import {
   AgentBadge,
+  BranchList,
   ErrorDisplay,
   WorktreeCard,
   WorktreeCreateDialog,
+  WorktreeDeleteDialog,
 } from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
+import type { Worktree } from "@/lib/projects/types";
 
 export const Route = createFileRoute("/dashboard/p/$projectId/")({
   component: ProjectOverviewPage,
@@ -62,7 +65,7 @@ function ProjectOverviewPage() {
   const [spawningWorktreeId, setSpawningWorktreeId] = useState<string | null>(
     null,
   );
-  const [deletingWorktreeId, setDeletingWorktreeId] = useState<string | null>(
+  const [worktreeToDelete, setWorktreeToDelete] = useState<Worktree | null>(
     null,
   );
 
@@ -107,17 +110,24 @@ function ProjectOverviewPage() {
         queryClient.invalidateQueries({
           queryKey: trpc.worktrees.list.queryKey({ projectId }),
         });
-        setDeletingWorktreeId(null);
+        queryClient.invalidateQueries({
+          queryKey: trpc.projects.listBranchesWithStatus.queryKey({ projectId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.projects.listBranches.queryKey({ projectId }),
+        });
+        setWorktreeToDelete(null);
       },
-      onError: () => setDeletingWorktreeId(null),
+      onError: () => setWorktreeToDelete(null),
     }),
   );
 
-  const handleDeleteWorktree = (worktreeId: string) => {
-    if (confirm("Delete this worktree? This cannot be undone.")) {
-      setDeletingWorktreeId(worktreeId);
-      deleteWorktreeMutation.mutate({ id: worktreeId });
-    }
+  const handleConfirmDelete = (deleteBranch: boolean) => {
+    if (!worktreeToDelete) return;
+    deleteWorktreeMutation.mutate({
+      id: worktreeToDelete.id,
+      deleteBranch,
+    });
   };
 
   // Loading
@@ -230,8 +240,8 @@ function ProjectOverviewPage() {
                       spawningWorktreeId === worktree.id ? null : worktree.id,
                     )
                   }
-                  onDelete={() => handleDeleteWorktree(worktree.id)}
-                  isDeleting={deletingWorktreeId === worktree.id}
+                  onDelete={() => setWorktreeToDelete(worktree)}
+                  isDeleting={worktreeToDelete?.id === worktree.id && deleteWorktreeMutation.isPending}
                 />
                 {/* Inline spawn: agent type picker */}
                 {spawningWorktreeId === worktree.id && (
@@ -265,6 +275,20 @@ function ProjectOverviewPage() {
           </div>
         )}
       </div>
+
+      {/* Branches */}
+      <BranchList projectId={projectId} />
+
+      {/* Delete Worktree Dialog */}
+      <WorktreeDeleteDialog
+        worktree={worktreeToDelete}
+        open={worktreeToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setWorktreeToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isDeleting={deleteWorktreeMutation.isPending}
+      />
 
       {/* Recent Activity */}
       {recentSessions.length > 0 && (

@@ -275,7 +275,11 @@ export class ProjectManager {
     return rows.map(rowToWorktree);
   }
 
-  async deleteWorktree(id: string, force = false): Promise<void> {
+  async deleteWorktree(
+    id: string,
+    force = false,
+    deleteBranch = false,
+  ): Promise<void> {
     const worktree = this.getWorktree(id);
     if (!worktree) throw new Error(`Worktree not found: ${id}`);
 
@@ -299,6 +303,18 @@ export class ProjectManager {
 
     const db = getDatabase();
     db.prepare("DELETE FROM worktrees WHERE id = ?").run(id);
+
+    // Optionally delete the branch after the worktree is removed
+    if (deleteBranch && project) {
+      try {
+        await git.deleteBranch(project.repoPath, worktree.branch, force);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Worktree deleted, but branch could not be removed: ${msg}`,
+        );
+      }
+    }
   }
 
   async getWorktreeStatus(id: string): Promise<{
@@ -485,6 +501,40 @@ export class ProjectManager {
     const project = this.getProject(projectId);
     if (!project) throw new Error(`Project not found: ${projectId}`);
     return git.listBranches(project.repoPath);
+  }
+
+  async listBranchesWithStatus(
+    projectId: string,
+  ): Promise<
+    { name: string; isDefault: boolean; hasWorktree: boolean; worktreeId?: string }[]
+  > {
+    const project = this.getProject(projectId);
+    if (!project) throw new Error(`Project not found: ${projectId}`);
+
+    const [branches, defaultBranch, worktrees] = await Promise.all([
+      git.listBranches(project.repoPath),
+      git.getDefaultBranch(project.repoPath),
+      Promise.resolve(this.listWorktrees(projectId)),
+    ]);
+
+    const worktreeByBranch = new Map(worktrees.map((wt) => [wt.branch, wt.id]));
+
+    return branches.map((name) => ({
+      name,
+      isDefault: name === defaultBranch,
+      hasWorktree: worktreeByBranch.has(name),
+      worktreeId: worktreeByBranch.get(name),
+    }));
+  }
+
+  async deleteBranch(
+    projectId: string,
+    branchName: string,
+    force = false,
+  ): Promise<void> {
+    const project = this.getProject(projectId);
+    if (!project) throw new Error(`Project not found: ${projectId}`);
+    await git.deleteBranch(project.repoPath, branchName, force);
   }
 
   // ---------------------------------------------------------------------------

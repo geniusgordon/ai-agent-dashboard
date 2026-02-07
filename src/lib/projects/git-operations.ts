@@ -211,3 +211,37 @@ export async function listBranches(repoPath: string): Promise<string[]> {
     .map((b) => b.trim())
     .filter(Boolean);
 }
+
+export async function getDefaultBranch(repoPath: string): Promise<string> {
+  try {
+    const { stdout } = await git(
+      ["symbolic-ref", "--short", "HEAD"],
+      repoPath,
+    );
+    return stdout.trim();
+  } catch {
+    // Fallback for bare repos or detached HEAD — use first branch
+    const branches = await listBranches(repoPath);
+    return branches[0] ?? "main";
+  }
+}
+
+export async function deleteBranch(
+  repoPath: string,
+  branchName: string,
+  force = false,
+): Promise<void> {
+  validateBranchName(branchName);
+
+  // Safety: refuse to delete a branch that's checked out in any worktree
+  const worktrees = await listWorktrees(repoPath);
+  const checkedOut = worktrees.find((wt) => wt.branch === branchName);
+  if (checkedOut) {
+    throw new Error(
+      `Cannot delete branch '${branchName}': checked out in worktree at '${checkedOut.path}'`,
+    );
+  }
+
+  const flag = force ? "-D" : "-d";
+  await git(["branch", flag, branchName], repoPath);
+}
