@@ -293,6 +293,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         status: stored.status,
         createdAt: new Date(stored.createdAt),
         updatedAt: new Date(stored.updatedAt),
+        availableModes: stored.availableModes,
+        currentModeId: stored.currentModeId,
         isActive: false,
       };
     }
@@ -330,6 +332,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           status: s.status,
           createdAt: new Date(s.createdAt),
           updatedAt: new Date(s.updatedAt),
+          availableModes: s.availableModes,
+          currentModeId: s.currentModeId,
           isActive: false, // Stored sessions without in-memory counterpart are inactive
         })),
     ];
@@ -743,7 +747,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     session.currentModeId = modeId;
     session.updatedAt = new Date();
 
-    // Note: Not emitting event - mode change is shown in the mode selector UI
+    // Persist to disk
+    store.updateSessionMode(sessionId, modeId);
   }
 
   // -------------------------------------------------------------------------
@@ -984,9 +989,22 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         const content =
           update.content.type === "text" ? update.content.text : "";
 
-        // Filter out system messages like "Mode changed to: xxx"
+        // Intercept mode change system messages and emit as mode-change events
         if (content.startsWith("Mode changed to:")) {
-          return null;
+          const modeId = content.replace("Mode changed to:", "").trim();
+          const session = this.sessions.get(sessionId);
+          if (session && modeId) {
+            session.currentModeId = modeId;
+            session.updatedAt = new Date();
+            store.updateSessionMode(sessionId, modeId);
+          }
+          return {
+            type: "mode-change",
+            clientId,
+            sessionId,
+            timestamp,
+            payload: { currentModeId: modeId },
+          };
         }
 
         return {

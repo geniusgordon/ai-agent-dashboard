@@ -99,6 +99,7 @@ export type AgentEventType =
   | "tool-call" // tool_call
   | "tool-update" // tool_call_update
   | "plan" // plan
+  | "mode-change" // agent changed its mode
   | "complete" // prompt response received
   | "error";
 
@@ -139,6 +140,10 @@ export interface PlanPayload {
     priority: string;
     status: string;
   }>;
+}
+
+export interface ModeChangePayload {
+  currentModeId: string;
 }
 
 export interface CompletePayload {

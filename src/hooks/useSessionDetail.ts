@@ -190,6 +190,15 @@ export function useSessionDetail(sessionId: string) {
   // ---------------------------------------------------------------------------
 
   const handleEvent = (event: AgentEvent) => {
+    // Mode-change events are internal signals — trigger a session re-fetch
+    // but don't add them to the visible event log
+    if (event.type === "mode-change") {
+      queryClient.invalidateQueries({
+        queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+      });
+      return;
+    }
+
     setEvents((prev) => {
       // Try to merge consecutive message/thinking chunks
       if (prev.length > 0) {
