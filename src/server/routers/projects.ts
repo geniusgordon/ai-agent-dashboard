@@ -89,6 +89,27 @@ export const projectsRouter = createTRPCRouter({
       return manager.listBranches(input.projectId);
     }),
 
+  listBranchesWithStatus: publicProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ input }) => {
+      const manager = getProjectManager();
+      return manager.listBranchesWithStatus(input.projectId);
+    }),
+
+  deleteBranch: publicProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        branchName: z.string().min(1),
+        force: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const manager = getProjectManager();
+      await manager.deleteBranch(input.projectId, input.branchName, input.force);
+      return { success: true };
+    }),
+
   getAssignments: publicProcedure
     .input(z.object({ projectId: z.string() }))
     .query(({ input }) => {

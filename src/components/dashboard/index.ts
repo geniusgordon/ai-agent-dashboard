@@ -5,6 +5,7 @@
 export { AgentBadge } from "./AgentBadge";
 export { ApprovalBanner } from "./ApprovalBanner";
 export { BranchBadge } from "./BranchBadge";
+export { BranchList } from "./BranchList";
 export { ClientCard } from "./ClientCard";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay, InlineError } from "./ErrorDisplay";
@@ -23,3 +24,4 @@ export { StatusBadge } from "./StatusBadge";
 export { WorktreeAgentMap } from "./WorktreeAgentMap";
 export { WorktreeCard } from "./WorktreeCard";
 export { WorktreeCreateDialog } from "./WorktreeCreateDialog";
+export { WorktreeDeleteDialog } from "./WorktreeDeleteDialog";

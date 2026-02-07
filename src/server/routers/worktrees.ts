@@ -41,10 +41,16 @@ export const worktreesRouter = createTRPCRouter({
     }),
 
   delete: publicProcedure
-    .input(z.object({ id: z.string(), force: z.boolean().optional() }))
+    .input(
+      z.object({
+        id: z.string(),
+        force: z.boolean().optional(),
+        deleteBranch: z.boolean().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const manager = getProjectManager();
-      await manager.deleteWorktree(input.id, input.force);
+      await manager.deleteWorktree(input.id, input.force, input.deleteBranch);
       return { success: true };
     }),
 
