@@ -23,14 +23,14 @@ export function ApprovalBanner({
   return (
     <div className="p-3 sm:p-4 rounded-xl border border-action-warning/30 bg-action-warning/10 shadow-warning-glow animate-in fade-in slide-in-from-top-2 duration-200">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="size-4 text-action-warning animate-pulse shrink-0" />
-            <span className="font-semibold text-sm text-action-warning break-words">
+        <div className="min-w-0 overflow-hidden">
+          <div className="flex items-start gap-2 mb-1">
+            <AlertTriangle className="size-4 text-action-warning animate-pulse shrink-0 mt-0.5" />
+            <span className="font-semibold text-sm text-action-warning break-all">
               {approval.toolCall.title}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground font-mono truncate">
+          <p className="text-xs text-muted-foreground font-mono break-all">
             {approval.toolCall.kind}
           </p>
         </div>
