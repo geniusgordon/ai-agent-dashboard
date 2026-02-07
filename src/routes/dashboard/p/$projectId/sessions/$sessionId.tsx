@@ -117,8 +117,6 @@ function ProjectSessionDetailPage() {
         isKilling={isKilling}
         onRename={renameSession}
         isRenaming={isRenaming}
-        onSetMode={setMode}
-        isSettingMode={isSettingMode}
         backTo={`/dashboard/p/${projectId}/sessions`}
         onDeleteSession={() => {
           deleteSession();
@@ -167,6 +165,10 @@ function ProjectSessionDetailPage() {
               pendingApproval ? "Waiting for approval..." : "Send a message..."
             }
             supportsImages={supportsImages}
+            availableModes={session.availableModes}
+            currentModeId={session.currentModeId}
+            onSetMode={setMode}
+            isSettingMode={isSettingMode}
           />
         )}
     </div>

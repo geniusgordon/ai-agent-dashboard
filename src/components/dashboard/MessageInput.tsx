@@ -6,6 +6,14 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { SessionMode } from "@/lib/agents/types";
 
 export interface ImageAttachment {
   id: string;
@@ -21,6 +29,14 @@ export interface MessageInputProps {
   isAgentBusy?: boolean;
   placeholder?: string;
   supportsImages?: boolean;
+  /** Available modes for this session */
+  availableModes?: SessionMode[];
+  /** Current mode ID */
+  currentModeId?: string;
+  /** Callback to change mode */
+  onSetMode?: (modeId: string) => void;
+  /** Whether a mode change is in progress */
+  isSettingMode?: boolean;
 }
 
 const ACCEPTED_IMAGE_TYPES = [
@@ -37,12 +53,19 @@ export function MessageInput({
   isAgentBusy = false,
   placeholder = "Send a message...",
   supportsImages = true,
+  availableModes,
+  currentModeId,
+  onSetMode,
+  isSettingMode,
 }: MessageInputProps) {
   const [input, setInput] = useState("");
   const [images, setImages] = useState<ImageAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showModeSelector =
+    availableModes && availableModes.length > 0 && onSetMode;
 
   const submit = () => {
     const trimmed = input.trim();
@@ -211,34 +234,113 @@ export function MessageInput({
           </div>
         )}
 
-        {/* Input row */}
-        <div className="flex gap-2 items-end">
-          {/* Image upload button */}
-          {supportsImages && (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                multiple
-                onChange={handleFileChange}
-                className="hidden"
-              />
+        {/* Toolbar row — shown above textarea on mobile, inline on sm+ */}
+        {(supportsImages || showModeSelector) && (
+          <div className="flex items-center gap-1.5 px-1 sm:hidden">
+            {supportsImages && (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}
                 className="
-                  p-2.5 rounded-lg text-muted-foreground
+                  p-1.5 rounded-md text-muted-foreground
                   hover:text-foreground hover:bg-accent
                   transition-colors cursor-pointer
                   disabled:opacity-50 disabled:cursor-not-allowed
                 "
                 title="Attach image"
               >
-                <ImagePlus className="size-5" />
+                <ImagePlus className="size-4" />
               </button>
-            </>
+            )}
+            {showModeSelector && (
+              <Select
+                value={currentModeId}
+                onValueChange={onSetMode}
+                disabled={isSettingMode}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                >
+                  {isSettingMode ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <SelectValue placeholder="Mode" />
+                  )}
+                </SelectTrigger>
+                <SelectContent position="popper" side="top" align="start">
+                  {availableModes.map((mode) => (
+                    <SelectItem key={mode.id} value={mode.id}>
+                      {mode.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+
+        {/* Hidden file input */}
+        {supportsImages && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES.join(",")}
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        )}
+
+        {/* Input row */}
+        <div className="flex gap-2 items-end">
+          {/* Image upload button — hidden on mobile, shown inline on sm+ */}
+          {supportsImages && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled}
+              className="
+                hidden sm:block
+                p-2.5 rounded-lg text-muted-foreground
+                hover:text-foreground hover:bg-accent
+                transition-colors cursor-pointer
+                disabled:opacity-50 disabled:cursor-not-allowed
+              "
+              title="Attach image"
+            >
+              <ImagePlus className="size-5" />
+            </button>
+          )}
+
+          {/* Mode selector — hidden on mobile, shown inline on sm+ */}
+          {showModeSelector && (
+            <div className="hidden sm:block self-center">
+              <Select
+                value={currentModeId}
+                onValueChange={onSetMode}
+                disabled={isSettingMode}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                >
+                  {isSettingMode ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <SelectValue placeholder="Mode" />
+                  )}
+                </SelectTrigger>
+                <SelectContent position="popper" side="top" align="start">
+                  {availableModes.map((mode) => (
+                    <SelectItem key={mode.id} value={mode.id}>
+                      {mode.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
           <textarea

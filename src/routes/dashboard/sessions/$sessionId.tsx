@@ -92,8 +92,6 @@ function SessionDetailPage() {
         isKilling={isKilling}
         onRename={renameSession}
         isRenaming={isRenaming}
-        onSetMode={setMode}
-        isSettingMode={isSettingMode}
         onDeleteSession={() => {
           deleteSession();
           navigate({ to: "/dashboard" });
@@ -138,6 +136,10 @@ function SessionDetailPage() {
               pendingApproval ? "Waiting for approval..." : "Send a message..."
             }
             supportsImages={supportsImages}
+            availableModes={session.availableModes}
+            currentModeId={session.currentModeId}
+            onSetMode={setMode}
+            isSettingMode={isSettingMode}
           />
         )}
     </div>
