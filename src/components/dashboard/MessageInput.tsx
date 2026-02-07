@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -13,6 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { SessionMode } from "@/lib/agents/types";
 
 export interface ImageAttachment {
@@ -66,6 +73,9 @@ export function MessageInput({
 
   const showModeSelector =
     availableModes && availableModes.length > 0 && onSetMode;
+  const imagePickerTitle = supportsImages
+    ? "Attach image"
+    : "This agent does not support image input";
 
   const submit = () => {
     const trimmed = input.trim();
@@ -182,77 +192,78 @@ export function MessageInput({
   const canSubmit = input.trim() || images.length > 0;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className="shrink-0"
-    >
-      <div
-        className={`
-          flex flex-col gap-2 p-2 rounded-xl border bg-card shadow-md transition-colors
-          ${isDragging ? "border-primary bg-primary/5" : "border-border"}
-        `}
+    <TooltipProvider>
+      <form
+        onSubmit={handleSubmit}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="shrink-0"
       >
-        {/* Processing indicator */}
-        {isAgentBusy && (
-          <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-status-running">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-running opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-status-running" />
-            </span>
-            <Loader2 className="size-3 animate-spin" />
-            <span className="font-medium">Agent is thinking...</span>
-          </div>
-        )}
+        <div
+          className={`
+            flex flex-col gap-2 p-2 rounded-xl border bg-card shadow-md transition-colors
+            ${isDragging ? "border-primary bg-primary/5" : "border-border"}
+          `}
+        >
+          {/* Processing indicator */}
+          {isAgentBusy && (
+            <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-status-running">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-running opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-running" />
+              </span>
+              <Loader2 className="size-3 animate-spin" />
+              <span className="font-medium">Agent is thinking...</span>
+            </div>
+          )}
 
-        {/* Image previews */}
-        {images.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-2 pt-1">
-            {images.map((img) => (
-              <div key={img.id} className="relative group">
-                <img
-                  src={img.preview}
-                  alt="attachment"
-                  className="h-16 w-16 object-cover rounded-lg border border-border"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(img.id)}
-                  className="
+          {/* Image previews */}
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-2 pt-1">
+              {images.map((img) => (
+                <div key={img.id} className="relative group">
+                  <img
+                    src={img.preview}
+                    alt="attachment"
+                    className="h-16 w-16 object-cover rounded-lg border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(img.id)}
+                    className="
                     absolute -top-1.5 -right-1.5 p-0.5 rounded-full
                     bg-destructive text-destructive-foreground
                     opacity-0 group-hover:opacity-100 transition-opacity
                     hover:bg-destructive/90
                   "
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
-        {/* Toolbar row — shown above textarea on mobile, inline on sm+ */}
-        {(supportsImages || showModeSelector) && (
+          {/* Toolbar row — shown above textarea on mobile, inline on sm+ */}
           <div className="flex items-center gap-1.5 px-1 sm:hidden">
-            {supportsImages && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={disabled}
-                className="
-                  p-1.5 rounded-md text-muted-foreground
-                  hover:text-foreground hover:bg-accent
-                  transition-colors cursor-pointer
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                "
-                title="Attach image"
-              >
-                <ImagePlus className="size-4" />
-              </button>
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={disabled || !supportsImages}
+                    className="cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <ImagePlus className="size-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">{imagePickerTitle}</TooltipContent>
+            </Tooltip>
             {showModeSelector && (
               <Select
                 value={currentModeId}
@@ -279,80 +290,81 @@ export function MessageInput({
               </Select>
             )}
           </div>
-        )}
 
-        {/* Hidden file input */}
-        {supportsImages && (
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ACCEPTED_IMAGE_TYPES.join(",")}
-            multiple
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        )}
-
-        {/* Input row */}
-        <div className="flex gap-2 items-end">
-          {/* Image upload button — hidden on mobile, shown inline on sm+ */}
+          {/* Hidden file input */}
           {supportsImages && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={disabled}
-              className="
-                hidden sm:block
-                p-2.5 rounded-lg text-muted-foreground
-                hover:text-foreground hover:bg-accent
-                transition-colors cursor-pointer
-                disabled:opacity-50 disabled:cursor-not-allowed
-              "
-              title="Attach image"
-            >
-              <ImagePlus className="size-5" />
-            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_IMAGE_TYPES.join(",")}
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+            />
           )}
 
-          {/* Mode selector — hidden on mobile, shown inline on sm+ */}
-          {showModeSelector && (
-            <div className="hidden sm:block self-center">
-              <Select
-                value={currentModeId}
-                onValueChange={onSetMode}
-                disabled={isSettingMode}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                >
-                  {isSettingMode ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <SelectValue placeholder="Mode" />
-                  )}
-                </SelectTrigger>
-                <SelectContent position="popper" side="top" align="start">
-                  {availableModes.map((mode) => (
-                    <SelectItem key={mode.id} value={mode.id}>
-                      {mode.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Input row */}
+          <div className="flex gap-2 items-end">
+            {/* Image upload button — hidden on mobile, shown inline on sm+ */}
+            <div className="hidden sm:block">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={disabled || !supportsImages}
+                      className="cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      <ImagePlus className="size-5" />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">{imagePickerTitle}</TooltipContent>
+              </Tooltip>
             </div>
-          )}
 
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => handleInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            placeholder={isDragging ? "Drop image here..." : placeholder}
-            disabled={disabled}
-            rows={1}
-            className="
+            {/* Mode selector — hidden on mobile, shown inline on sm+ */}
+            {showModeSelector && (
+              <div className="hidden sm:block self-center">
+                <Select
+                  value={currentModeId}
+                  onValueChange={onSetMode}
+                  disabled={isSettingMode}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                  >
+                    {isSettingMode ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <SelectValue placeholder="Mode" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="top" align="start">
+                    {availableModes.map((mode) => (
+                      <SelectItem key={mode.id} value={mode.id}>
+                        {mode.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => handleInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder={isDragging ? "Drop image here..." : placeholder}
+              disabled={disabled}
+              rows={1}
+              className="
               flex-1 px-4 py-2.5 rounded-lg
               text-base sm:text-sm
               bg-transparent border-none font-sans
@@ -361,11 +373,11 @@ export function MessageInput({
               disabled:opacity-50
               resize-none
             "
-          />
-          <button
-            type="submit"
-            disabled={!canSubmit || disabled}
-            className="
+            />
+            <button
+              type="submit"
+              disabled={!canSubmit || disabled}
+              className="
               px-5 py-2.5 rounded-lg font-semibold text-sm
               bg-action-success text-white
               hover:bg-action-success-hover hover:-translate-y-px
@@ -374,13 +386,14 @@ export function MessageInput({
               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
               cursor-pointer shrink-0 inline-flex items-center gap-2
             "
-          >
-            <Send className="size-4" />
-            <span className="hidden sm:inline">Send</span>
-          </button>
+            >
+              <Send className="size-4" />
+              <span className="hidden sm:inline">Send</span>
+            </button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </TooltipProvider>
   );
 }
 
