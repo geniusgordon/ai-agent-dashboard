@@ -1,11 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  AlertCircle,
-  Loader2,
-  Send,
-  Terminal,
-} from "lucide-react";
+import { AlertCircle, Loader2, Send, Terminal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { SessionHeader } from "@/components/dashboard/SessionHeader";

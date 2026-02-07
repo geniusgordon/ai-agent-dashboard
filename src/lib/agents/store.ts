@@ -126,13 +126,18 @@ let migrationDone = false;
 
 function migrateJsonSessionsIfNeeded(): void {
   if (migrationDone) return;
-  migrationDone = true;
 
   const oldSessionsDir = join(STORE_DIR, "sessions");
-  if (!existsSync(oldSessionsDir)) return;
+  if (!existsSync(oldSessionsDir)) {
+    migrationDone = true;
+    return;
+  }
 
   const files = readdirSync(oldSessionsDir).filter((f) => f.endsWith(".json"));
-  if (files.length === 0) return;
+  if (files.length === 0) {
+    migrationDone = true;
+    return;
+  }
 
   console.log(
     `[store] Migrating ${files.length} JSON session file(s) to SQLite + JSONL…`,
@@ -160,9 +165,7 @@ function migrateJsonSessionsIfNeeded(): void {
           legacy.cwd ?? null,
           legacy.name ?? null,
           legacy.status,
-          legacy.availableModes
-            ? JSON.stringify(legacy.availableModes)
-            : null,
+          legacy.availableModes ? JSON.stringify(legacy.availableModes) : null,
           legacy.currentModeId ?? null,
           legacy.createdAt,
           legacy.updatedAt,
@@ -182,6 +185,7 @@ function migrateJsonSessionsIfNeeded(): void {
   migrate();
 
   renameSync(oldSessionsDir, join(STORE_DIR, "sessions.bak"));
+  migrationDone = true;
   console.log(
     "[store] Migration complete. Old files moved to .agent-store/sessions.bak/",
   );
@@ -224,9 +228,7 @@ export function saveSession(
     session.cwd ?? null,
     session.name ?? null,
     session.status,
-    session.availableModes
-      ? JSON.stringify(session.availableModes)
-      : null,
+    session.availableModes ? JSON.stringify(session.availableModes) : null,
     session.currentModeId ?? null,
     session.createdAt.toISOString(),
     session.updatedAt.toISOString(),
@@ -339,7 +341,7 @@ function cancelPendingTimestamp(sessionId: string): void {
 }
 
 function debouncedUpdatedAt(sessionId: string): void {
-  if (pendingTimestamps.has(sessionId)) return;
+  cancelPendingTimestamp(sessionId);
 
   const timer = setTimeout(() => {
     pendingTimestamps.delete(sessionId);
@@ -375,13 +377,15 @@ export function loadSessionEvents(sessionId: string): StoredEvent[] {
   const path = getEventsPath(sessionId);
   if (!existsSync(path)) return [];
 
-  try {
-    const content = readFileSync(path, "utf-8");
-    return content
-      .split("\n")
-      .filter((line) => line.trim().length > 0)
-      .map((line) => JSON.parse(line) as StoredEvent);
-  } catch {
-    return [];
+  const content = readFileSync(path, "utf-8");
+  const events: StoredEvent[] = [];
+  for (const line of content.split("\n")) {
+    if (line.trim().length === 0) continue;
+    try {
+      events.push(JSON.parse(line) as StoredEvent);
+    } catch {
+      console.warn(`[store] Skipping corrupt JSONL line in ${sessionId}`);
+    }
   }
+  return events;
 }

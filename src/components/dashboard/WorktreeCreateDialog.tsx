@@ -39,7 +39,9 @@ export function WorktreeCreateDialog({
   );
 
   const branches = (branchesQuery.data ?? []).filter((b) => b !== "HEAD");
-  const defaultBranch = branches.includes("main") ? "main" : branches[0] ?? "";
+  const defaultBranch = branches.includes("main")
+    ? "main"
+    : (branches[0] ?? "");
 
   const createMutation = useMutation(
     trpc.worktrees.create.mutationOptions({
@@ -60,7 +62,9 @@ export function WorktreeCreateDialog({
       projectId,
       branchName,
       createNewBranch,
-      baseBranch: createNewBranch ? baseBranch || defaultBranch || undefined : undefined,
+      baseBranch: createNewBranch
+        ? baseBranch || defaultBranch || undefined
+        : undefined,
     });
   };
 

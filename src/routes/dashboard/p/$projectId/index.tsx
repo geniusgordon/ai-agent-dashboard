@@ -111,7 +111,9 @@ function ProjectOverviewPage() {
           queryKey: trpc.worktrees.list.queryKey({ projectId }),
         });
         queryClient.invalidateQueries({
-          queryKey: trpc.projects.listBranchesWithStatus.queryKey({ projectId }),
+          queryKey: trpc.projects.listBranchesWithStatus.queryKey({
+            projectId,
+          }),
         });
         queryClient.invalidateQueries({
           queryKey: trpc.projects.listBranches.queryKey({ projectId }),
@@ -237,7 +239,10 @@ function ProjectOverviewPage() {
                 worktree={worktree}
                 onSpawnAgent={() => setSpawningWorktreeId(worktree.id)}
                 onDelete={() => setWorktreeToDelete(worktree)}
-                isDeleting={worktreeToDelete?.id === worktree.id && deleteWorktreeMutation.isPending}
+                isDeleting={
+                  worktreeToDelete?.id === worktree.id &&
+                  deleteWorktreeMutation.isPending
+                }
               />
             ))}
 
@@ -262,22 +267,23 @@ function ProjectOverviewPage() {
         )}
 
         {/* Spawn agent modal */}
-        {spawningWorktreeId && (() => {
-          const wt = worktrees.find((w) => w.id === spawningWorktreeId);
-          if (!wt) return null;
-          return (
-            <SpawnAgentDialog
-              projectId={projectId}
-              worktreeId={wt.id}
-              worktreePath={wt.path}
-              worktreeName={wt.name}
-              open
-              onOpenChange={(open) => {
-                if (!open) setSpawningWorktreeId(null);
-              }}
-            />
-          );
-        })()}
+        {spawningWorktreeId &&
+          (() => {
+            const wt = worktrees.find((w) => w.id === spawningWorktreeId);
+            if (!wt) return null;
+            return (
+              <SpawnAgentDialog
+                projectId={projectId}
+                worktreeId={wt.id}
+                worktreePath={wt.path}
+                worktreeName={wt.name}
+                open
+                onOpenChange={(open) => {
+                  if (!open) setSpawningWorktreeId(null);
+                }}
+              />
+            );
+          })()}
       </div>
 
       {/* Branches */}
@@ -333,5 +339,3 @@ function ProjectOverviewPage() {
     </div>
   );
 }
-
-

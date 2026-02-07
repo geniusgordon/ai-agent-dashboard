@@ -53,9 +53,7 @@ export function WorktreeDeleteDialog({
           </DialogTitle>
           <DialogDescription>
             This will remove the worktree{" "}
-            <span className="font-medium text-foreground">
-              {worktree.name}
-            </span>{" "}
+            <span className="font-medium text-foreground">{worktree.name}</span>{" "}
             from the filesystem. This cannot be undone.
           </DialogDescription>
         </DialogHeader>

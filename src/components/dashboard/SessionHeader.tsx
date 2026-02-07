@@ -1,11 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  Clock,
-  FolderGit2,
-  Loader2,
-  Square,
-} from "lucide-react";
+import { ArrowLeft, Clock, FolderGit2, Loader2, Square } from "lucide-react";
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Button } from "@/components/ui/button";

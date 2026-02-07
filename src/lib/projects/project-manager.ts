@@ -517,7 +517,12 @@ export class ProjectManager {
   async listBranchesWithStatus(
     projectId: string,
   ): Promise<
-    { name: string; isDefault: boolean; hasWorktree: boolean; worktreeId?: string }[]
+    {
+      name: string;
+      isDefault: boolean;
+      hasWorktree: boolean;
+      worktreeId?: string;
+    }[]
   > {
     const project = this.getProject(projectId);
     if (!project) throw new Error(`Project not found: ${projectId}`);
