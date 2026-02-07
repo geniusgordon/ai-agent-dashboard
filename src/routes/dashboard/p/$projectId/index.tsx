@@ -6,27 +6,21 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Bot,
-  Clock,
-  FolderGit2,
-  GitFork,
-  Hexagon,
-  Plus,
-  Sparkles,
-} from "lucide-react";
+import { AlertCircle, Clock, FolderGit2, GitFork, Plus } from "lucide-react";
 import { useState } from "react";
 import {
+  AgentBadge,
+  BranchBadge,
   BranchList,
   ErrorDisplay,
   SpawnAgentDialog,
+  StatusBadge,
   WorktreeCard,
   WorktreeCreateDialog,
   WorktreeDeleteDialog,
 } from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
-import type { AgentType } from "@/lib/agents/types";
 import type { Worktree } from "@/lib/projects/types";
 
 export const Route = createFileRoute("/dashboard/p/$projectId/")({
@@ -47,12 +41,6 @@ function timeAgo(date: Date | string): string {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
-
-const agentIcons: Record<AgentType, typeof Bot> = {
-  gemini: Sparkles,
-  "claude-code": Bot,
-  codex: Hexagon,
-};
 
 // =============================================================================
 // Page
@@ -307,32 +295,44 @@ function ProjectOverviewPage() {
             <Clock className="size-5 text-muted-foreground" />
             Recent Activity
           </h2>
-          <div className="space-y-1">
-            {recentSessions.map((session) => {
-              const Icon = agentIcons[session.agentType];
-              return (
-                <Link
-                  key={session.id}
-                  to="/dashboard/p/$projectId/sessions/$sessionId"
-                  params={{ projectId, sessionId: session.id }}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-card/50 transition-colors group"
-                >
-                  <Icon className="size-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm truncate">
-                    <span className="font-medium">
+          <div className="space-y-2">
+            {recentSessions.map((session) => (
+              <Link
+                key={session.id}
+                to="/dashboard/p/$projectId/sessions/$sessionId"
+                params={{ projectId, sessionId: session.id }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card/60 hover:border-border transition-all group"
+              >
+                {/* Agent + Name */}
+                <AgentBadge type={session.agentType} size="sm" iconOnly />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium truncate">
                       {session.name || session.agentType}
                     </span>
-                    <span className="text-muted-foreground">
-                      {" "}
-                      — {session.status}
-                    </span>
-                  </span>
-                  <span className="ml-auto text-xs text-muted-foreground shrink-0">
-                    {timeAgo(session.updatedAt)}
-                  </span>
-                </Link>
-              );
-            })}
+                    <StatusBadge status={session.status} />
+                  </div>
+
+                  {/* Branch + Error details */}
+                  <div className="flex items-center gap-2 mt-1">
+                    {session.worktreeBranch && (
+                      <BranchBadge branch={session.worktreeBranch} size="sm" />
+                    )}
+                    {session.status === "error" && session.error && (
+                      <span className="text-xs text-status-error truncate flex items-center gap-1">
+                        <AlertCircle className="size-3 shrink-0" />
+                        {session.error}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Timestamp */}
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {timeAgo(session.updatedAt)}
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       )}

@@ -565,7 +565,7 @@ export class ACPClient extends EventEmitter {
           /[;&|><()[\]{}'"`$\\\n\t ]/.test(params.command);
 
         const command = useShell ? "bash" : params.command;
-        const args = useShell ? ["-lc", params.command] : params.args ?? [];
+        const args = useShell ? ["-lc", params.command] : (params.args ?? []);
 
         const env: Record<string, string> = {
           ...(process.env as Record<string, string>),
