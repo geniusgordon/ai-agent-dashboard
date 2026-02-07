@@ -2,7 +2,7 @@ import { Check, ChevronRight, Copy, Loader2, User } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import {
   defaultEventConfig,
   eventConfig,
@@ -60,9 +60,15 @@ function formatJson(str: string): string {
   return str;
 }
 
+interface ImageData {
+  mimeType: string;
+  dataUrl: string;
+}
+
 export function LogEntry({ event }: LogEntryProps) {
   const payload = event.payload as Record<string, unknown>;
   const isUser = payload.isUser === true;
+  const images = payload.images as ImageData[] | undefined;
 
   const config = isUser
     ? {
@@ -177,6 +183,19 @@ export function LogEntry({ event }: LogEntryProps) {
         <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
       )}
       <div className="flex-1 text-[13px] leading-relaxed min-w-0">
+        {/* Display attached images */}
+        {images && images.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {images.map((img, idx) => (
+              <img
+                key={`img-${idx}`}
+                src={img.dataUrl}
+                alt={`attachment ${idx + 1}`}
+                className="max-h-32 max-w-48 rounded-lg border border-border object-contain"
+              />
+            ))}
+          </div>
+        )}
         {isToolCall || isCollapsible && !isExpanded ? (
           // Tool calls and collapsed content: plain text
           <span className="whitespace-pre-wrap break-all">

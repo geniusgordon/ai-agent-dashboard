@@ -538,10 +538,14 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     session.status = "running";
     session.updatedAt = new Date();
 
-    // Build payload for event (include image count for display)
+    // Build payload for event (include images for display)
     const eventPayload: Record<string, unknown> = { content: message, isUser: true };
     if (contentBlocks && contentBlocks.length > 0) {
-      eventPayload.imageCount = contentBlocks.length;
+      eventPayload.images = contentBlocks.map((b) => ({
+        mimeType: b.mimeType,
+        // Store as data URL for display
+        dataUrl: `data:${b.mimeType};base64,${b.data}`,
+      }));
     }
 
     this.emitEvent({
