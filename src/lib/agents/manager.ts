@@ -247,10 +247,16 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   getSession(sessionId: string): AgentSession | undefined {
     const managed = this.sessions.get(sessionId);
     if (managed) {
-      return this.toAgentSession(managed);
+      // Check if client is still active
+      const client = this.clients.get(managed.clientId);
+      const isActive = client?.acpClient.isRunning() ?? false;
+      return {
+        ...this.toAgentSession(managed),
+        isActive,
+      };
     }
 
-    // Try loading from disk
+    // Try loading from disk - these are always inactive (no client)
     const stored = store.loadSession(sessionId);
     if (stored) {
       return {
@@ -262,6 +268,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         status: stored.status,
         createdAt: new Date(stored.createdAt),
         updatedAt: new Date(stored.updatedAt),
+        isActive: false,
       };
     }
 
