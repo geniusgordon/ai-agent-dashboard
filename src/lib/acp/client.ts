@@ -102,6 +102,21 @@ export interface ACPClientEvents {
 }
 
 /**
+ * State for a managed terminal process
+ */
+interface TerminalState {
+  process: ChildProcess;
+  output: string;
+  truncated: boolean;
+  outputByteLimit: number | undefined;
+  exitStatus: { exitCode: number | null; signal: string | null } | null;
+  exitWaiters: Array<
+    (status: { exitCode: number | null; signal: string | null }) => void
+  >;
+  sessionId: string;
+}
+
+/**
  * ACP Client - manages connection to an ACP agent
  */
 export class ACPClient extends EventEmitter {
@@ -109,6 +124,7 @@ export class ACPClient extends EventEmitter {
   private connection: acp.ClientSideConnection | null = null;
   private sessions: Map<string, Session> = new Map();
   private pendingPermissions: Map<string, PendingPermission> = new Map();
+  private terminals: Map<string, TerminalState> = new Map();
   private agentCapabilities: acp.InitializeResponse | null = null;
   private cwd: string;
 
@@ -402,6 +418,11 @@ export class ACPClient extends EventEmitter {
    * Stop the agent process
    */
   stop(): void {
+    for (const [terminalId, state] of this.terminals) {
+      this.cleanupTerminal(terminalId, state);
+    }
+    this.terminals.clear();
+
     if (this.process) {
       this.process.kill();
       this.process = null;
@@ -416,6 +437,30 @@ export class ACPClient extends EventEmitter {
    */
   isRunning(): boolean {
     return this.process !== null && !this.process.killed;
+  }
+
+  /**
+   * Force-release a single terminal: kill process, resolve waiters, remove listeners.
+   */
+  private cleanupTerminal(terminalId: string, state: TerminalState): void {
+    if (!state.exitStatus) {
+      state.process.kill("SIGKILL");
+    }
+
+    const finalStatus = state.exitStatus ?? {
+      exitCode: null,
+      signal: "SIGKILL",
+    };
+    for (const waiter of state.exitWaiters) {
+      waiter(finalStatus);
+    }
+    state.exitWaiters.length = 0;
+
+    state.process.removeAllListeners();
+    state.process.stdout?.removeAllListeners();
+    state.process.stderr?.removeAllListeners();
+
+    this.terminals.delete(terminalId);
   }
 
   /**
@@ -470,6 +515,160 @@ export class ACPClient extends EventEmitter {
         } catch (_error) {
           throw new Error(`Failed to write file: ${params.path}`);
         }
+      },
+
+      createTerminal: async (
+        params: acp.CreateTerminalRequest,
+      ): Promise<acp.CreateTerminalResponse> => {
+        const terminalId = `term_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+        const session = this.sessions.get(params.sessionId);
+        const cwd = params.cwd ?? session?.cwd ?? this.cwd;
+
+        const env: Record<string, string> = {
+          ...(process.env as Record<string, string>),
+        };
+        if (params.env) {
+          for (const { name, value } of params.env) {
+            env[name] = value;
+          }
+        }
+
+        const child = spawn(params.command, params.args ?? [], {
+          cwd,
+          env,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+
+        const state: TerminalState = {
+          process: child,
+          output: "",
+          truncated: false,
+          outputByteLimit: params.outputByteLimit ?? undefined,
+          exitStatus: null,
+          exitWaiters: [],
+          sessionId: params.sessionId,
+        };
+
+        const appendOutput = (chunk: Buffer) => {
+          state.output += chunk.toString("utf-8");
+
+          if (state.outputByteLimit != null) {
+            const byteLength = Buffer.byteLength(state.output, "utf-8");
+            if (byteLength > state.outputByteLimit) {
+              state.truncated = true;
+              let buf = Buffer.from(state.output, "utf-8");
+              buf = buf.subarray(buf.byteLength - state.outputByteLimit);
+              state.output = buf.toString("utf-8").replace(/^\uFFFD+/, "");
+            }
+          }
+        };
+
+        child.stdout?.on("data", appendOutput);
+        child.stderr?.on("data", appendOutput);
+
+        child.on("exit", (code, signal) => {
+          state.exitStatus = { exitCode: code, signal };
+          for (const waiter of state.exitWaiters) {
+            waiter(state.exitStatus);
+          }
+          state.exitWaiters.length = 0;
+        });
+
+        child.on("error", (err) => {
+          console.error(
+            `[ACPClient] Terminal ${terminalId} error:`,
+            err.message,
+          );
+          if (!state.exitStatus) {
+            state.exitStatus = { exitCode: 1, signal: null };
+            state.output += `\nError: ${err.message}\n`;
+            for (const waiter of state.exitWaiters) {
+              waiter(state.exitStatus);
+            }
+            state.exitWaiters.length = 0;
+          }
+        });
+
+        this.terminals.set(terminalId, state);
+        console.log(
+          `[ACPClient] Terminal created: ${terminalId} (command: ${params.command}, cwd: ${cwd})`,
+        );
+
+        return { terminalId };
+      },
+
+      terminalOutput: async (
+        params: acp.TerminalOutputRequest,
+      ): Promise<acp.TerminalOutputResponse> => {
+        const state = this.terminals.get(params.terminalId);
+        if (!state) {
+          throw new Error(`Terminal not found: ${params.terminalId}`);
+        }
+
+        return {
+          output: state.output,
+          truncated: state.truncated,
+          exitStatus: state.exitStatus
+            ? {
+                exitCode: state.exitStatus.exitCode,
+                signal: state.exitStatus.signal,
+              }
+            : undefined,
+        };
+      },
+
+      waitForTerminalExit: async (
+        params: acp.WaitForTerminalExitRequest,
+      ): Promise<acp.WaitForTerminalExitResponse> => {
+        const state = this.terminals.get(params.terminalId);
+        if (!state) {
+          throw new Error(`Terminal not found: ${params.terminalId}`);
+        }
+
+        if (state.exitStatus) {
+          return {
+            exitCode: state.exitStatus.exitCode,
+            signal: state.exitStatus.signal,
+          };
+        }
+
+        const exitStatus = await new Promise<{
+          exitCode: number | null;
+          signal: string | null;
+        }>((resolve) => {
+          state.exitWaiters.push(resolve);
+        });
+
+        return {
+          exitCode: exitStatus.exitCode,
+          signal: exitStatus.signal,
+        };
+      },
+
+      killTerminal: async (
+        params: acp.KillTerminalCommandRequest,
+      ): Promise<void> => {
+        const state = this.terminals.get(params.terminalId);
+        if (!state) {
+          throw new Error(`Terminal not found: ${params.terminalId}`);
+        }
+
+        if (!state.exitStatus) {
+          state.process.kill("SIGTERM");
+        }
+      },
+
+      releaseTerminal: async (
+        params: acp.ReleaseTerminalRequest,
+      ): Promise<void> => {
+        const state = this.terminals.get(params.terminalId);
+        if (!state) {
+          return;
+        }
+
+        this.cleanupTerminal(params.terminalId, state);
+        console.log(`[ACPClient] Terminal released: ${params.terminalId}`);
       },
     };
   }
