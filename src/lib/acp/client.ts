@@ -309,7 +309,10 @@ export class ACPClient extends EventEmitter {
       cwd: expandedCwd,
       mcpServers: [],
     });
-    console.log(`[ACPClient] Session loaded: ${result.sessionId}`);
+    console.log(`[ACPClient] Session loaded successfully`);
+    if (result.modes) {
+      console.log(`[ACPClient] Available modes:`, result.modes.availableModes);
+    }
 
     const session: Session = {
       id: result.sessionId,
