@@ -16,9 +16,11 @@ export function useSessionDetail(sessionId: string) {
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [isNearBottom, setIsNearBottom] = useState(true);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
+  const initialScrollDone = useRef(false);
 
   // ---------------------------------------------------------------------------
   // Queries
@@ -47,7 +49,7 @@ export function useSessionDetail(sessionId: string) {
     }
   }, [approvalsQuery.data, sessionId, pendingApproval]);
 
-  // Load event history on mount
+  // Load event history on mount and scroll to bottom
   useEffect(() => {
     if (
       eventsQuery.data &&
@@ -60,18 +62,41 @@ export function useSessionDetail(sessionId: string) {
           timestamp: new Date(e.timestamp),
         })),
       );
+      // Scroll to bottom on initial load
+      if (!initialScrollDone.current) {
+        initialScrollDone.current = true;
+        requestAnimationFrame(() => {
+          logsEndRef.current?.scrollIntoView({ behavior: "instant" });
+        });
+      }
     }
   }, [eventsQuery.data, events.length]);
+
+  // Track scroll position to detect if user is near bottom
+  useEffect(() => {
+    const container = logContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setIsNearBottom(nearBottom);
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Auto-scroll
   // ---------------------------------------------------------------------------
 
   const scrollToBottom = useCallback(() => {
-    if (autoScroll && logsEndRef.current) {
+    // Only auto-scroll if user is near bottom AND autoScroll is enabled
+    if (autoScroll && isNearBottom && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [autoScroll]);
+  }, [autoScroll, isNearBottom]);
 
   // ---------------------------------------------------------------------------
   // SSE event handling with merge logic
