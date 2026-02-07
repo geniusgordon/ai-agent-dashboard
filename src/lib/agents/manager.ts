@@ -452,7 +452,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     this.sessionToClient.set(sessionId, client.id);
 
     // Load events from disk into memory
-    const events = stored.events.map((e) => ({
+    const storedEvents = store.loadSessionEvents(sessionId);
+    const events = storedEvents.map((e) => ({
       ...e,
       timestamp: new Date(e.timestamp),
     })) as AgentEvent[];
@@ -817,9 +818,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     }
 
     // Load from disk and merge consecutive message/thinking chunks
-    const stored = store.loadSession(sessionId);
-    if (stored) {
-      const events = stored.events.map((e) => ({
+    const storedEvents = store.loadSessionEvents(sessionId);
+    if (storedEvents.length > 0) {
+      const events = storedEvents.map((e) => ({
         ...e,
         timestamp: new Date(e.timestamp),
       })) as AgentEvent[];
