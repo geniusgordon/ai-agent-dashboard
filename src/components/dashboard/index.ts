@@ -4,6 +4,7 @@ export { BranchList } from "./BranchList";
 export { ClientCard } from "./ClientCard";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay } from "./ErrorDisplay";
+export type { ImageAttachment } from "./MessageInput";
 export { ProjectCard } from "./ProjectCard";
 export { ProjectSpawnFlow } from "./ProjectSpawnFlow";
 export { SessionCard } from "./SessionCard";

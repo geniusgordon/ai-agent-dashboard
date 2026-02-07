@@ -149,18 +149,6 @@ function ProjectSessionDetailPage() {
         projectName={project?.name}
       />
 
-      {/* Session info */}
-      {session.task && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Task</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{session.task}</p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Event log */}
       <Card className="flex-1 overflow-hidden">
         <CardHeader className="pb-2">
@@ -235,9 +223,9 @@ function EventLine({ event }: { event: AgentEvent }) {
       <span className="text-muted-foreground">[{time}]</span>{" "}
       <span className="font-semibold">{event.type}</span>{" "}
       <span className="break-all">
-        {typeof event.data === "string"
-          ? event.data
-          : JSON.stringify(event.data)}
+        {typeof event.payload === "string"
+          ? event.payload
+          : JSON.stringify(event.payload)}
       </span>
     </div>
   );
