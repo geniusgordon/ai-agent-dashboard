@@ -351,6 +351,17 @@ export class ProjectManager {
       }
     }
 
+    // Update branches for existing worktrees (e.g. bare worktrees previously stored as "(unknown)")
+    const fsMap = new Map(fsWorktrees.map((w) => [w.path, w]));
+    for (const dbWt of dbWorktrees) {
+      const fsWt = fsMap.get(dbWt.path);
+      if (fsWt?.branch && fsWt.branch !== dbWt.branch) {
+        db.prepare(
+          "UPDATE worktrees SET branch = ?, updated_at = ? WHERE id = ?",
+        ).run(fsWt.branch, now, dbWt.id);
+      }
+    }
+
     // Remove worktrees in DB that no longer exist on filesystem
     for (const dbWt of dbWorktrees) {
       if (!fsPathSet.has(dbWt.path)) {

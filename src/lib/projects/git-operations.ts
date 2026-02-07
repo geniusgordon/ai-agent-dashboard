@@ -152,6 +152,13 @@ export async function listWorktrees(
 
   if (current.path) worktrees.push(current as GitWorktreeInfo);
 
+  // Bare worktrees have no `branch` line in porcelain output — resolve from HEAD
+  for (const wt of worktrees) {
+    if (wt.isBare && !wt.branch) {
+      wt.branch = (await getCurrentBranch(wt.path)) ?? undefined!;
+    }
+  }
+
   return worktrees;
 }
 

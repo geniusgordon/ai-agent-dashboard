@@ -12,8 +12,9 @@ import { getProjectManager } from "../../lib/projects/index.js";
 export const worktreesRouter = createTRPCRouter({
   list: publicProcedure
     .input(z.object({ projectId: z.string() }))
-    .query(({ input }) => {
+    .query(async ({ input }) => {
       const manager = getProjectManager();
+      await manager.syncWorktrees(input.projectId);
       return manager.listWorktrees(input.projectId);
     }),
 

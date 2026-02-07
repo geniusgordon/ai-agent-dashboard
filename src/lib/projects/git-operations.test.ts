@@ -143,18 +143,24 @@ describe("listWorktrees (parsing)", () => {
     });
   });
 
-  it("handles bare repo in worktree list", async () => {
+  it("handles bare repo in worktree list and resolves branch from HEAD", async () => {
     vi.doMock("node:child_process", () => ({
       execFile: (
         _cmd: string,
-        _args: string[],
+        args: string[],
         _opts: unknown,
         cb: (err: null, result: { stdout: string; stderr: string }) => void,
       ) => {
-        cb(null, {
-          stdout: ["worktree /repo.git", "HEAD abc123", "bare", ""].join("\n"),
-          stderr: "",
-        });
+        if (args.includes("worktree")) {
+          cb(null, {
+            stdout: ["worktree /repo.git", "HEAD abc123", "bare", ""].join(
+              "\n",
+            ),
+            stderr: "",
+          });
+        } else if (args.includes("rev-parse")) {
+          cb(null, { stdout: "main\n", stderr: "" });
+        }
       },
     }));
 
@@ -165,6 +171,7 @@ describe("listWorktrees (parsing)", () => {
     expect(result[0]).toMatchObject({
       path: "/repo.git",
       isBare: true,
+      branch: "main",
     });
   });
 
