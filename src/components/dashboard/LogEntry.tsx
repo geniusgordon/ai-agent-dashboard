@@ -116,7 +116,7 @@ export function LogEntry({ event }: LogEntryProps) {
       ) : (
         <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
       )}
-      <div className="whitespace-pre-wrap break-words flex-1 text-[13px] leading-relaxed overflow-x-auto min-w-0">
+      <span className="whitespace-pre-wrap break-all flex-1 text-[13px] leading-relaxed">
         {displayContent}
         {isToolLoading && <span className="text-muted-foreground ml-2">Running...</span>}
         {isToolCall && toolStatus === "completed" && (
@@ -125,7 +125,7 @@ export function LogEntry({ event }: LogEntryProps) {
         {isCollapsible && !isExpanded && (
           <span className="text-muted-foreground/50 ml-1 text-xs">({content.split("\n").length} lines)</span>
         )}
-      </div>
+      </span>
     </div>
   );
 }
