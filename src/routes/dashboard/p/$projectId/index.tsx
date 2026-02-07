@@ -1,7 +1,7 @@
 /**
  * Project Overview Page
  *
- * Shows project header, worktree grid with inline spawn, and recent activity.
+ * Shows project header, worktree grid with spawn dialog, and recent activity.
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import {
-  AgentBadge,
   ErrorDisplay,
+  SpawnAgentDialog,
   WorktreeCard,
   WorktreeCreateDialog,
 } from "@/components/dashboard";
@@ -222,27 +222,13 @@ function ProjectOverviewPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {worktrees.map((worktree) => (
-              <div key={worktree.id} className="space-y-2">
-                <WorktreeCard
-                  worktree={worktree}
-                  onSpawnAgent={() =>
-                    setSpawningWorktreeId(
-                      spawningWorktreeId === worktree.id ? null : worktree.id,
-                    )
-                  }
-                  onDelete={() => handleDeleteWorktree(worktree.id)}
-                  isDeleting={deletingWorktreeId === worktree.id}
-                />
-                {/* Inline spawn: agent type picker */}
-                {spawningWorktreeId === worktree.id && (
-                  <InlineSpawnPicker
-                    projectId={projectId}
-                    worktreeId={worktree.id}
-                    worktreePath={worktree.path}
-                    onDone={() => setSpawningWorktreeId(null)}
-                  />
-                )}
-              </div>
+              <WorktreeCard
+                key={worktree.id}
+                worktree={worktree}
+                onSpawnAgent={() => setSpawningWorktreeId(worktree.id)}
+                onDelete={() => handleDeleteWorktree(worktree.id)}
+                isDeleting={deletingWorktreeId === worktree.id}
+              />
             ))}
 
             {/* New worktree card */}
@@ -264,6 +250,24 @@ function ProjectOverviewPage() {
             />
           </div>
         )}
+
+        {/* Spawn agent modal */}
+        {spawningWorktreeId && (() => {
+          const wt = worktrees.find((w) => w.id === spawningWorktreeId);
+          if (!wt) return null;
+          return (
+            <SpawnAgentDialog
+              projectId={projectId}
+              worktreeId={wt.id}
+              worktreePath={wt.path}
+              worktreeName={wt.name}
+              open
+              onOpenChange={(open) => {
+                if (!open) setSpawningWorktreeId(null);
+              }}
+            />
+          );
+        })()}
       </div>
 
       {/* Recent Activity */}
@@ -306,115 +310,4 @@ function ProjectOverviewPage() {
   );
 }
 
-// =============================================================================
-// Inline Spawn Picker
-// =============================================================================
 
-const agentTypes: AgentType[] = ["gemini", "claude-code", "codex"];
-
-function InlineSpawnPicker({
-  projectId,
-  worktreeId,
-  worktreePath,
-  onDone,
-}: {
-  projectId: string;
-  worktreeId: string;
-  worktreePath: string;
-  onDone: () => void;
-}) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const [spawningType, setSpawningType] = useState<AgentType | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const spawnMutation = useMutation(
-    trpc.sessions.spawnClient.mutationOptions(),
-  );
-  const createSessionMutation = useMutation(
-    trpc.sessions.createSession.mutationOptions(),
-  );
-  const assignMutation = useMutation(
-    trpc.worktrees.assignAgent.mutationOptions(),
-  );
-
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({
-      queryKey: trpc.sessions.listSessions.queryKey({ projectId }),
-    });
-    queryClient.invalidateQueries({
-      queryKey: trpc.projects.getAssignments.queryKey({ projectId }),
-    });
-    queryClient.invalidateQueries({
-      queryKey: trpc.worktrees.getAssignments.queryKey({ worktreeId }),
-    });
-    queryClient.invalidateQueries({
-      queryKey: trpc.sessions.listClients.queryKey(),
-    });
-  };
-
-  const handleSpawn = async (agentType: AgentType) => {
-    setSpawningType(agentType);
-    setError(null);
-
-    try {
-      const client = await spawnMutation.mutateAsync({
-        agentType,
-        cwd: worktreePath,
-      });
-      const session = await createSessionMutation.mutateAsync({
-        clientId: client.id,
-      });
-      await assignMutation.mutateAsync({
-        sessionId: session.id,
-        clientId: client.id,
-        worktreeId,
-        projectId,
-      });
-      invalidateAll();
-      onDone();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to spawn agent");
-      invalidateAll();
-    } finally {
-      setSpawningType(null);
-    }
-  };
-
-  return (
-    <div className="px-3 py-2 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">
-          Pick an agent:
-        </span>
-        <button
-          type="button"
-          onClick={onDone}
-          className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-        >
-          Cancel
-        </button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {agentTypes.map((type) => {
-          const isSpawning = spawningType === type;
-          return (
-            <button
-              key={type}
-              type="button"
-              onClick={() => handleSpawn(type)}
-              disabled={spawningType !== null}
-              className="px-3 py-1.5 rounded-md border border-border bg-card hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <AgentBadge type={type} size="sm" />
-              <span className="text-xs text-muted-foreground">
-                {isSpawning ? "Starting..." : "Start"}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
-  );
-}

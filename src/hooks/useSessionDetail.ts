@@ -30,6 +30,20 @@ export function useSessionDetail(sessionId: string) {
   const lastEventTimeRef = useRef(0);
   const scrollScheduledRef = useRef(false);
 
+  // Reset local state when switching sessions
+  const prevSessionIdRef = useRef(sessionId);
+  useEffect(() => {
+    if (prevSessionIdRef.current !== sessionId) {
+      prevSessionIdRef.current = sessionId;
+      setEvents([]);
+      setPendingApproval(null);
+      setAutoScroll(true);
+      autoScrollRef.current = true;
+      setShowScrollButton(false);
+      initialScrollDone.current = false;
+    }
+  }, [sessionId]);
+
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------

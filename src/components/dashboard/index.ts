@@ -15,6 +15,7 @@ export { ProjectSpawnFlow } from "./ProjectSpawnFlow";
 export { ProjectSwitcher } from "./ProjectSwitcher";
 export { ReconnectBanner } from "./ReconnectBanner";
 export { SessionCard } from "./SessionCard";
+export { SpawnAgentDialog } from "./SpawnAgentDialog";
 export { SessionHeader } from "./SessionHeader";
 export { SessionLog } from "./SessionLog";
 export { Sidebar } from "./Sidebar";
