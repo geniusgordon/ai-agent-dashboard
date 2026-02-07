@@ -20,6 +20,11 @@ import { Route as DashboardSessionsSessionIdRouteImport } from './routes/dashboa
 import { Route as DashboardProjectsNewRouteImport } from './routes/dashboard/projects/new'
 import { Route as DashboardProjectsProjectIdRouteImport } from './routes/dashboard/projects/$projectId'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as DashboardPProjectIdRouteRouteImport } from './routes/dashboard/p/$projectId/route'
+import { Route as DashboardPProjectIdIndexRouteImport } from './routes/dashboard/p/$projectId/index'
+import { Route as DashboardPProjectIdApprovalsRouteImport } from './routes/dashboard/p/$projectId/approvals'
+import { Route as DashboardPProjectIdSessionsIndexRouteImport } from './routes/dashboard/p/$projectId/sessions/index'
+import { Route as DashboardPProjectIdSessionsSessionIdRouteImport } from './routes/dashboard/p/$projectId/sessions/$sessionId'
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
@@ -78,6 +83,36 @@ const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   path: '/api/trpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardPProjectIdRouteRoute =
+  DashboardPProjectIdRouteRouteImport.update({
+    id: '/p/$projectId',
+    path: '/p/$projectId',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardPProjectIdIndexRoute =
+  DashboardPProjectIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardPProjectIdRouteRoute,
+  } as any)
+const DashboardPProjectIdApprovalsRoute =
+  DashboardPProjectIdApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => DashboardPProjectIdRouteRoute,
+  } as any)
+const DashboardPProjectIdSessionsIndexRoute =
+  DashboardPProjectIdSessionsIndexRouteImport.update({
+    id: '/sessions/',
+    path: '/sessions/',
+    getParentRoute: () => DashboardPProjectIdRouteRoute,
+  } as any)
+const DashboardPProjectIdSessionsSessionIdRoute =
+  DashboardPProjectIdSessionsSessionIdRouteImport.update({
+    id: '/sessions/$sessionId',
+    path: '/sessions/$sessionId',
+    getParentRoute: () => DashboardPProjectIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -85,12 +120,17 @@ export interface FileRoutesByFullPath {
   '/api/events': typeof ApiEventsRoute
   '/dashboard/approvals': typeof DashboardApprovalsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/p/$projectId': typeof DashboardPProjectIdRouteRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/dashboard/projects/$projectId': typeof DashboardProjectsProjectIdRoute
   '/dashboard/projects/new': typeof DashboardProjectsNewRoute
   '/dashboard/sessions/$sessionId': typeof DashboardSessionsSessionIdRoute
   '/dashboard/projects/': typeof DashboardProjectsIndexRoute
   '/dashboard/sessions/': typeof DashboardSessionsIndexRoute
+  '/dashboard/p/$projectId/approvals': typeof DashboardPProjectIdApprovalsRoute
+  '/dashboard/p/$projectId/': typeof DashboardPProjectIdIndexRoute
+  '/dashboard/p/$projectId/sessions/$sessionId': typeof DashboardPProjectIdSessionsSessionIdRoute
+  '/dashboard/p/$projectId/sessions/': typeof DashboardPProjectIdSessionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,6 +143,10 @@ export interface FileRoutesByTo {
   '/dashboard/sessions/$sessionId': typeof DashboardSessionsSessionIdRoute
   '/dashboard/projects': typeof DashboardProjectsIndexRoute
   '/dashboard/sessions': typeof DashboardSessionsIndexRoute
+  '/dashboard/p/$projectId/approvals': typeof DashboardPProjectIdApprovalsRoute
+  '/dashboard/p/$projectId': typeof DashboardPProjectIdIndexRoute
+  '/dashboard/p/$projectId/sessions/$sessionId': typeof DashboardPProjectIdSessionsSessionIdRoute
+  '/dashboard/p/$projectId/sessions': typeof DashboardPProjectIdSessionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -111,12 +155,17 @@ export interface FileRoutesById {
   '/api/events': typeof ApiEventsRoute
   '/dashboard/approvals': typeof DashboardApprovalsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/p/$projectId': typeof DashboardPProjectIdRouteRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/dashboard/projects/$projectId': typeof DashboardProjectsProjectIdRoute
   '/dashboard/projects/new': typeof DashboardProjectsNewRoute
   '/dashboard/sessions/$sessionId': typeof DashboardSessionsSessionIdRoute
   '/dashboard/projects/': typeof DashboardProjectsIndexRoute
   '/dashboard/sessions/': typeof DashboardSessionsIndexRoute
+  '/dashboard/p/$projectId/approvals': typeof DashboardPProjectIdApprovalsRoute
+  '/dashboard/p/$projectId/': typeof DashboardPProjectIdIndexRoute
+  '/dashboard/p/$projectId/sessions/$sessionId': typeof DashboardPProjectIdSessionsSessionIdRoute
+  '/dashboard/p/$projectId/sessions/': typeof DashboardPProjectIdSessionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,12 +175,17 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/dashboard/approvals'
     | '/dashboard/'
+    | '/dashboard/p/$projectId'
     | '/api/trpc/$'
     | '/dashboard/projects/$projectId'
     | '/dashboard/projects/new'
     | '/dashboard/sessions/$sessionId'
     | '/dashboard/projects/'
     | '/dashboard/sessions/'
+    | '/dashboard/p/$projectId/approvals'
+    | '/dashboard/p/$projectId/'
+    | '/dashboard/p/$projectId/sessions/$sessionId'
+    | '/dashboard/p/$projectId/sessions/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +198,10 @@ export interface FileRouteTypes {
     | '/dashboard/sessions/$sessionId'
     | '/dashboard/projects'
     | '/dashboard/sessions'
+    | '/dashboard/p/$projectId/approvals'
+    | '/dashboard/p/$projectId'
+    | '/dashboard/p/$projectId/sessions/$sessionId'
+    | '/dashboard/p/$projectId/sessions'
   id:
     | '__root__'
     | '/'
@@ -151,12 +209,17 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/dashboard/approvals'
     | '/dashboard/'
+    | '/dashboard/p/$projectId'
     | '/api/trpc/$'
     | '/dashboard/projects/$projectId'
     | '/dashboard/projects/new'
     | '/dashboard/sessions/$sessionId'
     | '/dashboard/projects/'
     | '/dashboard/sessions/'
+    | '/dashboard/p/$projectId/approvals'
+    | '/dashboard/p/$projectId/'
+    | '/dashboard/p/$projectId/sessions/$sessionId'
+    | '/dashboard/p/$projectId/sessions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -245,12 +308,70 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/p/$projectId': {
+      id: '/dashboard/p/$projectId'
+      path: '/p/$projectId'
+      fullPath: '/dashboard/p/$projectId'
+      preLoaderRoute: typeof DashboardPProjectIdRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/p/$projectId/': {
+      id: '/dashboard/p/$projectId/'
+      path: '/'
+      fullPath: '/dashboard/p/$projectId/'
+      preLoaderRoute: typeof DashboardPProjectIdIndexRouteImport
+      parentRoute: typeof DashboardPProjectIdRouteRoute
+    }
+    '/dashboard/p/$projectId/approvals': {
+      id: '/dashboard/p/$projectId/approvals'
+      path: '/approvals'
+      fullPath: '/dashboard/p/$projectId/approvals'
+      preLoaderRoute: typeof DashboardPProjectIdApprovalsRouteImport
+      parentRoute: typeof DashboardPProjectIdRouteRoute
+    }
+    '/dashboard/p/$projectId/sessions/': {
+      id: '/dashboard/p/$projectId/sessions/'
+      path: '/sessions'
+      fullPath: '/dashboard/p/$projectId/sessions/'
+      preLoaderRoute: typeof DashboardPProjectIdSessionsIndexRouteImport
+      parentRoute: typeof DashboardPProjectIdRouteRoute
+    }
+    '/dashboard/p/$projectId/sessions/$sessionId': {
+      id: '/dashboard/p/$projectId/sessions/$sessionId'
+      path: '/sessions/$sessionId'
+      fullPath: '/dashboard/p/$projectId/sessions/$sessionId'
+      preLoaderRoute: typeof DashboardPProjectIdSessionsSessionIdRouteImport
+      parentRoute: typeof DashboardPProjectIdRouteRoute
+    }
   }
 }
+
+interface DashboardPProjectIdRouteRouteChildren {
+  DashboardPProjectIdApprovalsRoute: typeof DashboardPProjectIdApprovalsRoute
+  DashboardPProjectIdIndexRoute: typeof DashboardPProjectIdIndexRoute
+  DashboardPProjectIdSessionsSessionIdRoute: typeof DashboardPProjectIdSessionsSessionIdRoute
+  DashboardPProjectIdSessionsIndexRoute: typeof DashboardPProjectIdSessionsIndexRoute
+}
+
+const DashboardPProjectIdRouteRouteChildren: DashboardPProjectIdRouteRouteChildren =
+  {
+    DashboardPProjectIdApprovalsRoute: DashboardPProjectIdApprovalsRoute,
+    DashboardPProjectIdIndexRoute: DashboardPProjectIdIndexRoute,
+    DashboardPProjectIdSessionsSessionIdRoute:
+      DashboardPProjectIdSessionsSessionIdRoute,
+    DashboardPProjectIdSessionsIndexRoute:
+      DashboardPProjectIdSessionsIndexRoute,
+  }
+
+const DashboardPProjectIdRouteRouteWithChildren =
+  DashboardPProjectIdRouteRoute._addFileChildren(
+    DashboardPProjectIdRouteRouteChildren,
+  )
 
 interface DashboardRouteRouteChildren {
   DashboardApprovalsRoute: typeof DashboardApprovalsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardPProjectIdRouteRoute: typeof DashboardPProjectIdRouteRouteWithChildren
   DashboardProjectsProjectIdRoute: typeof DashboardProjectsProjectIdRoute
   DashboardProjectsNewRoute: typeof DashboardProjectsNewRoute
   DashboardSessionsSessionIdRoute: typeof DashboardSessionsSessionIdRoute
@@ -261,6 +382,7 @@ interface DashboardRouteRouteChildren {
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardApprovalsRoute: DashboardApprovalsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardPProjectIdRouteRoute: DashboardPProjectIdRouteRouteWithChildren,
   DashboardProjectsProjectIdRoute: DashboardProjectsProjectIdRoute,
   DashboardProjectsNewRoute: DashboardProjectsNewRoute,
   DashboardSessionsSessionIdRoute: DashboardSessionsSessionIdRoute,

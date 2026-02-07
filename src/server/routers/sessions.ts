@@ -100,13 +100,31 @@ export const sessionsRouter = createTRPCRouter({
     }),
 
   /**
-   * List all sessions (optionally filtered by client)
+   * List all sessions (optionally filtered by client or project)
    */
   listSessions: publicProcedure
-    .input(z.object({ clientId: z.string().optional() }).optional())
+    .input(
+      z
+        .object({
+          clientId: z.string().optional(),
+          projectId: z.string().optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const manager = getAgentManager();
-      return manager.listSessions(input?.clientId);
+      const sessions = manager.listSessions(input?.clientId);
+
+      if (input?.projectId) {
+        const projectManager = getProjectManager();
+        const assignments = projectManager.getAssignmentsForProject(
+          input.projectId,
+        );
+        const assignedSessionIds = new Set(assignments.map((a) => a.sessionId));
+        return sessions.filter((s) => assignedSessionIds.has(s.id));
+      }
+
+      return sessions;
     }),
 
   /**

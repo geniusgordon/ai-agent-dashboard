@@ -8,15 +8,29 @@ import {
   publicProcedure,
 } from "../../integrations/trpc/init.js";
 import { getAgentManager } from "../../lib/agents/index.js";
+import { getProjectManager } from "../../lib/projects/index.js";
 
 export const approvalsRouter = createTRPCRouter({
   /**
-   * Get all pending approval requests
+   * Get pending approval requests (optionally filtered by project)
    */
-  list: publicProcedure.query(async () => {
-    const manager = getAgentManager();
-    return manager.getPendingApprovals();
-  }),
+  list: publicProcedure
+    .input(z.object({ projectId: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const manager = getAgentManager();
+      const approvals = manager.getPendingApprovals();
+
+      if (input?.projectId) {
+        const projectManager = getProjectManager();
+        const assignments = projectManager.getAssignmentsForProject(
+          input.projectId,
+        );
+        const assignedSessionIds = new Set(assignments.map((a) => a.sessionId));
+        return approvals.filter((a) => assignedSessionIds.has(a.sessionId));
+      }
+
+      return approvals;
+    }),
 
   /**
    * Approve a request by selecting an option
