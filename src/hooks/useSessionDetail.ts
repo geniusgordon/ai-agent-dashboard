@@ -5,6 +5,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ImageAttachment } from "@/components/dashboard";
 import { useTRPC } from "@/integrations/trpc/react";
 import { extractContent } from "@/lib/agents/event-utils";
 import type { AgentEvent, ApprovalRequest } from "@/lib/agents/types";
@@ -30,6 +31,14 @@ export function useSessionDetail(sessionId: string) {
     trpc.sessions.getSession.queryOptions({ sessionId }),
   );
   const session = sessionQuery.data;
+
+  // Get client to check capabilities
+  const clientQuery = useQuery({
+    ...trpc.sessions.getClient.queryOptions({ clientId: session?.clientId ?? "" }),
+    enabled: !!session?.clientId,
+  });
+  const client = clientQuery.data;
+  const supportsImages = client?.capabilities?.promptCapabilities?.image ?? false;
 
   const eventsQuery = useQuery(
     trpc.sessions.getSessionEvents.queryOptions({ sessionId }),
@@ -267,8 +276,13 @@ export function useSessionDetail(sessionId: string) {
   // Action callbacks
   // ---------------------------------------------------------------------------
 
-  const sendMessage = (message: string) => {
-    sendMessageMutation.mutate({ sessionId, message });
+  const sendMessage = (message: string, images?: ImageAttachment[]) => {
+    const contentBlocks = images?.map((img) => ({
+      type: "image" as const,
+      data: img.base64,
+      mimeType: img.mimeType,
+    }));
+    sendMessageMutation.mutate({ sessionId, message, contentBlocks });
   };
 
   const approve = (approvalId: string, optionId: string) =>
@@ -303,6 +317,7 @@ export function useSessionDetail(sessionId: string) {
     pendingApproval,
     connected,
     autoScroll,
+    supportsImages,
     logsEndRef,
     logContainerRef,
 

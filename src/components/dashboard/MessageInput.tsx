@@ -1,27 +1,50 @@
-import { Loader2, Send } from "lucide-react";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import {
+  type ClipboardEvent,
+  type DragEvent,
+  type KeyboardEvent,
+  useRef,
+  useState,
+} from "react";
+
+export interface ImageAttachment {
+  id: string;
+  file: File;
+  preview: string; // data URL for preview
+  base64: string; // base64 without data: prefix
+  mimeType: string;
+}
 
 export interface MessageInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, images?: ImageAttachment[]) => void;
   isSending: boolean;
   disabled: boolean;
   placeholder?: string;
+  supportsImages?: boolean;
 }
+
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function MessageInput({
   onSend,
   isSending,
   disabled,
   placeholder = "Send a message...",
+  supportsImages = true,
 }: MessageInputProps) {
   const [input, setInput] = useState("");
+  const [images, setImages] = useState<ImageAttachment[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const submit = () => {
     const trimmed = input.trim();
-    if (!trimmed) return;
-    onSend(trimmed);
+    if (!trimmed && images.length === 0) return;
+    onSend(trimmed, images.length > 0 ? images : undefined);
     setInput("");
+    setImages([]);
     // Reset height after clearing
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -50,49 +73,213 @@ export function MessageInput({
     }
   };
 
+  // Process files into ImageAttachment
+  const processFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter(
+      (f) => ACCEPTED_IMAGE_TYPES.includes(f.type) && f.size <= MAX_IMAGE_SIZE,
+    );
+
+    const newAttachments: ImageAttachment[] = await Promise.all(
+      validFiles.map(async (file) => {
+        const base64 = await fileToBase64(file);
+        return {
+          id: `img_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          file,
+          preview: `data:${file.type};base64,${base64}`,
+          base64,
+          mimeType: file.type,
+        };
+      }),
+    );
+
+    setImages((prev) => [...prev, ...newAttachments]);
+  };
+
+  // File input change
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      processFiles(e.target.files);
+      e.target.value = ""; // Reset so same file can be selected again
+    }
+  };
+
+  // Drag & Drop handlers
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    if (supportsImages) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!supportsImages) return;
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      processFiles(files);
+    }
+  };
+
+  // Paste handler
+  const handlePaste = (e: ClipboardEvent) => {
+    if (!supportsImages) return;
+
+    const items = e.clipboardData.items;
+    const imageFiles: File[] = [];
+
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault(); // Prevent pasting image as text
+      processFiles(imageFiles);
+    }
+  };
+
+  // Remove an image
+  const removeImage = (id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
+  const canSubmit = input.trim() || images.length > 0;
+
   return (
-    <form onSubmit={handleSubmit} className="shrink-0">
-      <div className="flex gap-2 p-2 rounded-xl border border-border bg-card shadow-md">
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => handleInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={isSending || disabled}
-          rows={1}
-          className="
-            flex-1 px-4 py-2.5 rounded-lg
-            text-base sm:text-sm
-            bg-transparent border-none font-sans
-            text-foreground placeholder-muted-foreground
-            focus:outline-none
-            disabled:opacity-50
-            resize-none
-          "
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || isSending || disabled}
-          className="
-            px-5 py-2.5 rounded-lg font-semibold text-sm
-            bg-action-success text-white
-            hover:bg-action-success-hover hover:-translate-y-px
-            active:translate-y-0
-            transition-all duration-200
-            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
-            cursor-pointer shrink-0 inline-flex items-center gap-2
-            self-end
-          "
-        >
-          {isSending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
+    <form
+      onSubmit={handleSubmit}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="shrink-0"
+    >
+      <div
+        className={`
+          flex flex-col gap-2 p-2 rounded-xl border bg-card shadow-md transition-colors
+          ${isDragging ? "border-primary bg-primary/5" : "border-border"}
+        `}
+      >
+        {/* Image previews */}
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-2 pt-1">
+            {images.map((img) => (
+              <div key={img.id} className="relative group">
+                <img
+                  src={img.preview}
+                  alt="attachment"
+                  className="h-16 w-16 object-cover rounded-lg border border-border"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(img.id)}
+                  className="
+                    absolute -top-1.5 -right-1.5 p-0.5 rounded-full
+                    bg-destructive text-destructive-foreground
+                    opacity-0 group-hover:opacity-100 transition-opacity
+                    hover:bg-destructive/90
+                  "
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Input row */}
+        <div className="flex gap-2 items-end">
+          {/* Image upload button */}
+          {supportsImages && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSending || disabled}
+                className="
+                  p-2.5 rounded-lg text-muted-foreground
+                  hover:text-foreground hover:bg-accent
+                  transition-colors cursor-pointer
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                "
+                title="Attach image"
+              >
+                <ImagePlus className="size-5" />
+              </button>
+            </>
           )}
-          <span className="hidden sm:inline">Send</span>
-        </button>
+
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => handleInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            placeholder={isDragging ? "Drop image here..." : placeholder}
+            disabled={isSending || disabled}
+            rows={1}
+            className="
+              flex-1 px-4 py-2.5 rounded-lg
+              text-base sm:text-sm
+              bg-transparent border-none font-sans
+              text-foreground placeholder-muted-foreground
+              focus:outline-none
+              disabled:opacity-50
+              resize-none
+            "
+          />
+          <button
+            type="submit"
+            disabled={!canSubmit || isSending || disabled}
+            className="
+              px-5 py-2.5 rounded-lg font-semibold text-sm
+              bg-action-success text-white
+              hover:bg-action-success-hover hover:-translate-y-px
+              active:translate-y-0
+              transition-all duration-200
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+              cursor-pointer shrink-0 inline-flex items-center gap-2
+            "
+          >
+            {isSending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+            <span className="hidden sm:inline">Send</span>
+          </button>
+        </div>
       </div>
     </form>
   );
+}
+
+// Helper: Convert file to base64
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remove data:mime;base64, prefix
+      const base64 = result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }

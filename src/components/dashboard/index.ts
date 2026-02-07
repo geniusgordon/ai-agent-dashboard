@@ -8,7 +8,7 @@ export { ClientCard } from "./ClientCard";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay, InlineError } from "./ErrorDisplay";
 export { LogEntry } from "./LogEntry";
-export { MessageInput } from "./MessageInput";
+export { MessageInput, type ImageAttachment } from "./MessageInput";
 export { ReconnectBanner } from "./ReconnectBanner";
 export { SessionCard } from "./SessionCard";
 export { SessionHeader } from "./SessionHeader";

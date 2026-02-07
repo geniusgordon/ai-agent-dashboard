@@ -520,7 +520,11 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   // Communication
   // -------------------------------------------------------------------------
 
-  async sendMessage(sessionId: string, message: string): Promise<void> {
+  async sendMessage(
+    sessionId: string,
+    message: string,
+    contentBlocks?: Array<{ type: "image"; data: string; mimeType: string }>,
+  ): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session not found: ${sessionId}`);
@@ -534,16 +538,45 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     session.status = "running";
     session.updatedAt = new Date();
 
+    // Build payload for event (include image count for display)
+    const eventPayload: Record<string, unknown> = { content: message, isUser: true };
+    if (contentBlocks && contentBlocks.length > 0) {
+      eventPayload.imageCount = contentBlocks.length;
+    }
+
     this.emitEvent({
       type: "message",
       clientId: session.clientId,
       sessionId,
       timestamp: new Date(),
-      payload: { content: message, isUser: true },
+      payload: eventPayload,
     });
 
     try {
-      const result = await managed.acpClient.sendMessage(sessionId, message);
+      // Build ACP content blocks
+      const acpContent: Array<
+        | { type: "text"; text: string }
+        | { type: "image"; data: string; mimeType: string }
+      > = [];
+
+      // Add images first (if any)
+      if (contentBlocks) {
+        for (const block of contentBlocks) {
+          acpContent.push({
+            type: "image",
+            data: block.data,
+            mimeType: block.mimeType,
+          });
+        }
+      }
+
+      // Add text message
+      if (message) {
+        acpContent.push({ type: "text", text: message });
+      }
+
+      // Use prompt() instead of sendMessage() to support content blocks
+      const result = await managed.acpClient.prompt(sessionId, acpContent);
 
       session.status = "idle";
       session.updatedAt = new Date();

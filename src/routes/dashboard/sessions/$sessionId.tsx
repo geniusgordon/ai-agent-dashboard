@@ -29,6 +29,7 @@ function SessionDetailPage() {
     pendingApproval,
     connected,
     autoScroll,
+    supportsImages,
     logsEndRef,
     logContainerRef,
     isLoading,
@@ -125,6 +126,7 @@ function SessionDetailPage() {
             placeholder={
               pendingApproval ? "Waiting for approval..." : "Send a message..."
             }
+            supportsImages={supportsImages}
           />
         )}
     </div>

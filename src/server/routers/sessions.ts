@@ -120,11 +120,24 @@ export const sessionsRouter = createTRPCRouter({
       z.object({
         sessionId: z.string(),
         message: z.string(),
+        contentBlocks: z
+          .array(
+            z.object({
+              type: z.literal("image"),
+              data: z.string(), // base64
+              mimeType: z.string(),
+            }),
+          )
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const manager = getAgentManager();
-      await manager.sendMessage(input.sessionId, input.message);
+      await manager.sendMessage(
+        input.sessionId,
+        input.message,
+        input.contentBlocks,
+      );
       return { success: true };
     }),
 
