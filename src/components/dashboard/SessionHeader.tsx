@@ -69,8 +69,8 @@ export function SessionHeader({
   }, [isRenaming]);
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1 min-w-[200px]">
         <Link
           to="/dashboard/sessions"
           className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-200 cursor-pointer shrink-0"
@@ -144,37 +144,8 @@ export function SessionHeader({
               </span>
             )}
           </div>
-          {/* Editable Session Name */}
-          {isEditingName ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                onRename(editName);
-              }}
-              className="flex items-center gap-2 mt-1.5"
-            >
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="px-2.5 py-1 text-base sm:text-sm bg-card border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow duration-200"
-                autoFocus
-              />
-              <button
-                type="submit"
-                className="text-xs font-medium text-action-success-hover hover:text-action-success-hover/80 transition-colors duration-200 cursor-pointer"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEditingName(false)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer"
-              >
-                Cancel
-              </button>
-            </form>
-          ) : (
+          {/* Session Name (non-editing mode) */}
+          {!isEditingName && (
             <button
               type="button"
               className="font-mono text-sm text-muted-foreground mt-1 cursor-pointer hover:text-foreground inline-flex items-center gap-1.5 transition-colors duration-200"
@@ -190,6 +161,38 @@ export function SessionHeader({
           )}
         </div>
       </div>
+
+      {/* Editable Session Name - full width on mobile when editing */}
+      {isEditingName && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onRename(editName);
+          }}
+          className="flex items-center gap-2 w-full sm:w-auto"
+        >
+          <input
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="flex-1 sm:flex-none px-2.5 py-1.5 text-base sm:text-sm bg-card border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow duration-200"
+            autoFocus
+          />
+          <button
+            type="submit"
+            className="px-3 py-1.5 text-xs font-medium bg-action-success/20 text-action-success-hover rounded-md hover:bg-action-success/30 transition-colors duration-200 cursor-pointer"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsEditingName(false)}
+            className="px-3 py-1.5 text-xs text-muted-foreground bg-secondary/50 rounded-md hover:bg-secondary hover:text-foreground transition-colors duration-200 cursor-pointer"
+          >
+            Cancel
+          </button>
+        </form>
+      )}
 
       <div className="flex items-center gap-1.5">
         <button
