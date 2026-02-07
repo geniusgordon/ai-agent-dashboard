@@ -32,7 +32,7 @@ export function WorktreeCreateDialog({
   const [open, setOpen] = useState(false);
   const [branchName, setBranchName] = useState("");
   const [createNewBranch, setCreateNewBranch] = useState(true);
-  const [baseBranch, setBaseBranch] = useState("");
+  const [baseBranch, setBaseBranch] = useState("main");
 
   const branchesQuery = useQuery(
     trpc.projects.listBranches.queryOptions({ projectId }, { enabled: open }),
@@ -48,7 +48,7 @@ export function WorktreeCreateDialog({
         });
         setOpen(false);
         setBranchName("");
-        setBaseBranch("");
+        setBaseBranch("main");
       },
     }),
   );
@@ -159,9 +159,6 @@ export function WorktreeCreateDialog({
                   className="block text-sm font-medium text-foreground mb-1.5"
                 >
                   Base Branch
-                  <span className="text-muted-foreground font-normal ml-1">
-                    (optional, defaults to HEAD)
-                  </span>
                 </label>
                 <select
                   id="baseBranch"
@@ -169,12 +166,13 @@ export function WorktreeCreateDialog({
                   onChange={(e) => setBaseBranch(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="">HEAD (default)</option>
-                  {branches.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
+                  {branches
+                    .filter((b) => b !== "HEAD")
+                    .map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
                 </select>
               </div>
             )}
