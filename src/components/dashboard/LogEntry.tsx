@@ -1,5 +1,6 @@
 import { ChevronRight, Loader2, User } from "lucide-react";
 import { useState } from "react";
+import Markdown from "react-markdown";
 import {
   defaultEventConfig,
   eventConfig,
@@ -135,8 +136,18 @@ export function LogEntry({ event }: LogEntryProps) {
       ) : (
         <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
       )}
-      <span className="whitespace-pre-wrap break-all flex-1 text-[13px] leading-relaxed">
-        {displayContent}
+      <div className="flex-1 text-[13px] leading-relaxed min-w-0">
+        {isToolCall || isCollapsible && !isExpanded ? (
+          // Tool calls and collapsed content: plain text
+          <span className="whitespace-pre-wrap break-all">
+            {displayContent}
+          </span>
+        ) : (
+          // Messages: render markdown
+          <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:bg-secondary/50 [&_pre]:p-2 [&_pre]:rounded [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_hr]:border-border">
+            <Markdown>{displayContent}</Markdown>
+          </div>
+        )}
         {isToolLoading && <span className="text-muted-foreground ml-2">Running...</span>}
         {isToolCall && toolStatus === "completed" && (
           <span className="text-event-complete ml-2">✓</span>
@@ -144,7 +155,7 @@ export function LogEntry({ event }: LogEntryProps) {
         {isCollapsible && !isExpanded && (
           <span className="text-muted-foreground/50 ml-1 text-xs">({content.split("\n").length} lines)</span>
         )}
-      </span>
+      </div>
     </div>
   );
 }
