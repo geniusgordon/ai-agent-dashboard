@@ -2,9 +2,11 @@
  * Branch Badge Component
  *
  * Displays the current git branch name with a branch icon.
+ * Clicking copies the branch name to the clipboard.
  */
 
-import { GitBranch } from "lucide-react";
+import { Check, Copy, GitBranch } from "lucide-react";
+import { useState } from "react";
 
 interface BranchBadgeProps {
   branch: string;
@@ -22,12 +24,28 @@ const iconSize = {
 };
 
 export function BranchBadge({ branch, size = "sm" }: BranchBadgeProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(branch);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
-    <span
-      className={`inline-flex items-center rounded-md bg-purple-500/10 text-purple-400 font-mono ${sizeStyles[size]}`}
+    <button
+      type="button"
+      onClick={handleCopy}
+      title="Copy branch name"
+      className={`inline-flex items-center rounded-md bg-purple-500/10 text-purple-400 font-mono hover:bg-purple-500/20 transition-colors cursor-pointer ${sizeStyles[size]}`}
     >
       <GitBranch className={iconSize[size]} />
       <span className="truncate max-w-32">{branch}</span>
-    </span>
+      {copied ? (
+        <Check className={`${iconSize[size]} text-action-success-hover`} />
+      ) : (
+        <Copy className={`${iconSize[size]} opacity-50`} />
+      )}
+    </button>
   );
 }
