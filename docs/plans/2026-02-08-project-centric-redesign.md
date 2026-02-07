@@ -166,6 +166,7 @@ Commit: `486496c` — `feat: rewrite sidebar with project switcher and dual-mode
 9. ~~**Empty/onboarding state** — Welcome flow when no projects exist, import + create actions~~
 
 Commit: `d9280d6` — `feat: rewrite home page as project grid with onboarding (Phase 3)`
+Commit: `fa712db` — `refactor: merge create/import into single add-project flow`
 
 ### Phase 4: Project Overview Page — DONE
 
