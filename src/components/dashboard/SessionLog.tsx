@@ -1,5 +1,5 @@
 import { ArrowDown, MessageSquare } from "lucide-react";
-import { useState, useEffect, type RefObject } from "react";
+import type { RefObject } from "react";
 import type { AgentEvent } from "@/lib/agents/types";
 import { LogEntry } from "./LogEntry";
 
@@ -7,29 +7,17 @@ export interface SessionLogProps {
   events: AgentEvent[];
   logsEndRef: RefObject<HTMLDivElement | null>;
   containerRef?: RefObject<HTMLDivElement | null>;
+  showScrollButton: boolean;
+  onScrollToBottom: () => void;
 }
 
-export function SessionLog({ events, logsEndRef, containerRef }: SessionLogProps) {
-  const [showScrollButton, setShowScrollButton] = useState(false);
-
-  // Track scroll position to show/hide scroll button
-  useEffect(() => {
-    const container = containerRef?.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShowScrollButton(!isNearBottom && events.length > 0);
-    };
-
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [containerRef, events.length]);
-
-  const scrollToBottom = () => {
-    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+export function SessionLog({
+  events,
+  logsEndRef,
+  containerRef,
+  showScrollButton,
+  onScrollToBottom,
+}: SessionLogProps) {
 
   return (
     <div className="flex-1 relative min-h-0">
@@ -75,7 +63,7 @@ export function SessionLog({ events, logsEndRef, containerRef }: SessionLogProps
       {showScrollButton && (
         <button
           type="button"
-          onClick={scrollToBottom}
+          onClick={onScrollToBottom}
           className="absolute bottom-4 right-4 z-20 p-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-2"
         >
           <ArrowDown className="size-4" />
