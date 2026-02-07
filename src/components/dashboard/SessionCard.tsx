@@ -2,8 +2,11 @@
  * Session Card Component
  */
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useTRPC } from "../../integrations/trpc/react";
 import type { AgentSession } from "../../lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -23,8 +26,35 @@ const statusLeftBorder: Record<string, string> = {
 };
 
 export function SessionCard({ session }: SessionCardProps) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const deleteMutation = useMutation(
+    trpc.sessions.deleteSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.listSessions.queryKey(),
+        });
+      },
+    }),
+  );
+
   const timeAgo = getTimeAgo(session.createdAt);
   const isInactive = session.isActive === false;
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (confirmDelete) {
+      deleteMutation.mutate({ sessionId: session.id });
+    } else {
+      setConfirmDelete(true);
+      // Reset confirmation after 3 seconds
+      setTimeout(() => setConfirmDelete(false), 3000);
+    }
+  };
 
   return (
     <Link
@@ -65,9 +95,28 @@ export function SessionCard({ session }: SessionCardProps) {
           </p>
         </div>
 
-        {/* Time */}
-        <div className="text-right shrink-0">
+        {/* Time & Delete */}
+        <div className="text-right shrink-0 flex flex-col items-end gap-2">
           <p className="text-xs text-muted-foreground">{timeAgo}</p>
+
+          {/* Delete button - show on hover or when confirming */}
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            disabled={deleteMutation.isPending}
+            className={`
+              p-1.5 rounded-md transition-all
+              ${
+                confirmDelete
+                  ? "bg-destructive/10 text-destructive opacity-100"
+                  : "text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
+              }
+              disabled:opacity-50 disabled:cursor-not-allowed
+            `}
+            title={confirmDelete ? "Click again to confirm" : "Delete session"}
+          >
+            <Trash2 className="size-4" />
+          </button>
         </div>
       </div>
 
@@ -75,11 +124,18 @@ export function SessionCard({ session }: SessionCardProps) {
       <div
         className="
         mt-3 pt-3 border-t border-border
-        flex items-center justify-end
-        opacity-0 group-hover:opacity-100 transition-opacity
+        flex items-center justify-between
       "
       >
-        <span className="text-xs text-muted-foreground flex items-center gap-1">
+        {confirmDelete && (
+          <span className="text-xs text-destructive">Click again to delete</span>
+        )}
+        <span
+          className={`
+          text-xs text-muted-foreground flex items-center gap-1 ml-auto
+          ${confirmDelete ? "" : "opacity-0 group-hover:opacity-100"} transition-opacity
+        `}
+        >
           View logs
           <ChevronRight className="size-4" />
         </span>
