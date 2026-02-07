@@ -514,9 +514,7 @@ export class ProjectManager {
     return git.listBranches(project.repoPath);
   }
 
-  async listBranchesWithStatus(
-    projectId: string,
-  ): Promise<
+  async listBranchesWithStatus(projectId: string): Promise<
     {
       name: string;
       isDefault: boolean;
