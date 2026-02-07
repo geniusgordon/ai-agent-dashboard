@@ -23,6 +23,21 @@ function isLongContent(content: string): boolean {
   return content.length > 120 || content.includes("\n");
 }
 
+// Try to format JSON for readability
+function formatJson(str: string): string {
+  // Check if it looks like JSON
+  const trimmed = str.trim();
+  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || 
+      (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+    try {
+      return JSON.stringify(JSON.parse(trimmed), null, 2);
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
 export function LogEntry({ event }: LogEntryProps) {
   const payload = event.payload as Record<string, unknown>;
   const isUser = payload.isUser === true;
@@ -50,13 +65,18 @@ export function LogEntry({ event }: LogEntryProps) {
     content = payload.content;
   } else if (typeof payload.content === "object" && payload.content !== null) {
     const nested = payload.content as Record<string, unknown>;
-    content = (nested.text as string) ?? JSON.stringify(nested);
+    content = (nested.text as string) ?? JSON.stringify(nested, null, 2);
   } else if (typeof payload.stopReason === "string") {
     content = payload.stopReason;
   } else if (typeof payload.message === "string") {
     content = payload.message;
   } else {
-    content = JSON.stringify(payload);
+    content = JSON.stringify(payload, null, 2);
+  }
+
+  // Format JSON strings for tool calls
+  if (isToolCall) {
+    content = formatJson(content);
   }
 
   // Collapsible for thinking and tool calls with long content
@@ -96,7 +116,7 @@ export function LogEntry({ event }: LogEntryProps) {
       ) : (
         <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
       )}
-      <span className="whitespace-pre-wrap break-all flex-1 text-[13px] leading-relaxed">
+      <span className="whitespace-pre-wrap break-words flex-1 text-[13px] leading-relaxed">
         {displayContent}
         {isToolLoading && <span className="text-muted-foreground ml-2">Running...</span>}
         {isToolCall && toolStatus === "completed" && (
