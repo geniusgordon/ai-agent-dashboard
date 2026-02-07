@@ -923,6 +923,64 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       }
     });
 
+    // Terminal lifecycle events (surface in session logs)
+    acpClient.on("terminal:created", (evt) => {
+      this.emitEvent({
+        type: "tool-call",
+        clientId,
+        sessionId: evt.sessionId,
+        timestamp: new Date(evt.startedAt),
+        payload: {
+          toolCallId: evt.terminalId,
+          title: `terminal: ${evt.command}${evt.args.length ? ` ${evt.args.join(" ")}` : ""}`,
+          kind: "terminal",
+          status: "in_progress",
+        },
+      });
+    });
+
+    acpClient.on("terminal:exit", (evt) => {
+      const status = evt.exitStatus.exitCode === 0 ? "completed" : "failed";
+      this.emitEvent({
+        type: "tool-update",
+        clientId,
+        sessionId: evt.sessionId,
+        timestamp: new Date(evt.endedAt),
+        payload: {
+          toolCallId: evt.terminalId,
+          status,
+          content: {
+            cwd: evt.cwd,
+            command: evt.command,
+            args: evt.args,
+            exitStatus: evt.exitStatus,
+            truncated: evt.truncated,
+            output: evt.output,
+            durationMs: evt.durationMs,
+          },
+        },
+      });
+    });
+
+    acpClient.on("terminal:error", (evt) => {
+      this.emitEvent({
+        type: "tool-update",
+        clientId,
+        sessionId: evt.sessionId,
+        timestamp: new Date(),
+        payload: {
+          toolCallId: evt.terminalId,
+          status: "failed",
+          content: {
+            cwd: evt.cwd,
+            command: evt.command,
+            args: evt.args,
+            error: evt.message,
+          },
+        },
+      });
+    });
+
     // Handle permission requests
     acpClient.on("permission:request", (pending) => {
       const approvalId = `approval_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
