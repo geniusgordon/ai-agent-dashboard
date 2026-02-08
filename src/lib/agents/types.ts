@@ -187,6 +187,30 @@ export function isTerminalErrorContent(v: unknown): v is TerminalErrorContent {
   );
 }
 
+export interface DiffContentBlock {
+  type: "diff";
+  oldText: string;
+  newText: string;
+  path: string;
+}
+
+export function hasDiffContent(v: unknown): v is DiffContentBlock[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.some(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        (item as Record<string, unknown>).type === "diff" &&
+        "oldText" in item &&
+        "newText" in item &&
+        "path" in item,
+    )
+  );
+}
+
 export interface PlanPayload {
   entries: Array<{
     content: string;
