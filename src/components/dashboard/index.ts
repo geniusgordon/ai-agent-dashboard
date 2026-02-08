@@ -17,6 +17,7 @@ export { SessionHeader } from "./SessionHeader";
 export { SessionLog } from "./SessionLog";
 export { SessionRightPanel } from "./SessionRightPanel";
 export { SpawnAgentDialog } from "./SpawnAgentDialog";
+export { StartReviewDialog } from "./StartReviewDialog";
 export { StatusBadge } from "./StatusBadge";
 export { TaskPanel } from "./TaskPanel";
 export { WorktreeAgentMap } from "./WorktreeAgentMap";
