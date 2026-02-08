@@ -28,7 +28,7 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
     `,
   },
   {
-    version: 5,
+    version: 6,
     sql: `
       ALTER TABLE sessions ADD COLUMN project_id TEXT;
       ALTER TABLE sessions ADD COLUMN worktree_id TEXT;
