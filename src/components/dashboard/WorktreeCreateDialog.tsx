@@ -30,9 +30,15 @@ export function WorktreeCreateDialog({
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [branchPrefix, setBranchPrefix] = useState("feat");
   const [branchName, setBranchName] = useState("");
   const [createNewBranch, setCreateNewBranch] = useState(true);
   const [baseBranch, setBaseBranch] = useState("");
+
+  const branchPrefixes = ["feat", "fix", "chore", "refactor"] as const;
+  const fullBranchName = createNewBranch
+    ? `${branchPrefix}/${branchName}`
+    : branchName;
 
   const branchesQuery = useQuery(
     trpc.projects.listBranches.queryOptions({ projectId }, { enabled: open }),
@@ -50,6 +56,7 @@ export function WorktreeCreateDialog({
           queryKey: trpc.worktrees.list.queryKey({ projectId }),
         });
         setOpen(false);
+        setBranchPrefix("feat");
         setBranchName("");
         setBaseBranch("");
       },
@@ -60,7 +67,7 @@ export function WorktreeCreateDialog({
     e.preventDefault();
     createMutation.mutate({
       projectId,
-      branchName,
+      branchName: fullBranchName,
       createNewBranch,
       baseBranch: createNewBranch
         ? baseBranch || defaultBranch || undefined
@@ -129,22 +136,39 @@ export function WorktreeCreateDialog({
                 Branch Name
               </label>
               {createNewBranch ? (
-                <input
-                  id="branchName"
-                  type="text"
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  placeholder="feature/my-feature"
-                  required
-                  className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={branchPrefix}
+                    onChange={(e) => setBranchPrefix(e.target.value)}
+                    className="px-3 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    {branchPrefixes.map((p) => (
+                      <option key={p} value={p}>
+                        {p}/
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    id="branchName"
+                    type="text"
+                    value={branchName}
+                    onChange={(e) =>
+                      setBranchName(
+                        e.target.value.toLowerCase().replace(/\s+/g, "-"),
+                      )
+                    }
+                    placeholder="my-feature"
+                    required
+                    className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
               ) : (
                 <select
                   id="branchName"
                   value={branchName}
                   onChange={(e) => setBranchName(e.target.value)}
                   required
-                  className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">Select a branch...</option>
                   {branches.map((b) => (
@@ -172,7 +196,7 @@ export function WorktreeCreateDialog({
                   id="baseBranch"
                   value={baseBranch}
                   onChange={(e) => setBaseBranch(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">{defaultBranch || "main"} (default)</option>
                   {branches.map((b) => (
