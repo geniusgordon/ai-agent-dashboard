@@ -85,28 +85,32 @@ export function useSessionDetail(sessionId: string) {
   // Keep eventsRef in sync for use in scroll handler
   eventsRef.current = events;
 
-  // Load event history on mount and scroll to bottom
+  // Load event history from query data on mount AND after SSE-reconnection
+  // invalidation.  We track `dataUpdatedAt` so that when the query refetches
+  // (e.g. after navigating back to this page) we always pick up the latest
+  // server-side snapshot — even if local events already exist.
+  const lastDataUpdatedAtRef = useRef(0);
   useEffect(() => {
-    if (
-      eventsQuery.data &&
-      eventsQuery.data.length > 0 &&
-      events.length === 0
-    ) {
+    if (!eventsQuery.data || eventsQuery.data.length === 0) return;
+    const isNewData =
+      eventsQuery.dataUpdatedAt !== lastDataUpdatedAtRef.current;
+    if (events.length === 0 || isNewData) {
+      lastDataUpdatedAtRef.current = eventsQuery.dataUpdatedAt;
       setEvents(
         eventsQuery.data.map((e) => ({
           ...e,
           timestamp: new Date(e.timestamp),
         })),
       );
-      // Scroll to bottom on initial load
-      if (!initialScrollDone.current) {
-        initialScrollDone.current = true;
-        requestAnimationFrame(() => {
-          logsEndRef.current?.scrollIntoView({ behavior: "instant" });
-        });
-      }
     }
-  }, [eventsQuery.data, events.length]);
+    // Scroll to bottom on initial load
+    if (!initialScrollDone.current) {
+      initialScrollDone.current = true;
+      requestAnimationFrame(() => {
+        logsEndRef.current?.scrollIntoView({ behavior: "instant" });
+      });
+    }
+  }, [eventsQuery.data, eventsQuery.dataUpdatedAt, events.length]);
 
   // Track scroll position — callback ref attaches/detaches the listener
   // when the DOM element mounts/unmounts (survives conditional rendering).
@@ -260,17 +264,26 @@ export function useSessionDetail(sessionId: string) {
     onApproval: handleApproval,
   });
 
-  // When the SSE connection (re)establishes, refetch approvals to pick up
-  // any that arrived during the connection gap (e.g. page navigation).
+  // When the SSE connection (re)establishes, refetch events and approvals to
+  // pick up any that arrived during the connection gap (e.g. page navigation).
   const prevConnectedRef = useRef(false);
   useEffect(() => {
     if (connected && !prevConnectedRef.current) {
+      queryClient.invalidateQueries({
+        queryKey: trpc.sessions.getSessionEvents.queryKey({ sessionId }),
+      });
       queryClient.invalidateQueries({
         queryKey: trpc.approvals.list.queryKey(),
       });
     }
     prevConnectedRef.current = connected;
-  }, [connected, queryClient, trpc.approvals.list]);
+  }, [
+    connected,
+    queryClient,
+    trpc.sessions.getSessionEvents,
+    trpc.approvals.list,
+    sessionId,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Mutations
