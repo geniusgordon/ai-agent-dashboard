@@ -3,6 +3,7 @@ import {
   CheckCircle,
   Clock,
   FolderGit2,
+  GitMerge,
   Loader2,
   PanelRightClose,
   PanelRightOpen,
@@ -72,6 +73,7 @@ export interface SessionRightPanelProps {
   actions: SessionActions;
   logControls: LogControls;
   tasks: TaskState;
+  onStartReview?: () => void;
 }
 
 export function SessionRightPanel({
@@ -85,6 +87,7 @@ export function SessionRightPanel({
   actions,
   logControls,
   tasks,
+  onStartReview,
 }: SessionRightPanelProps) {
   const isActiveSession =
     session.status !== "completed" &&
@@ -281,6 +284,19 @@ export function SessionRightPanel({
                   </Tooltip>
                 )}
               </div>
+
+              {/* Code review */}
+              {onStartReview && branch && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onStartReview}
+                  className="w-full justify-center gap-1.5"
+                >
+                  <GitMerge className="size-3.5" />
+                  Code Review
+                </Button>
+              )}
 
               <Separator />
 

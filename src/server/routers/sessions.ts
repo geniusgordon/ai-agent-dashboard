@@ -308,6 +308,26 @@ export const sessionsRouter = createTRPCRouter({
     return { cleaned };
   }),
 
+  /**
+   * Look up the worktree assignment for a session (if any).
+   * Returns the assignment with worktree details, or null.
+   */
+  getAssignment: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(({ input }) => {
+      const projectManager = getProjectManager();
+      const assignment = projectManager.getAssignmentForSession(
+        input.sessionId,
+      );
+      if (!assignment) return null;
+
+      const worktree = projectManager.getWorktree(assignment.worktreeId);
+      return {
+        ...assignment,
+        worktreeBranch: worktree?.branch ?? null,
+      };
+    }),
+
   getBranchInfo: publicProcedure
     .input(z.object({ cwd: z.string() }))
     .query(async ({ input }) => {
