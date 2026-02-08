@@ -128,6 +128,14 @@ export function Sidebar() {
     enabled: !!projectId,
   });
 
+  // Fetch pending approvals for badge display
+  const approvalsQuery = useQuery(
+    projectId
+      ? trpc.approvals.list.queryOptions({ projectId })
+      : trpc.approvals.list.queryOptions(),
+  );
+  const approvalCount = approvalsQuery.data?.length ?? 0;
+
   // Keep sidebar fresh via SSE
   useAgentEvents({
     onEvent: (event) => {
@@ -148,10 +156,19 @@ export function Sidebar() {
           });
         }
       }
+      // Refetch approvals when a session completes/errors (approval may have been resolved)
+      if (event.type === "complete" || event.type === "error") {
+        queryClient.invalidateQueries({
+          queryKey: trpc.approvals.list.queryKey(),
+        });
+      }
     },
     onApproval: () => {
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.listSessions.queryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.approvals.list.queryKey(),
       });
     },
   });
@@ -196,7 +213,11 @@ export function Sidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {projectId ? (
-                <ProjectNav projectId={projectId} onNavigate={handleNavClick} />
+                <ProjectNav
+                  projectId={projectId}
+                  approvalCount={approvalCount}
+                  onNavigate={handleNavClick}
+                />
               ) : (
                 <GlobalNav onNavigate={handleNavClick} />
               )}
@@ -311,9 +332,11 @@ function GlobalNav({ onNavigate }: { onNavigate: () => void }) {
 
 function ProjectNav({
   projectId,
+  approvalCount,
   onNavigate,
 }: {
   projectId: string;
+  approvalCount: number;
   onNavigate: () => void;
 }) {
   const matchRoute = useMatchRoute();
@@ -348,6 +371,13 @@ function ProjectNav({
                 <span>{item.label}</span>
               </Link>
             </SidebarMenuButton>
+            {item.segment === "approvals" && approvalCount > 0 && (
+              <SidebarMenuBadge>
+                <span className="flex size-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-medium">
+                  {approvalCount}
+                </span>
+              </SidebarMenuBadge>
+            )}
           </SidebarMenuItem>
         );
       })}

@@ -245,12 +245,27 @@ export function useSessionDetail(sessionId: string) {
     });
   };
 
+  // Connect SSE immediately — sessionId is known from the URL, no need to
+  // wait for the session query.  Gating on `!!session` created a window where
+  // approval events could arrive after the query resolved but before the
+  // EventSource was established, causing missed banners.
   const { connected } = useAgentEvents({
     sessionId,
     onEvent: handleEvent,
     onApproval: handleApproval,
-    enabled: !!session,
   });
+
+  // When the SSE connection (re)establishes, refetch approvals to pick up
+  // any that arrived during the connection gap (e.g. page navigation).
+  const prevConnectedRef = useRef(false);
+  useEffect(() => {
+    if (connected && !prevConnectedRef.current) {
+      queryClient.invalidateQueries({
+        queryKey: trpc.approvals.list.queryKey(),
+      });
+    }
+    prevConnectedRef.current = connected;
+  }, [connected, queryClient, trpc.approvals.list]);
 
   // ---------------------------------------------------------------------------
   // Mutations
