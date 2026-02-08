@@ -24,6 +24,7 @@ import {
   Sparkles,
   Sun,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   SidebarContent,
   SidebarFooter,
@@ -373,9 +374,12 @@ function ProjectNav({
             </SidebarMenuButton>
             {item.segment === "approvals" && approvalCount > 0 && (
               <SidebarMenuBadge>
-                <span className="flex size-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-medium">
+                <Badge
+                  variant="destructive"
+                  className="h-5 min-w-5 px-1.5 text-[11px]"
+                >
                   {approvalCount}
-                </span>
+                </Badge>
               </SidebarMenuBadge>
             )}
           </SidebarMenuItem>
