@@ -18,6 +18,7 @@ export { ReconnectBanner } from "./ReconnectBanner";
 export { SessionCard } from "./SessionCard";
 export { SessionHeader } from "./SessionHeader";
 export { SessionLog } from "./SessionLog";
+export { SessionRightPanel } from "./SessionRightPanel";
 export { SpawnAgentDialog } from "./SpawnAgentDialog";
 export { StatusBadge } from "./StatusBadge";
 export { TaskPanel } from "./TaskPanel";
