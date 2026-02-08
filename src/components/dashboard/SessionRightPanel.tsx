@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ApprovalBanner } from "@/components/dashboard/ApprovalBanner";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
+import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { TaskPanel } from "@/components/dashboard/TaskPanel";
@@ -282,6 +283,9 @@ export function SessionRightPanel({
               </div>
 
               <Separator />
+
+              {/* Git info */}
+              <GitInfoPanel cwd={session.cwd} />
 
               {/* Reconnect banner */}
               {session.isActive === false && (

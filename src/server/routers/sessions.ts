@@ -11,7 +11,19 @@ import {
   getAgentManager,
   loadRecentDirectories,
 } from "../../lib/agents/index.js";
-import { getBranchInfo, getProjectManager } from "../../lib/projects/index.js";
+import {
+  getCommitsSinceBranch,
+  getCurrentBranch,
+  getDefaultBranch,
+  getRecentCommits,
+} from "../../lib/projects/git-operations.js";
+import {
+  getBranchInfo,
+  getFilesChanged,
+  getProjectManager,
+  hasUncommittedChanges,
+  isGitRepo,
+} from "../../lib/projects/index.js";
 
 const AgentTypeSchema = z.enum(["gemini", "claude-code", "codex"]);
 
@@ -306,5 +318,61 @@ export const sessionsRouter = createTRPCRouter({
         cwd = cwd.replace("~", process.env.HOME ?? "");
       }
       return getBranchInfo(cwd);
+    }),
+
+  getGitInfo: publicProcedure
+    .input(
+      z.object({
+        cwd: z.string(),
+        commitLimit: z.number().min(1).max(20).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      let cwd = input.cwd;
+      if (cwd.startsWith("~")) {
+        cwd = cwd.replace("~", process.env.HOME ?? "");
+      }
+
+      const isRepo = await isGitRepo(cwd);
+      if (!isRepo) {
+        return {
+          isGitRepo: false as const,
+          branch: null,
+          defaultBranch: null,
+          recentCommits: [],
+          branchCommits: [],
+          filesChanged: [],
+          hasUncommitted: false,
+          isFeatureBranch: false,
+        };
+      }
+
+      const branch = await getCurrentBranch(cwd);
+      const defaultBranch = await getDefaultBranch(cwd);
+      const isFeatureBranch = branch !== null && branch !== defaultBranch;
+      const limit = input.commitLimit ?? 10;
+
+      const [recentCommits, branchCommits, filesChanged, hasUncommitted] =
+        await Promise.all([
+          getRecentCommits(cwd, limit),
+          isFeatureBranch
+            ? getCommitsSinceBranch(cwd, defaultBranch, limit)
+            : Promise.resolve([]),
+          isFeatureBranch
+            ? getFilesChanged(cwd, defaultBranch, branch)
+            : Promise.resolve([]),
+          hasUncommittedChanges(cwd),
+        ]);
+
+      return {
+        isGitRepo: true as const,
+        branch,
+        defaultBranch,
+        recentCommits,
+        branchCommits,
+        filesChanged,
+        hasUncommitted,
+        isFeatureBranch,
+      };
     }),
 });
