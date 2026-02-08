@@ -19,6 +19,8 @@ pnpm check:ci         # Biome lint + format (check only, CI)
 pnpm validate         # typecheck + check:ci + test (full CI pipeline)
 ```
 
+**Do not** start the dev server (`pnpm dev`) or kill existing dev server processes unless the user explicitly asks. The user manages the dev server themselves.
+
 ## Code Style
 
 - **Formatter/Linter**: Biome (not ESLint/Prettier). Run `pnpm check` to auto-fix.
@@ -28,6 +30,7 @@ pnpm validate         # typecheck + check:ci + test (full CI pipeline)
 - **Icons**: Use `lucide-react` — never hand-craft SVG markup. The project already depends on lucide.
 - **Static imports only**: No lazy `import()` for modules already loaded by the server process. Use static imports at the top of the file.
 - **Barrel exports**: New components in `src/components/dashboard/` must be added to `index.ts` or imports from `@/components/dashboard` will fail at build time.
+- **Mobile-first RWD**: Always design UI mobile-first. Ensure all components and layouts are fully responsive — test small viewports first, then scale up with breakpoints.
 - Biome ignores `src/routeTree.gen.ts` and `src/styles.css` (auto-generated files).
 
 ## Architecture
