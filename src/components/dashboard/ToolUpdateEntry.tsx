@@ -1,16 +1,27 @@
 import {
   Check,
   ChevronRight,
+  FileDiff,
   FolderOpen,
   Timer,
   Wrench,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
-import { eventConfig, formatJson, formatTime } from "@/lib/agents/event-utils";
-import type { AgentEvent } from "@/lib/agents/types";
 import {
+  computeLineDiff,
+  eventConfig,
+  extractTextFromContentBlocks,
+  formatJson,
+  formatTime,
+} from "@/lib/agents/event-utils";
+import type { AgentEvent, DiffContentBlock } from "@/lib/agents/types";
+import {
+  hasDiffContent,
+  isDiffContentBlock,
   isTerminalErrorContent,
   isTerminalExitContent,
 } from "@/lib/agents/types";
@@ -216,6 +227,125 @@ function TerminalErrorEntry({ event }: { event: AgentEvent }) {
 }
 
 // ---------------------------------------------------------------------------
+// Diff — file edit results from agent tools
+// ---------------------------------------------------------------------------
+
+function DiffBlock({ block }: { block: DiffContentBlock }) {
+  const diffText = computeLineDiff(block.oldText ?? "", block.newText);
+  const lines = diffText.split("\n");
+  const isLong = lines.length > OUTPUT_COLLAPSE_THRESHOLD;
+  const [isExpanded, setIsExpanded] = useState(!isLong);
+
+  const fileName = block.path.split("/").pop() ?? block.path;
+
+  return (
+    <div className="rounded-md border border-border/40 bg-secondary/30 overflow-hidden">
+      {/* File path header */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-border/30">
+        <span
+          className="text-[11px] font-mono text-muted-foreground/70 truncate"
+          title={block.path}
+        >
+          {fileName}
+        </span>
+        <CopyIconButton text={diffText} />
+      </div>
+
+      {/* Diff content */}
+      {isLong && !isExpanded ? (
+        <button
+          type="button"
+          className="w-full text-left cursor-pointer"
+          onClick={() => setIsExpanded(true)}
+        >
+          <SyntaxHighlighter
+            style={oneDark}
+            language="diff"
+            PreTag="div"
+            customStyle={{
+              margin: 0,
+              padding: "0.5rem 0.75rem",
+              borderRadius: 0,
+              fontSize: "0.75rem",
+              background: "transparent",
+            }}
+          >
+            {lines.slice(0, COLLAPSED_PREVIEW_LINES).join("\n")}
+          </SyntaxHighlighter>
+          <div className="flex items-center gap-1 px-3 py-1.5 border-t border-border/30 text-[11px] text-muted-foreground/60">
+            <ChevronRight className="size-3" />
+            <span>{lines.length - COLLAPSED_PREVIEW_LINES} more lines</span>
+          </div>
+        </button>
+      ) : (
+        <div>
+          <SyntaxHighlighter
+            style={oneDark}
+            language="diff"
+            PreTag="div"
+            customStyle={{
+              margin: 0,
+              padding: "0.5rem 0.75rem",
+              borderRadius: 0,
+              fontSize: "0.75rem",
+              background: "transparent",
+            }}
+          >
+            {diffText}
+          </SyntaxHighlighter>
+          {isLong && (
+            <button
+              type="button"
+              className="flex items-center gap-1 w-full px-3 py-1.5 border-t border-border/30 text-[11px] text-muted-foreground/60 cursor-pointer"
+              onClick={() => setIsExpanded(false)}
+            >
+              <ChevronRight className="size-3 rotate-90 transition-transform" />
+              <span>Click to collapse</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DiffEntry({ event }: { event: AgentEvent }) {
+  const payload = event.payload as Record<string, unknown>;
+  const blocks = (payload.content as unknown[]).filter(isDiffContentBlock);
+
+  // If all blocks were filtered out, fall back to the generic renderer.
+  if (blocks.length === 0) {
+    return <GenericToolUpdateEntry event={event} />;
+  }
+
+  const allDiffText = blocks
+    .map((b) => computeLineDiff(b.oldText ?? "", b.newText))
+    .join("\n");
+
+  return (
+    <div className="group flex gap-2.5 py-2 px-3 rounded-md border-l-2 border-l-event-tool/50 transition-colors duration-200 hover:bg-accent/50">
+      {/* Timestamp */}
+      <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+        <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
+          {formatTime(event.timestamp)}
+        </span>
+        <CopyIconButton text={allDiffText} />
+      </div>
+
+      {/* Icon */}
+      <FileDiff className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200 text-event-tool" />
+
+      {/* Content — one panel per file */}
+      <div className="flex-1 min-w-0 space-y-2">
+        {blocks.map((block, idx) => (
+          <DiffBlock key={`${block.path}-${idx}`} block={block} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Generic — fallback for non-terminal tool updates
 // ---------------------------------------------------------------------------
 
@@ -229,6 +359,10 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
   let content: string;
   if (typeof payload.content === "string") {
     content = payload.content;
+  } else if (Array.isArray(payload.content)) {
+    content =
+      extractTextFromContentBlocks(payload.content) ||
+      JSON.stringify(payload.content, null, 2);
   } else if (typeof payload.content === "object" && payload.content !== null) {
     const nested = payload.content as Record<string, unknown>;
     content = (nested.text as string) ?? JSON.stringify(nested, null, 2);
@@ -370,6 +504,10 @@ export function ToolUpdateEntry({ event }: { event: AgentEvent }) {
 
   if (isTerminalErrorContent(content)) {
     return <TerminalErrorEntry event={event} />;
+  }
+
+  if (hasDiffContent(content)) {
+    return <DiffEntry event={event} />;
   }
 
   // Hide low-information bookkeeping updates (status-only, terminal refs, etc.)

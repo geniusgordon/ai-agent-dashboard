@@ -24,11 +24,124 @@ export function extractContent(payload: Record<string, unknown>): string {
   if (typeof payload.content === "string") {
     return payload.content;
   }
+  if (Array.isArray(payload.content)) {
+    const text = extractTextFromContentBlocks(payload.content);
+    if (text === "" && payload.content.length > 0) {
+      return JSON.stringify(payload.content, null, 2);
+    }
+    return text;
+  }
   if (typeof payload.content === "object" && payload.content !== null) {
     const nested = payload.content as Record<string, unknown>;
     return (nested.text as string) ?? "";
   }
   return "";
+}
+
+/**
+ * Extract text from an ACP content block array.
+ * Handles shapes like: [{ type: "content", content: { type: "text", text: "..." } }]
+ * and also: [{ type: "text", text: "..." }]
+ */
+export function extractTextFromContentBlocks(blocks: unknown[]): string {
+  const parts: string[] = [];
+  for (const block of blocks) {
+    if (typeof block !== "object" || block === null) continue;
+    const b = block as Record<string, unknown>;
+    if (b.type === "text" && typeof b.text === "string") {
+      parts.push(b.text);
+    } else if (
+      b.type === "content" &&
+      typeof b.content === "object" &&
+      b.content !== null
+    ) {
+      const inner = b.content as Record<string, unknown>;
+      if (inner.type === "text" && typeof inner.text === "string") {
+        parts.push(inner.text);
+      }
+    } else if (
+      b.type === "diff" &&
+      typeof b.path === "string" &&
+      typeof b.newText === "string"
+    ) {
+      parts.push(`${b.path}:\n${b.newText}`);
+    }
+  }
+  return parts.join("\n");
+}
+
+/**
+ * Compute a line-level unified diff string from oldText and newText.
+ * Produces output with `-` (removed), `+` (added), ` ` (context) prefixes,
+ * compatible with Prism's `diff` language highlighter.
+ */
+export function computeLineDiff(oldText: string, newText: string): string {
+  if (!oldText && !newText) return "";
+  if (!oldText)
+    return newText
+      .split("\n")
+      .map((l) => `+${l}`)
+      .join("\n");
+  if (!newText)
+    return oldText
+      .split("\n")
+      .map((l) => `-${l}`)
+      .join("\n");
+
+  const oldLines = oldText.split("\n");
+  const newLines = newText.split("\n");
+
+  // Find common prefix
+  let prefixLen = 0;
+  const minLen = Math.min(oldLines.length, newLines.length);
+  while (prefixLen < minLen && oldLines[prefixLen] === newLines[prefixLen]) {
+    prefixLen++;
+  }
+
+  // Find common suffix (not overlapping with prefix)
+  let suffixLen = 0;
+  while (
+    suffixLen < minLen - prefixLen &&
+    oldLines[oldLines.length - 1 - suffixLen] ===
+      newLines[newLines.length - 1 - suffixLen]
+  ) {
+    suffixLen++;
+  }
+
+  // No changes
+  if (prefixLen === oldLines.length && prefixLen === newLines.length) {
+    return oldLines.map((l) => ` ${l}`).join("\n");
+  }
+
+  const result: string[] = [];
+
+  // Context before (up to 3 lines)
+  const ctxStart = Math.max(0, prefixLen - 3);
+  for (let i = ctxStart; i < prefixLen; i++) {
+    result.push(` ${oldLines[i]}`);
+  }
+
+  // Removed lines
+  const removedEnd = oldLines.length - suffixLen;
+  for (let i = prefixLen; i < removedEnd; i++) {
+    result.push(`-${oldLines[i]}`);
+  }
+
+  // Added lines
+  const addedEnd = newLines.length - suffixLen;
+  for (let i = prefixLen; i < addedEnd; i++) {
+    result.push(`+${newLines[i]}`);
+  }
+
+  // Context after (up to 3 lines)
+  if (suffixLen > 0) {
+    const ctxEnd = Math.min(oldLines.length, removedEnd + 3);
+    for (let i = removedEnd; i < ctxEnd; i++) {
+      result.push(` ${oldLines[i]}`);
+    }
+  }
+
+  return result.join("\n");
 }
 
 /** Format a Date as HH:MM:SS (24-hour). */

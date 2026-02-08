@@ -7,6 +7,7 @@ import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import {
   defaultEventConfig,
   eventConfig,
+  extractTextFromContentBlocks,
   formatJson,
   formatTime,
   summarizePlanEntries,
@@ -101,6 +102,10 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
     content = payload.title;
   } else if (typeof payload.content === "string") {
     content = payload.content;
+  } else if (Array.isArray(payload.content)) {
+    content =
+      extractTextFromContentBlocks(payload.content) ||
+      JSON.stringify(payload.content, null, 2);
   } else if (typeof payload.content === "object" && payload.content !== null) {
     const nested = payload.content as Record<string, unknown>;
     content = (nested.text as string) ?? JSON.stringify(nested, null, 2);
