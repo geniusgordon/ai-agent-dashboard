@@ -101,7 +101,7 @@ export function ApprovalBanner({
             {title}
           </p>
           {detail && (
-            <p className="mt-1 text-xs text-muted-foreground font-mono break-words">
+            <p className="mt-1 text-xs text-muted-foreground font-mono break-words line-clamp-3">
               {detail}
             </p>
           )}
