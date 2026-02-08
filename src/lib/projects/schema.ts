@@ -81,4 +81,53 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_review_branches_worktree ON code_review_branches(worktree_id);
     `,
   },
+  {
+    version: 4,
+    sql: `
+      -- Flatten: each code review is one branch, batch_id groups reviews created together
+      CREATE TABLE IF NOT EXISTS code_reviews_v2 (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        batch_id TEXT,
+        branch_name TEXT NOT NULL,
+        base_branch TEXT NOT NULL,
+        agent_type TEXT NOT NULL,
+        session_id TEXT,
+        client_id TEXT,
+        worktree_id TEXT REFERENCES worktrees(id) ON DELETE SET NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        error TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      -- Migrate existing data
+      INSERT INTO code_reviews_v2 (id, project_id, batch_id, branch_name, base_branch, agent_type, session_id, client_id, worktree_id, status, error, created_at, updated_at)
+        SELECT
+          b.id,
+          r.project_id,
+          r.id,
+          b.branch_name,
+          r.base_branch,
+          r.agent_type,
+          b.session_id,
+          b.client_id,
+          b.worktree_id,
+          b.status,
+          b.error,
+          b.created_at,
+          r.updated_at
+        FROM code_review_branches b
+        JOIN code_reviews r ON b.review_id = r.id;
+
+      DROP TABLE code_review_branches;
+      DROP TABLE code_reviews;
+      ALTER TABLE code_reviews_v2 RENAME TO code_reviews;
+
+      CREATE INDEX IF NOT EXISTS idx_code_reviews_project ON code_reviews(project_id);
+      CREATE INDEX IF NOT EXISTS idx_code_reviews_batch ON code_reviews(batch_id);
+      CREATE INDEX IF NOT EXISTS idx_code_reviews_session ON code_reviews(session_id);
+      CREATE INDEX IF NOT EXISTS idx_code_reviews_worktree ON code_reviews(worktree_id);
+    `,
+  },
 ];

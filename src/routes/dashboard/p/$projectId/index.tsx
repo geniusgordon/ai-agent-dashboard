@@ -20,7 +20,7 @@ import {
   BranchBadge,
   BranchList,
   CodeReviewDialog,
-  CodeReviewPanel,
+  CodeReviewList,
   ErrorDisplay,
   SpawnAgentDialog,
   StatusBadge,
@@ -66,7 +66,6 @@ function ProjectOverviewPage() {
     null,
   );
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
 
   // Queries
   const projectQuery = useQuery(
@@ -82,13 +81,7 @@ function ProjectOverviewPage() {
     trpc.codeReviews.list.queryOptions({ projectId }),
   );
 
-  // Determine which review to show: selected by user, or the most recent active one
   const reviews = reviewsQuery.data ?? [];
-  const activeReview =
-    reviews.find((r) => r.id === selectedReviewId) ??
-    reviews.find((r) => r.status === "running") ??
-    reviews.find((r) => r.status === "error") ??
-    null;
 
   // Keep fresh via SSE
   useAgentEvents({
@@ -317,12 +310,8 @@ function ProjectOverviewPage() {
           </button>
         </div>
 
-        {activeReview ? (
-          <CodeReviewPanel
-            review={activeReview}
-            projectId={projectId}
-            onClose={() => setSelectedReviewId(null)}
-          />
+        {reviews.length > 0 ? (
+          <CodeReviewList reviews={reviews} projectId={projectId} />
         ) : (
           <div className="p-8 rounded-xl border border-dashed border-border text-center">
             <GitMerge className="size-8 text-muted-foreground/40 mx-auto mb-2" />
@@ -337,7 +326,6 @@ function ProjectOverviewPage() {
         projectId={projectId}
         open={reviewDialogOpen}
         onOpenChange={setReviewDialogOpen}
-        onReviewStarted={(review) => setSelectedReviewId(review.id)}
       />
 
       {/* Branches */}
