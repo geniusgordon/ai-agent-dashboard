@@ -3,6 +3,11 @@ export { ApprovalBanner } from "./ApprovalBanner";
 export { BranchBadge } from "./BranchBadge";
 export { BranchList } from "./BranchList";
 export { ClientCard } from "./ClientCard";
+export {
+  CodeReviewDialog,
+  type ReviewBatch,
+} from "./CodeReviewDialog";
+export { CodeReviewPanel } from "./CodeReviewPanel";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay } from "./ErrorDisplay";
 export { LogEntry } from "./LogEntry";

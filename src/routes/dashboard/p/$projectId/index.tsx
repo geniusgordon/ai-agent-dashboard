@@ -6,13 +6,23 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertCircle, Clock, FolderGit2, GitFork, Plus } from "lucide-react";
+import {
+  AlertCircle,
+  Clock,
+  FolderGit2,
+  GitFork,
+  GitMerge,
+  Plus,
+} from "lucide-react";
 import { useState } from "react";
 import {
   AgentBadge,
   BranchBadge,
   BranchList,
+  CodeReviewDialog,
+  CodeReviewPanel,
   ErrorDisplay,
+  type ReviewBatch,
   SpawnAgentDialog,
   StatusBadge,
   WorktreeCard,
@@ -56,6 +66,8 @@ function ProjectOverviewPage() {
   const [worktreeToDelete, setWorktreeToDelete] = useState<Worktree | null>(
     null,
   );
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewBatch, setReviewBatch] = useState<ReviewBatch | null>(null);
 
   // Queries
   const projectQuery = useQuery(
@@ -274,6 +286,48 @@ function ProjectOverviewPage() {
             );
           })()}
       </div>
+
+      {/* Code Review */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <GitMerge className="size-5 text-muted-foreground" />
+            Code Review
+          </h2>
+          {!reviewBatch && (
+            <button
+              type="button"
+              onClick={() => setReviewDialogOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <GitMerge className="size-4" />
+              New Review
+            </button>
+          )}
+        </div>
+
+        {reviewBatch ? (
+          <CodeReviewPanel
+            batch={reviewBatch}
+            projectId={projectId}
+            onClose={() => setReviewBatch(null)}
+          />
+        ) : (
+          <div className="p-8 rounded-xl border border-dashed border-border text-center">
+            <GitMerge className="size-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Select branches to review with an AI agent
+            </p>
+          </div>
+        )}
+      </div>
+
+      <CodeReviewDialog
+        projectId={projectId}
+        open={reviewDialogOpen}
+        onOpenChange={setReviewDialogOpen}
+        onReviewStarted={setReviewBatch}
+      />
 
       {/* Branches */}
       <BranchList projectId={projectId} />

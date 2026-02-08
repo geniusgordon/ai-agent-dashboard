@@ -265,6 +265,98 @@ export async function getRecentCommits(
   }
 }
 
+// =============================================================================
+// Code Review Operations
+// =============================================================================
+
+export interface ChangedFile {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+export async function getDiff(
+  repoPath: string,
+  baseBranch: string,
+  compareBranch: string,
+): Promise<string> {
+  validateBranchName(baseBranch);
+  validateBranchName(compareBranch);
+
+  const { stdout } = await git(
+    ["diff", `${baseBranch}...${compareBranch}`],
+    repoPath,
+  );
+  return stdout;
+}
+
+export async function getFilesChanged(
+  repoPath: string,
+  baseBranch: string,
+  compareBranch: string,
+): Promise<ChangedFile[]> {
+  validateBranchName(baseBranch);
+  validateBranchName(compareBranch);
+
+  const { stdout } = await git(
+    ["diff", "--numstat", `${baseBranch}...${compareBranch}`],
+    repoPath,
+  );
+
+  return stdout
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [add, del, path] = line.split("\t");
+      return {
+        path,
+        additions: add === "-" ? 0 : Number.parseInt(add, 10),
+        deletions: del === "-" ? 0 : Number.parseInt(del, 10),
+      };
+    });
+}
+
+export interface MergeResult {
+  success: boolean;
+  commitHash?: string;
+  error?: string;
+}
+
+export async function mergeBranch(
+  worktreePath: string,
+  branchName: string,
+  options?: { noFf?: boolean; message?: string },
+): Promise<MergeResult> {
+  validateBranchName(branchName);
+
+  const args = ["merge"];
+  if (options?.noFf) args.push("--no-ff");
+  if (options?.message) args.push("-m", options.message);
+  args.push(branchName);
+
+  try {
+    await git(args, worktreePath);
+    // Get the merge commit hash
+    const { stdout } = await git(
+      ["rev-parse", "--short", "HEAD"],
+      worktreePath,
+    );
+    return { success: true, commitHash: stdout.trim() };
+  } catch (error) {
+    // Abort the failed merge to leave worktree clean
+    try {
+      await git(["merge", "--abort"], worktreePath);
+    } catch {
+      // Already clean or no merge in progress
+    }
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
+  }
+}
+
 export async function deleteBranch(
   repoPath: string,
   branchName: string,
