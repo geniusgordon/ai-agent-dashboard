@@ -41,6 +41,22 @@ export function formatTime(date: Date): string {
   });
 }
 
+/** Try to pretty-print a string as JSON; return as-is if not valid JSON. */
+export function formatJson(str: string): string {
+  const trimmed = str.trim();
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    try {
+      return JSON.stringify(JSON.parse(trimmed), null, 2);
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
 export const eventConfig: Record<string, EventStyleConfig> = {
   thinking: {
     icon: Brain,
