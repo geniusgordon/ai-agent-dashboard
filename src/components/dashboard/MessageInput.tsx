@@ -202,8 +202,8 @@ export function MessageInput({
       >
         <div
           className={`
-            flex flex-col gap-2 p-2 rounded-xl border bg-card shadow-md transition-colors
-            ${isDragging ? "border-primary bg-primary/5" : "border-border"}
+            flex flex-col gap-2 p-2 rounded-none lg:rounded-xl border-0 border-t lg:border bg-card lg:shadow-sm transition-colors
+            ${isDragging ? "lg:border-primary bg-primary/5" : "lg:border-border border-t-border"}
           `}
         >
           {/* Processing indicator */}
@@ -378,7 +378,7 @@ export function MessageInput({
               type="submit"
               disabled={!canSubmit || disabled}
               className="
-              px-5 py-2.5 rounded-lg font-semibold text-sm
+              px-3 lg:px-5 py-2 lg:py-2.5 rounded-lg font-semibold text-sm
               bg-action-success text-white
               hover:bg-action-success-hover hover:-translate-y-px
               active:translate-y-0

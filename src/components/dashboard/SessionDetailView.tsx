@@ -157,34 +157,37 @@ export function SessionDetailView({
   const canStartReview = !!resolvedProjectId && !!branch;
 
   return (
-    <div className="h-[calc(100dvh-3.5rem-2rem)] sm:h-[calc(100dvh-3.5rem-3rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col lg:flex-row gap-3">
+    <div className="-mx-4 sm:-mx-6 lg:mx-0 -mb-4 sm:-mb-6 lg:mb-0 h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col lg:flex-row gap-0 lg:gap-2">
+      {/* Negative margins above counteract DashboardLayout's p-4 sm:p-6 lg:p-8 for edge-to-edge mobile */}
       {/* Main column */}
-      <div className="flex-1 flex flex-col gap-3 min-w-0">
-        <SessionHeader
-          session={session}
-          connected={connected}
-          autoScroll={autoScroll}
-          onToggleAutoScroll={toggleAutoScroll}
-          onClearLogs={clearLogs}
-          onKillSession={killSession}
-          isKilling={isKilling}
-          onCompleteSession={completeSession}
-          isCompleting={isCompleting}
-          onRename={renameSession}
-          isRenaming={isRenaming}
-          backTo={headerBackTo}
-          backParams={headerBackParams}
-          onDeleteSession={handleDelete}
-          isDeleting={isDeleting}
-          branch={branch}
-          projectName={projectQuery.data?.name}
-          compact={isDesktop}
-          kebabMenu={!isDesktop}
-        />
+      <div className="flex-1 flex flex-col gap-0 lg:gap-2 min-w-0">
+        <div className="px-3 sm:px-4 lg:px-0 pt-2 lg:pt-0">
+          <SessionHeader
+            session={session}
+            connected={connected}
+            autoScroll={autoScroll}
+            onToggleAutoScroll={toggleAutoScroll}
+            onClearLogs={clearLogs}
+            onKillSession={killSession}
+            isKilling={isKilling}
+            onCompleteSession={completeSession}
+            isCompleting={isCompleting}
+            onRename={renameSession}
+            isRenaming={isRenaming}
+            backTo={headerBackTo}
+            backParams={headerBackParams}
+            onDeleteSession={handleDelete}
+            isDeleting={isDeleting}
+            branch={branch}
+            projectName={projectQuery.data?.name}
+            compact={isDesktop}
+            kebabMenu={!isDesktop}
+          />
+        </div>
 
         {/* Mobile/tablet: inline banners and task panel */}
         {!isDesktop && (
-          <>
+          <div className="flex flex-col gap-1.5 px-3 sm:px-4">
             {session.isActive === false && (
               <ReconnectBanner
                 onReconnect={reconnect}
@@ -220,7 +223,7 @@ export function SessionDetailView({
                 Code Review
               </button>
             )}
-          </>
+          </div>
         )}
 
         <SessionLog

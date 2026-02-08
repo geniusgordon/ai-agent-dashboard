@@ -75,7 +75,7 @@ function TerminalExitEntry({ event }: { event: AgentEvent }) {
   return (
     <div
       className={`
-        group flex gap-2.5 py-2 px-3 rounded-md border-l-2
+        group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2
         transition-colors duration-200 hover:bg-accent/50
         ${isFailed ? "border-l-event-error/50 bg-destructive/5" : "border-l-event-tool/50"}
       `}
@@ -188,7 +188,7 @@ function TerminalErrorEntry({ event }: { event: AgentEvent }) {
   const commandStr = [command, ...args].join(" ");
 
   return (
-    <div className="group flex gap-2.5 py-2 px-3 rounded-md border-l-2 border-l-event-error/50 bg-destructive/5 transition-colors duration-200 hover:bg-accent/50">
+    <div className="group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2 border-l-event-error/50 bg-destructive/5 transition-colors duration-200 hover:bg-accent/50">
       {/* Timestamp */}
       <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
@@ -324,7 +324,7 @@ function DiffEntry({ event }: { event: AgentEvent }) {
     .join("\n");
 
   return (
-    <div className="group flex gap-2.5 py-2 px-3 rounded-md border-l-2 border-l-event-tool/50 transition-colors duration-200 hover:bg-accent/50">
+    <div className="group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2 border-l-event-tool/50 transition-colors duration-200 hover:bg-accent/50">
       {/* Timestamp */}
       <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
@@ -388,7 +388,7 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
       <button
         type="button"
         className={`
-          group flex gap-2.5 py-2 px-3 rounded-md border-l-2 w-full text-left
+          group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2 w-full text-left
           transition-colors duration-200 hover:bg-accent/50 cursor-pointer
           ${isFailed ? "border-l-event-error/50 bg-destructive/5" : config.borderColor}
           ${config.color}
@@ -431,7 +431,7 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
   return (
     <div
       className={`
-        group flex gap-2.5 py-2 px-3 rounded-md border-l-2
+        group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2
         transition-colors duration-200 hover:bg-accent/50
         ${isFailed ? "border-l-event-error/50 bg-destructive/5" : config.borderColor}
         ${config.color}

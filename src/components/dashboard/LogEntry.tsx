@@ -124,7 +124,7 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
     isCollapsible && !isExpanded ? getPreview(content) : content;
 
   const baseClasses = `
-    group flex gap-2.5 py-2 px-3 rounded-md border-l-2
+    group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2
     transition-colors duration-200 hover:bg-accent/50
     ${config.borderColor}
     ${isUser ? "bg-primary/5" : isError ? "bg-destructive/5" : ""}

@@ -67,12 +67,12 @@ export function TaskPanel({
   const summary = summarizePlanEntries(entries);
 
   return (
-    <div className="rounded-xl border border-border bg-background/50 shadow-sm overflow-hidden">
+    <div className="rounded-lg lg:rounded-xl border border-border bg-background/50 shadow-sm overflow-hidden">
       {/* Header — always visible, clickable to toggle */}
       <button
         type="button"
         onClick={onToggleCollapse}
-        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-accent/50 transition-colors cursor-pointer"
+        className="w-full flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 hover:bg-accent/50 transition-colors cursor-pointer"
       >
         {isCollapsed ? (
           <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
@@ -91,7 +91,7 @@ export function TaskPanel({
       {/* Expanded task list */}
       {!isCollapsed && (
         <div className="border-t border-border overflow-y-auto">
-          <div className="px-4 py-1.5 space-y-0.5">
+          <div className="px-3 lg:px-4 py-1 lg:py-1.5 space-y-0">
             {entries.map((entry, i) => (
               <div
                 key={`${entry.content}-${i}`}

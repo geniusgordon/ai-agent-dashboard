@@ -30,7 +30,7 @@ export function useSessionDetail(sessionId: string) {
   const eventsRef = useRef(events);
   const [optimisticApproval, setOptimisticApproval] =
     useState<ApprovalRequest | null>(null);
-  const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
+  const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
   const initialScrollDone = useRef(false);
   const lastEventTimeRef = useRef(0);
   const scrollScheduledRef = useRef(false);
