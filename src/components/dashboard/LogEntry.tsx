@@ -3,6 +3,7 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+
 import {
   defaultEventConfig,
   eventConfig,
@@ -60,6 +61,50 @@ function formatJson(str: string): string {
     }
   }
   return str;
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors cursor-pointer"
+      title="Copy code"
+    >
+      {copied ? (
+        <>
+          <Check className="size-3" />
+          <span>Copied!</span>
+        </>
+      ) : (
+        <>
+          <Copy className="size-3" />
+          <span>Copy</span>
+        </>
+      )}
+    </button>
+  );
 }
 
 interface ImageData {
@@ -216,35 +261,100 @@ export function LogEntry({ event }: LogEntryProps) {
               components={{
                 code({ className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || "");
-                  const inline = !match;
-                  return inline ? (
-                    <code
-                      className="bg-secondary/50 px-1 py-0.5 rounded text-[0.9em]"
+                  const codeString = String(children).replace(/\n$/, "");
+                  // Block code has a language class or contains newlines
+                  const isBlock = !!match || codeString.includes("\n");
+                  const language = match?.[1];
+
+                  if (!isBlock) {
+                    return (
+                      <code
+                        className="bg-secondary/80 border border-border/50 px-1.5 py-0.5 rounded text-[0.85em] font-mono"
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    );
+                  }
+
+                  return (
+                    <div className="not-prose my-3 rounded-lg border border-border/50 overflow-hidden bg-[#282c34]">
+                      <div className="flex items-center justify-between px-4 py-1.5 bg-white/5 border-b border-border/30">
+                        <span className="text-xs text-muted-foreground font-mono select-none">
+                          {language || "text"}
+                        </span>
+                        <CopyButton text={codeString} />
+                      </div>
+                      {language ? (
+                        <SyntaxHighlighter
+                          style={oneDark}
+                          language={language}
+                          PreTag="div"
+                          customStyle={{
+                            margin: 0,
+                            padding: "0.75rem 1rem",
+                            borderRadius: 0,
+                            fontSize: "0.85em",
+                            background: "transparent",
+                          }}
+                          codeTagProps={{
+                            style: { background: "transparent" },
+                          }}
+                        >
+                          {codeString}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <pre className="p-3 overflow-x-auto text-[0.85em] leading-relaxed">
+                          <code className="font-mono">{codeString}</code>
+                        </pre>
+                      )}
+                    </div>
+                  );
+                },
+                // Wrap tables in a scrollable container
+                table({ children }) {
+                  return (
+                    <div className="not-prose my-3 overflow-x-auto rounded-lg border border-border/50">
+                      <table className="w-full text-sm border-collapse">
+                        {children}
+                      </table>
+                    </div>
+                  );
+                },
+                thead({ children }) {
+                  return (
+                    <thead className="bg-secondary/50 text-left">
+                      {children}
+                    </thead>
+                  );
+                },
+                th({ children }) {
+                  return (
+                    <th className="px-3 py-2 font-semibold text-foreground border-b border-border/50 whitespace-nowrap">
+                      {children}
+                    </th>
+                  );
+                },
+                td({ children }) {
+                  return (
+                    <td className="px-3 py-2 border-b border-border/30">
+                      {children}
+                    </td>
+                  );
+                },
+                tr({ children, ...props }) {
+                  return (
+                    <tr
+                      className="hover:bg-accent/30 transition-colors even:bg-secondary/20"
                       {...props}
                     >
                       {children}
-                    </code>
-                  ) : (
-                    <SyntaxHighlighter
-                      style={oneDark}
-                      language={match[1]}
-                      PreTag="div"
-                      customStyle={{
-                        margin: "0.5rem 0",
-                        padding: "0.75rem 1rem",
-                        borderRadius: "0.375rem",
-                        fontSize: "0.85em",
-                        background: "#282c34",
-                      }}
-                      codeTagProps={{
-                        style: {
-                          background: "transparent",
-                        },
-                      }}
-                    >
-                      {String(children).replace(/\n$/, "")}
-                    </SyntaxHighlighter>
+                    </tr>
                   );
+                },
+                // Override pre to avoid double-wrapping with our code block container
+                pre({ children }) {
+                  return <>{children}</>;
                 },
               }}
             >
