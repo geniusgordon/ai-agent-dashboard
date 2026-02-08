@@ -476,11 +476,12 @@ function WorktreeAgentGroup({
             statusColors[session.status] ?? "text-muted-foreground";
 
           return (
-            <SidebarMenuSubItem key={session.id}>
+            <SidebarMenuSubItem key={session.id} className="relative">
               <SidebarMenuSubButton
                 asChild
                 size="sm"
                 isActive={session.id === activeSessionId}
+                className="pr-6"
               >
                 <Link
                   to="/dashboard/p/$projectId/sessions/$sessionId"
@@ -491,9 +492,11 @@ function WorktreeAgentGroup({
                   <span className="truncate">
                     {session.name || session.agentType}
                   </span>
-                  <StatusDot status={session.status} />
                 </Link>
               </SidebarMenuSubButton>
+              <span className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">
+                <StatusDot status={session.status} />
+              </span>
             </SidebarMenuSubItem>
           );
         })}
@@ -556,6 +559,7 @@ function ActiveSessionItem({
         isActive={isActive}
         tooltip={session.name || session.id.slice(0, 8)}
         size="sm"
+        className="pr-6"
       >
         <Link
           to="/dashboard/sessions/$sessionId"
@@ -587,7 +591,7 @@ function StatusDot({ status }: { status: string }) {
     status === "starting";
 
   return (
-    <span className={`relative flex size-2 ${colorClass}`}>
+    <span className={`relative flex size-2 shrink-0 ${colorClass}`}>
       {pulse && (
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-current opacity-75" />
       )}
