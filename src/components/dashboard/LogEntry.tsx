@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Loader2, User } from "lucide-react";
+import { ChevronRight, User } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -88,9 +88,6 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
   const isError = event.type === "error";
   const isToolCallStart = event.type === "tool-call";
   const isPlan = event.type === "plan";
-  const toolStatus = payload.status as string | undefined;
-  const isToolLoading = isToolCallStart && toolStatus === "in_progress";
-
   // Content extraction with fallback chain
   let content: string;
   if (isPlan) {
@@ -132,7 +129,6 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
     ${config.borderColor}
     ${isUser ? "bg-primary/5" : isError ? "bg-destructive/5" : ""}
     ${isThinking ? "opacity-70 italic" : ""}
-    ${isToolLoading ? "bg-event-tool/5" : ""}
     ${config.color}
   `;
 
@@ -164,12 +160,7 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
       ) : (
         <MarkdownContent>{displayContent}</MarkdownContent>
       )}
-      {isToolLoading && (
-        <span className="text-muted-foreground ml-2">Running...</span>
-      )}
-      {isToolCallStart && toolStatus === "completed" && (
-        <Check className="inline size-3.5 text-event-complete ml-2" />
-      )}
+
       {isCollapsible && !isExpanded && (
         <span className="text-muted-foreground/50 ml-1 text-xs">
           ({content.split("\n").length} lines)
@@ -198,11 +189,7 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
   return (
     <div className={baseClasses}>
       {timestamp}
-      {isToolLoading ? (
-        <Loader2 className="size-3.5 shrink-0 mt-[3px] animate-spin" />
-      ) : (
-        <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
-      )}
+      <Icon className="size-3.5 shrink-0 mt-[3px] opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
       {innerContent}
     </div>
   );
