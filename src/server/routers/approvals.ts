@@ -8,7 +8,6 @@ import {
   publicProcedure,
 } from "../../integrations/trpc/init.js";
 import { getAgentManager } from "../../lib/agents/index.js";
-import { getProjectManager } from "../../lib/projects/index.js";
 
 export const approvalsRouter = createTRPCRouter({
   /**
@@ -21,12 +20,11 @@ export const approvalsRouter = createTRPCRouter({
       const approvals = manager.getPendingApprovals();
 
       if (input?.projectId) {
-        const projectManager = getProjectManager();
-        const assignments = projectManager.getAssignmentsForProject(
-          input.projectId,
-        );
-        const assignedSessionIds = new Set(assignments.map((a) => a.sessionId));
-        return approvals.filter((a) => assignedSessionIds.has(a.sessionId));
+        // Filter by the session's stamped projectId (survives after unassignment)
+        return approvals.filter((a) => {
+          const session = manager.getSession(a.sessionId);
+          return session?.projectId === input.projectId;
+        });
       }
 
       return approvals;

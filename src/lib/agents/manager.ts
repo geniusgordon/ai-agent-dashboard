@@ -488,12 +488,20 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           updatedAt: new Date(),
           availableModes: newSession.availableModes,
           currentModeId: newSession.currentModeId,
+          projectId: stored.projectId,
+          worktreeId: stored.worktreeId,
+          worktreeBranch: stored.worktreeBranch,
         };
 
         this.sessions.set(session.id, session);
         this.sessionToClient.set(session.id, client.id);
 
-        return this.toAgentSession(session);
+        // Persist project context to new session ID
+        if (stored.projectId && stored.worktreeId && stored.worktreeBranch) {
+          store.saveSession(session, []);
+        }
+
+        return { ...this.toAgentSession(session), isActive: true };
       }
     } else {
       console.log(
@@ -516,6 +524,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       updatedAt: new Date(),
       availableModes: acpSession?.availableModes,
       currentModeId: acpSession?.currentModeId,
+      projectId: stored.projectId,
+      worktreeId: stored.worktreeId,
+      worktreeBranch: stored.worktreeBranch,
     };
 
     this.sessions.set(sessionId, session);
