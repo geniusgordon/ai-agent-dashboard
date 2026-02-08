@@ -5,11 +5,15 @@
  */
 
 export { closeDatabase, getDatabase } from "./db.js";
-export type { ChangedFile, MergeResult } from "./git-operations.js";
+export type { ChangedFile, GitCommit, MergeResult } from "./git-operations.js";
 export {
   getBranchInfo,
+  getCommitsSinceBranch,
+  getCurrentBranch,
+  getDefaultBranch,
   getDiff,
   getFilesChanged,
+  getRecentCommits,
   hasUncommittedChanges,
   isGitRepo,
   listBranches,

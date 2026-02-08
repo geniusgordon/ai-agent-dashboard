@@ -10,9 +10,9 @@ import {
 import {
   getCommitsSinceBranch,
   getDefaultBranch,
+  getProjectManager,
   getRecentCommits,
-} from "../../lib/projects/git-operations.js";
-import { getProjectManager } from "../../lib/projects/index.js";
+} from "../../lib/projects/index.js";
 
 export const worktreesRouter = createTRPCRouter({
   list: publicProcedure

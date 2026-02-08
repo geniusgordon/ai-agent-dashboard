@@ -7,6 +7,7 @@ export { CodeReviewDialog } from "./CodeReviewDialog";
 export { CodeReviewList } from "./CodeReviewList";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay } from "./ErrorDisplay";
+export { GitInfoPanel } from "./GitInfoPanel";
 export { LogEntry } from "./LogEntry";
 export { type ImageAttachment, MessageInput } from "./MessageInput";
 export { ProjectCard } from "./ProjectCard";
