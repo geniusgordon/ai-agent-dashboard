@@ -8,6 +8,7 @@ export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay } from "./ErrorDisplay";
 export { GitInfoPanel } from "./GitInfoPanel";
 export { LogEntry } from "./LogEntry";
+export { MarkdownContent } from "./MarkdownContent";
 export { type ImageAttachment, MessageInput } from "./MessageInput";
 export { ProjectCard } from "./ProjectCard";
 export { ProjectSpawnFlow } from "./ProjectSpawnFlow";
