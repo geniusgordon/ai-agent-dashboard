@@ -53,6 +53,7 @@ function runMigrations(database: Database.Database): void {
 
   for (const migration of ALL_MIGRATIONS) {
     if (migration.version > currentVersion) {
+      console.log(`[db] Running migration v${migration.version}...`);
       database.transaction(() => {
         database.exec(migration.sql);
         database
