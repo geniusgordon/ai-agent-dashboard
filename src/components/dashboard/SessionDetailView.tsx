@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, GitMerge, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 import {
   ApprovalBanner,
@@ -182,6 +182,9 @@ export function SessionDetailView({
             projectName={projectQuery.data?.name}
             compact={isDesktop}
             kebabMenu={!isDesktop}
+            onStartReview={
+              canStartReview ? () => setReviewDialogOpen(true) : undefined
+            }
           />
         </div>
 
@@ -211,17 +214,6 @@ export function SessionDetailView({
                 isCollapsed={taskPanelCollapsed}
                 onToggleCollapse={toggleTaskPanel}
               />
-            )}
-
-            {canStartReview && (
-              <button
-                type="button"
-                onClick={() => setReviewDialogOpen(true)}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-card/50 hover:bg-card text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <GitMerge className="size-3.5" />
-                Code Review
-              </button>
             )}
           </div>
         )}

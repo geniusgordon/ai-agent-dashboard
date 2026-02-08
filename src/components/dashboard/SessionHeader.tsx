@@ -6,6 +6,7 @@ import {
   Clock,
   EllipsisVertical,
   FolderGit2,
+  GitMerge,
   Loader2,
   Pause,
   Pencil,
@@ -151,6 +152,8 @@ export interface SessionHeaderProps {
   compact?: boolean;
   /** Mobile mode: collapse actions into a kebab dropdown menu */
   kebabMenu?: boolean;
+  /** Callback to open the code review dialog */
+  onStartReview?: () => void;
 }
 
 export function SessionHeader({
@@ -173,6 +176,7 @@ export function SessionHeader({
   projectName,
   compact = false,
   kebabMenu = false,
+  onStartReview,
 }: SessionHeaderProps) {
   const isMobile = useIsMobile();
   const [isEditingName, setIsEditingName] = useState(false);
@@ -264,6 +268,16 @@ export function SessionHeader({
                   )}
                   Auto-scroll {autoScroll ? "ON" : "OFF"}
                 </DropdownMenuItem>
+
+                {onStartReview && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onStartReview}>
+                      <GitMerge className="size-4" />
+                      Code Review
+                    </DropdownMenuItem>
+                  </>
+                )}
 
                 {(isActiveSession || session.isActive === false) && (
                   <DropdownMenuSeparator />
