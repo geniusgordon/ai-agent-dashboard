@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowDownToLine,
   ArrowLeft,
+  CheckCircle,
   Clock,
   FolderGit2,
   Loader2,
@@ -35,6 +36,8 @@ export interface SessionHeaderProps {
   onClearLogs?: () => void;
   onKillSession: () => void;
   isKilling: boolean;
+  onCompleteSession?: () => void;
+  isCompleting?: boolean;
   onRename?: (name: string) => void;
   isRenaming?: boolean;
   onDeleteSession?: () => void;
@@ -57,6 +60,8 @@ export function SessionHeader({
   onClearLogs,
   onKillSession,
   isKilling,
+  onCompleteSession,
+  isCompleting = false,
   onRename,
   isRenaming = false,
   onDeleteSession,
@@ -213,6 +218,32 @@ export function SessionHeader({
             )}
 
             <div className="flex items-center gap-1">
+              {isActiveSession && onCompleteSession && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="success"
+                      size="icon-xs"
+                      disabled={isCompleting || session.status === "running"}
+                      onClick={() => onCompleteSession()}
+                    >
+                      {isCompleting ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <CheckCircle />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {isCompleting
+                      ? "Completing..."
+                      : session.status === "running"
+                        ? "Wait for agent to finish"
+                        : "Mark complete"}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
               {isActiveSession && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -313,21 +344,38 @@ export function SessionHeader({
         </div>
 
         {isSessionActive(session.status) && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onKillSession}
-            disabled={isKilling}
-            className="shrink-0"
-          >
-            {isKilling ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            ) : (
-              <Square className="mr-1 h-3 w-3" />
+          <div className="flex items-center gap-2 shrink-0">
+            {onCompleteSession && (
+              <Button
+                variant="success"
+                size="sm"
+                onClick={onCompleteSession}
+                disabled={isCompleting || session.status === "running"}
+              >
+                {isCompleting ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                )}
+                <span className="hidden md:inline">Complete</span>
+                <span className="md:hidden">Done</span>
+              </Button>
             )}
-            <span className="hidden md:inline">Kill Session</span>
-            <span className="md:hidden">Kill</span>
-          </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onKillSession}
+              disabled={isKilling}
+            >
+              {isKilling ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              ) : (
+                <Square className="mr-1 h-3 w-3" />
+              )}
+              <span className="hidden md:inline">Kill Session</span>
+              <span className="md:hidden">Kill</span>
+            </Button>
+          </div>
         )}
       </div>
 
