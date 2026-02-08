@@ -12,16 +12,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useMatchRoute } from "@tanstack/react-router";
 import {
-  Bot,
   GitBranch,
-  Hexagon,
   Home,
   LayoutDashboard,
   MessageSquare,
   Moon,
   Plus,
   ShieldCheck,
-  Sparkles,
   Sun,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +44,7 @@ import {
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTheme } from "@/hooks/useTheme";
 import { useTRPC } from "@/integrations/trpc/react";
-import type { AgentSession, AgentType } from "@/lib/agents/types";
+import type { AgentSession } from "@/lib/agents/types";
 import type { AgentWorktreeAssignment, Worktree } from "@/lib/projects/types";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 
@@ -61,12 +58,6 @@ const ACTIVE_STATUSES = new Set([
   "starting",
   "idle",
 ]);
-
-const agentIcons: Record<AgentType, typeof Bot> = {
-  gemini: Sparkles,
-  "claude-code": Bot,
-  codex: Hexagon,
-};
 
 const statusColors: Record<string, string> = {
   running: "text-status-running",
@@ -471,10 +462,6 @@ function WorktreeAgentGroup({
       </SidebarMenuButton>
       <SidebarMenuSub>
         {sessions.map((session) => {
-          const Icon = agentIcons[session.agentType];
-          const colorClass =
-            statusColors[session.status] ?? "text-muted-foreground";
-
           return (
             <SidebarMenuSubItem key={session.id} className="relative">
               <SidebarMenuSubButton
@@ -488,7 +475,7 @@ function WorktreeAgentGroup({
                   params={{ projectId, sessionId: session.id }}
                   onClick={onNavigate}
                 >
-                  <Icon className={`size-3.5 ${colorClass}`} />
+                  <StatusDot status={session.status} />
                   <span className="truncate">
                     {session.name || session.agentType}
                   </span>
@@ -549,9 +536,6 @@ function ActiveSessionItem({
   isActive: boolean;
   onNavigate: () => void;
 }) {
-  const Icon = agentIcons[session.agentType];
-  const colorClass = statusColors[session.status] ?? "text-muted-foreground";
-
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -566,15 +550,12 @@ function ActiveSessionItem({
           params={{ sessionId: session.id }}
           onClick={onNavigate}
         >
-          <Icon className={colorClass} />
+          <StatusDot status={session.status} />
           <span className="truncate">
             {session.name || session.id.slice(0, 8)}
           </span>
         </Link>
       </SidebarMenuButton>
-      <SidebarMenuBadge>
-        <StatusDot status={session.status} />
-      </SidebarMenuBadge>
     </SidebarMenuItem>
   );
 }
