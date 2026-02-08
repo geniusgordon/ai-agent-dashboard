@@ -17,9 +17,12 @@ export function ReconnectBanner({
           <h3 className="font-semibold text-action-warning">
             Client Disconnected
           </h3>
-          <p className="text-sm text-muted-foreground mt-1 hidden sm:block">
-            The agent process is no longer running. Reconnect to continue this
-            session.
+          <p className="text-sm text-muted-foreground mt-1">
+            <span className="sm:hidden">Agent process stopped.</span>
+            <span className="hidden sm:inline">
+              The agent process is no longer running. Reconnect to continue this
+              session.
+            </span>
           </p>
           <button
             type="button"

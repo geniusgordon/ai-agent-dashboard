@@ -158,6 +158,7 @@ export function SessionDetailView({
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:mx-0 -mb-4 sm:-mb-6 lg:mb-0 h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col lg:flex-row gap-0 lg:gap-2">
+      {/* Negative margins above counteract DashboardLayout's p-4 sm:p-6 lg:p-8 for edge-to-edge mobile */}
       {/* Main column */}
       <div className="flex-1 flex flex-col gap-0 lg:gap-2 min-w-0">
         <div className="px-3 sm:px-4 lg:px-0 pt-2 lg:pt-0">
