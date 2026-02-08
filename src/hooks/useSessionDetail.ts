@@ -8,7 +8,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageAttachment } from "@/components/dashboard";
 import { useTRPC } from "@/integrations/trpc/react";
 import { extractContent } from "@/lib/agents/event-utils";
-import type { AgentEvent, ApprovalRequest } from "@/lib/agents/types";
+import type {
+  AgentEvent,
+  ApprovalRequest,
+  PlanPayload,
+} from "@/lib/agents/types";
 import { useAgentEvents } from "./useAgentEvents";
 
 const NEAR_BOTTOM_THRESHOLD = 100;
@@ -26,6 +30,7 @@ export function useSessionDetail(sessionId: string) {
   const eventsRef = useRef(events);
   const [optimisticApproval, setOptimisticApproval] =
     useState<ApprovalRequest | null>(null);
+  const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
   const initialScrollDone = useRef(false);
   const lastEventTimeRef = useRef(0);
   const scrollScheduledRef = useRef(false);
@@ -428,6 +433,20 @@ export function useSessionDetail(sessionId: string) {
   };
 
   // ---------------------------------------------------------------------------
+  // Derived: latest plan entries
+  // ---------------------------------------------------------------------------
+
+  let latestPlan: PlanPayload | null = null;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].type === "plan") {
+      latestPlan = events[i].payload as PlanPayload;
+      break;
+    }
+  }
+
+  const toggleTaskPanel = () => setTaskPanelCollapsed((prev) => !prev);
+
+  // ---------------------------------------------------------------------------
   // Return value
   // ---------------------------------------------------------------------------
 
@@ -440,6 +459,8 @@ export function useSessionDetail(sessionId: string) {
     autoScroll,
     showScrollButton,
     supportsImages,
+    latestPlan,
+    taskPanelCollapsed,
     logsEndRef,
     logContainerRef: logContainerCallbackRef,
 
@@ -467,6 +488,7 @@ export function useSessionDetail(sessionId: string) {
     deleteSession,
     clearLogs,
     toggleAutoScroll,
+    toggleTaskPanel,
     manualScrollToBottom,
   };
 }

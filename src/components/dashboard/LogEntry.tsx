@@ -8,6 +8,7 @@ import {
   defaultEventConfig,
   eventConfig,
   formatTime,
+  summarizePlanEntries,
 } from "@/lib/agents/event-utils";
 import type { AgentEvent } from "@/lib/agents/types";
 
@@ -127,13 +128,20 @@ export function LogEntry({ event }: LogEntryProps) {
 
   const isThinking = event.type === "thinking";
   const isError = event.type === "error";
+  const isPlan = event.type === "plan";
   const isToolCall = event.type === "tool-call" || event.type === "tool-update";
   const toolStatus = payload.status as string | undefined;
   const isToolLoading = isToolCall && toolStatus === "in_progress";
 
   // Richer content extraction: handles stopReason, message fallbacks
   let content: string;
-  if (typeof payload.title === "string") {
+  if (isPlan) {
+    const entries = (payload.entries ?? []) as Array<{
+      content: string;
+      status: string;
+    }>;
+    content = `Updated tasks: ${summarizePlanEntries(entries)}`;
+  } else if (typeof payload.title === "string") {
     // Tool calls have title
     content = payload.title;
   } else if (typeof payload.content === "string") {

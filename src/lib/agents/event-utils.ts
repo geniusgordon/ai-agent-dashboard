@@ -89,3 +89,18 @@ export const defaultEventConfig: EventStyleConfig = {
   color: "text-muted-foreground",
   borderColor: "border-l-border",
 };
+
+/** Summarize plan entries into a human-readable progress string. */
+export function summarizePlanEntries(
+  entries: Array<{ content: string; status: string }>,
+): string {
+  const total = entries.length;
+  const completed = entries.filter((e) => e.status === "completed").length;
+  const inProgress = entries.filter((e) => e.status === "in_progress").length;
+
+  if (total === 0) return "No tasks";
+  if (completed === total) return `All ${total} tasks completed`;
+  const parts: string[] = [`${completed}/${total} done`];
+  if (inProgress > 0) parts.push(`${inProgress} in progress`);
+  return parts.join(", ");
+}
