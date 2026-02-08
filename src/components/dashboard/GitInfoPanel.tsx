@@ -159,7 +159,7 @@ export function GitInfoPanel({ cwd }: GitInfoPanelProps) {
                 <Plus className="size-2.5" />
                 {totalAdditions}
               </span>
-              <span className="text-red-400 flex items-center gap-0.5">
+              <span className="text-destructive-foreground flex items-center gap-0.5">
                 <Minus className="size-2.5" />
                 {totalDeletions}
               </span>
@@ -176,7 +176,7 @@ export function GitInfoPanel({ cwd }: GitInfoPanelProps) {
                 <span className="text-action-success-muted text-[10px] shrink-0">
                   +{file.additions}
                 </span>
-                <span className="text-red-400 text-[10px] shrink-0">
+                <span className="text-destructive-foreground text-[10px] shrink-0">
                   -{file.deletions}
                 </span>
               </div>
