@@ -219,6 +219,9 @@ export function saveSession(
     updatedAt: Date;
     availableModes?: Array<{ id: string; name: string; description?: string }>;
     currentModeId?: string;
+    projectId?: string;
+    worktreeId?: string;
+    worktreeBranch?: string;
   },
   events: AgentEvent[],
 ): void {
@@ -227,8 +230,8 @@ export function saveSession(
   const db = getDatabase();
   db.prepare(
     `INSERT OR REPLACE INTO sessions
-      (id, client_id, agent_type, cwd, name, status, available_modes, current_mode_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, client_id, agent_type, cwd, name, status, available_modes, current_mode_id, project_id, worktree_id, worktree_branch, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     session.id,
     session.clientId,
@@ -238,6 +241,9 @@ export function saveSession(
     session.status,
     session.availableModes ? JSON.stringify(session.availableModes) : null,
     session.currentModeId ?? null,
+    session.projectId ?? null,
+    session.worktreeId ?? null,
+    session.worktreeBranch ?? null,
     session.createdAt.toISOString(),
     session.updatedAt.toISOString(),
   );
