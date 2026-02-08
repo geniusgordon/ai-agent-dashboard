@@ -43,6 +43,37 @@ function stripBackticks(title: string): string {
   return trimmed;
 }
 
+/**
+ * Extract a human-readable detail string from rawInput.
+ * rawInput shape varies by tool — we extract the most useful fields.
+ */
+export function extractDetail(rawInput: unknown): string | null {
+  if (!rawInput || typeof rawInput !== "object") return null;
+  const input = rawInput as Record<string, unknown>;
+
+  // Skill tool: { skill: "commit", args?: "-m 'Fix bug'" }
+  if (typeof input.skill === "string") {
+    return input.args ? `${input.skill} ${input.args}` : input.skill;
+  }
+
+  // Bash/terminal: { command: "npm install" }
+  if (typeof input.command === "string") {
+    return input.command;
+  }
+
+  // File operations: { file_path: "/path/to/file" }
+  if (typeof input.file_path === "string") {
+    return input.file_path;
+  }
+
+  // Generic: { path: "/path" }
+  if (typeof input.path === "string") {
+    return input.path;
+  }
+
+  return null;
+}
+
 export function ApprovalBanner({
   approval,
   onApprove,
@@ -55,6 +86,10 @@ export function ApprovalBanner({
   const kind = approval.toolCall.kind;
   const showKind = kind && kind !== "unknown";
   const title = stripBackticks(approval.toolCall.title);
+  const rawDetail = extractDetail(approval.toolCall.rawInput);
+  // Skip detail when it's already visible in the title (e.g. bash titles like "`npm install`")
+  const detail =
+    rawDetail && !title.includes(rawDetail) ? rawDetail : null;
 
   return (
     <div className="p-3 sm:p-4 rounded-xl border border-border bg-card/50 shadow-sm border-l-2 border-l-status-waiting animate-in fade-in slide-in-from-top-2 duration-200">
@@ -65,6 +100,11 @@ export function ApprovalBanner({
           <p className="text-sm font-mono text-foreground break-words leading-relaxed">
             {title}
           </p>
+          {detail && (
+            <p className="mt-1 text-xs text-muted-foreground font-mono break-words line-clamp-3">
+              {detail}
+            </p>
+          )}
           {showKind && (
             <span className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-muted-foreground">
               {kind}

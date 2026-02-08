@@ -1291,6 +1291,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         toolCallId: toolCall?.toolCallId ?? "",
         title: toolCall?.title ?? "Unknown",
         kind: toolCall?.kind ?? "unknown",
+        rawInput: toolCall?.rawInput,
       },
       options,
     };

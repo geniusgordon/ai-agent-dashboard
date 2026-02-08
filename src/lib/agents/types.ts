@@ -221,6 +221,8 @@ export interface ApprovalRequest {
     toolCallId: string;
     title: string;
     kind: string;
+    /** Raw input parameters sent to the tool (e.g. skill name/args) */
+    rawInput?: unknown;
   };
   options: ApprovalOption[];
 }
