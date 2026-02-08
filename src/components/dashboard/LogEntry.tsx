@@ -9,10 +9,11 @@ import {
   eventConfig,
   formatJson,
   formatTime,
+  summarizePlanEntries,
 } from "@/lib/agents/event-utils";
-import type { AgentEvent } from "@/lib/agents/types";
 import { CopyButton, CopyIconButton } from "./CopyButton";
 import { ToolUpdateEntry } from "./ToolUpdateEntry";
+import type { AgentEvent, PlanPayload } from "@/lib/agents/types";
 
 export interface LogEntryProps {
   event: AgentEvent;
@@ -87,12 +88,16 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
   const isThinking = event.type === "thinking";
   const isError = event.type === "error";
   const isToolCallStart = event.type === "tool-call";
+  const isPlan = event.type === "plan";
   const toolStatus = payload.status as string | undefined;
   const isToolLoading = isToolCallStart && toolStatus === "in_progress";
 
   // Content extraction with fallback chain
   let content: string;
-  if (typeof payload.title === "string") {
+  if (isPlan) {
+    const { entries } = payload as unknown as PlanPayload;
+    content = `Updated tasks: ${summarizePlanEntries(entries)}`;
+  } else if (typeof payload.title === "string") {
     content = payload.title;
   } else if (typeof payload.content === "string") {
     content = payload.content;

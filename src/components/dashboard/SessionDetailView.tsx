@@ -7,6 +7,7 @@ import {
   ReconnectBanner,
   SessionHeader,
   SessionLog,
+  TaskPanel,
 } from "@/components/dashboard";
 import { useSessionDetail } from "@/hooks/useSessionDetail";
 import { useTRPC } from "@/integrations/trpc/react";
@@ -70,6 +71,8 @@ export function SessionDetailView({
     autoScroll,
     showScrollButton,
     supportsImages,
+    latestPlan,
+    taskPanelCollapsed,
     logsEndRef,
     logContainerRef,
     isLoading,
@@ -93,6 +96,7 @@ export function SessionDetailView({
     deleteSession,
     clearLogs,
     toggleAutoScroll,
+    toggleTaskPanel,
     manualScrollToBottom,
   } = useSessionDetail(sessionId);
 
@@ -161,6 +165,14 @@ export function SessionDetailView({
           onDeny={deny}
           isApproving={isApproving}
           isDenying={isDenying}
+        />
+      )}
+
+      {latestPlan && (
+        <TaskPanel
+          entries={latestPlan.entries}
+          isCollapsed={taskPanelCollapsed}
+          onToggleCollapse={toggleTaskPanel}
         />
       )}
 

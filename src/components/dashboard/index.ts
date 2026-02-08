@@ -20,6 +20,7 @@ export { SessionHeader } from "./SessionHeader";
 export { SessionLog } from "./SessionLog";
 export { SpawnAgentDialog } from "./SpawnAgentDialog";
 export { StatusBadge } from "./StatusBadge";
+export { TaskPanel } from "./TaskPanel";
 export { WorktreeAgentMap } from "./WorktreeAgentMap";
 export { WorktreeCard } from "./WorktreeCard";
 export { WorktreeCreateDialog } from "./WorktreeCreateDialog";
