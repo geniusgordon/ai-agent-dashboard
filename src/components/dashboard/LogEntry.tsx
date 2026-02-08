@@ -10,6 +10,7 @@ import {
   formatTime,
 } from "@/lib/agents/event-utils";
 import type { AgentEvent } from "@/lib/agents/types";
+import { ToolUpdateEntry } from "./ToolUpdateEntry";
 
 export interface LogEntryProps {
   event: AgentEvent;
@@ -113,6 +114,15 @@ interface ImageData {
 }
 
 export function LogEntry({ event }: LogEntryProps) {
+  // Hooks must be called unconditionally (before any early return)
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Delegate tool-update events to specialized component
+  if (event.type === "tool-update") {
+    return <ToolUpdateEntry event={event} />;
+  }
+
   const payload = event.payload as Record<string, unknown>;
   const isUser = payload.isUser === true;
   const images = payload.images as ImageData[] | undefined;
@@ -127,9 +137,9 @@ export function LogEntry({ event }: LogEntryProps) {
 
   const isThinking = event.type === "thinking";
   const isError = event.type === "error";
-  const isToolCall = event.type === "tool-call" || event.type === "tool-update";
+  const isToolCallStart = event.type === "tool-call";
   const toolStatus = payload.status as string | undefined;
-  const isToolLoading = isToolCall && toolStatus === "in_progress";
+  const isToolLoading = isToolCallStart && toolStatus === "in_progress";
 
   // Richer content extraction: handles stopReason, message fallbacks
   let content: string;
@@ -150,14 +160,13 @@ export function LogEntry({ event }: LogEntryProps) {
   }
 
   // Format JSON strings for tool calls
-  if (isToolCall) {
+  if (isToolCallStart) {
     content = formatJson(content);
   }
 
   // Collapsible for thinking and tool calls with long content
-  const isCollapsible = (isThinking || isToolCall) && isLongContent(content);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const isCollapsible =
+    (isThinking || isToolCallStart) && isLongContent(content);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Don't trigger collapse/expand
@@ -249,7 +258,7 @@ export function LogEntry({ event }: LogEntryProps) {
             ))}
           </div>
         )}
-        {isToolCall || (isCollapsible && !isExpanded) ? (
+        {isToolCallStart || (isCollapsible && !isExpanded) ? (
           // Tool calls and collapsed content: plain text
           <span className="whitespace-pre-wrap break-all">
             {displayContent}
@@ -365,7 +374,7 @@ export function LogEntry({ event }: LogEntryProps) {
         {isToolLoading && (
           <span className="text-muted-foreground ml-2">Running...</span>
         )}
-        {isToolCall && toolStatus === "completed" && (
+        {isToolCallStart && toolStatus === "completed" && (
           <span className="text-event-complete ml-2">✓</span>
         )}
         {isCollapsible && !isExpanded && (

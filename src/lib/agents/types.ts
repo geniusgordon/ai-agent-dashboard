@@ -143,7 +143,44 @@ export interface ToolCallPayload {
 export interface ToolUpdatePayload {
   toolCallId: string;
   status: string;
-  content?: string;
+  content?: unknown;
+}
+
+export interface TerminalExitContent {
+  cwd: string;
+  command: string;
+  args: string[];
+  exitStatus: { exitCode: number | null; signal: string | null };
+  truncated: boolean;
+  output: string;
+  durationMs: number;
+}
+
+export interface TerminalErrorContent {
+  cwd: string;
+  command: string;
+  args: string[];
+  error: string;
+}
+
+export function isTerminalExitContent(v: unknown): v is TerminalExitContent {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "command" in v &&
+    "exitStatus" in v &&
+    "output" in v
+  );
+}
+
+export function isTerminalErrorContent(v: unknown): v is TerminalErrorContent {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "command" in v &&
+    "error" in v &&
+    !("exitStatus" in v)
+  );
 }
 
 export interface PlanPayload {
