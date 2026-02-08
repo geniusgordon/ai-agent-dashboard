@@ -122,10 +122,6 @@ export function CodeReviewDialog({
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.listSessions.queryKey(),
       });
-      queryClient.invalidateQueries({
-        queryKey: trpc.codeReviews.list.queryKey({ projectId }),
-      });
-
       onOpenChange(false);
       resetDialog();
     } catch (err) {

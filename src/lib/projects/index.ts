@@ -26,8 +26,6 @@ export { getProjectManager, ProjectManager } from "./project-manager.js";
 export type {
   AgentWorktreeAssignment,
   BranchInfo,
-  CodeReview,
-  CodeReviewStatus,
   CreateWorktreeOptions,
   GitWorktreeInfo,
   Project,
