@@ -336,8 +336,19 @@ function isNoiseUpdate(payload: Record<string, unknown>): boolean {
   // No content at all — pure status echo (e.g. { toolCallId, status })
   if (content === undefined || content === null) return true;
 
-  // Array content with no real output (e.g. [{ terminalId, type: "terminal" }])
-  if (Array.isArray(content)) return true;
+  // Terminal reference array (e.g. [{ terminalId, type: "terminal" }])
+  if (
+    Array.isArray(content) &&
+    content.length > 0 &&
+    content.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        (item as Record<string, unknown>).type === "terminal",
+    )
+  )
+    return true;
 
   // Empty string content
   if (content === "") return true;
