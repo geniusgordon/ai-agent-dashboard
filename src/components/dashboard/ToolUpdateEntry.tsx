@@ -26,6 +26,7 @@ import {
   isTerminalExitContent,
 } from "@/lib/agents/types";
 import { CopyIconButton } from "./CopyButton";
+import { MarkdownContent } from "./MarkdownContent";
 
 const OUTPUT_COLLAPSE_THRESHOLD = 8;
 const COLLAPSED_PREVIEW_LINES = 3;
@@ -410,13 +411,17 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
 
         {/* Content */}
         <div className="flex-1 text-[13px] leading-relaxed min-w-0">
-          <span className="whitespace-pre-wrap break-all">
-            {displayContent}
-          </span>
-          {!isExpanded && (
-            <span className="text-muted-foreground/50 ml-1 text-xs">
-              ({hiddenCount} more lines)
-            </span>
+          {isExpanded ? (
+            <MarkdownContent>{displayContent}</MarkdownContent>
+          ) : (
+            <>
+              <span className="whitespace-pre-wrap break-all">
+                {displayContent}
+              </span>
+              <span className="text-muted-foreground/50 ml-1 text-xs">
+                ({hiddenCount} more lines)
+              </span>
+            </>
           )}
         </div>
       </button>
@@ -445,7 +450,7 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
 
       {/* Content */}
       <div className="flex-1 text-[13px] leading-relaxed min-w-0">
-        <span className="whitespace-pre-wrap break-all">{content}</span>
+        <MarkdownContent>{content}</MarkdownContent>
         {succeeded && (
           <Check className="inline size-3.5 text-event-complete ml-2" />
         )}
