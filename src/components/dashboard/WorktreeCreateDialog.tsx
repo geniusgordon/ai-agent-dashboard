@@ -2,10 +2,11 @@
  * Create Worktree Dialog
  *
  * Dialog form for creating a new git worktree in a project.
+ * Optionally spawns an agent in the new worktree immediately after creation.
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GitBranch, Plus } from "lucide-react";
+import { GitBranch, Play, Plus } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -23,12 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useTRPC } from "@/integrations/trpc/react";
+import type { AgentType } from "@/lib/agents/types";
+import { AgentBadge } from "./AgentBadge";
 
 interface WorktreeCreateDialogProps {
   projectId: string;
   trigger?: React.ReactNode;
 }
+
+const agentTypes: AgentType[] = ["gemini", "claude-code", "codex"];
 
 export function WorktreeCreateDialog({
   projectId,
@@ -41,6 +47,10 @@ export function WorktreeCreateDialog({
   const [branchName, setBranchName] = useState("");
   const [createNewBranch, setCreateNewBranch] = useState(true);
   const [baseBranch, setBaseBranch] = useState("");
+  const [spawnAgent, setSpawnAgent] = useState(false);
+  const [agentType, setAgentType] = useState<AgentType>("claude-code");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const branchPrefixes = ["feat", "fix", "hotfix", "release", "chore"] as const;
   const fullBranchName = createNewBranch
@@ -56,29 +66,93 @@ export function WorktreeCreateDialog({
     ? "main"
     : (branches[0] ?? "");
 
-  const createMutation = useMutation(
-    trpc.worktrees.create.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.list.queryKey({ projectId }),
-        });
-        setOpen(false);
-        setBranchPrefix("feat");
-        setBranchName("");
-        setBaseBranch("");
-      },
-    }),
+  const createWorktreeMutation = useMutation(
+    trpc.worktrees.create.mutationOptions(),
+  );
+  const spawnClientMutation = useMutation(
+    trpc.sessions.spawnClient.mutationOptions(),
+  );
+  const createSessionMutation = useMutation(
+    trpc.sessions.createSession.mutationOptions(),
+  );
+  const assignAgentMutation = useMutation(
+    trpc.worktrees.assignAgent.mutationOptions(),
   );
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const resetForm = () => {
+    setBranchPrefix("feat");
+    setBranchName("");
+    setBaseBranch("");
+    setSpawnAgent(false);
+    setAgentType("claude-code");
+    setError(null);
+  };
+
+  const invalidateQueries = () => {
+    queryClient.invalidateQueries({
+      queryKey: trpc.worktrees.list.queryKey({ projectId }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.sessions.listClients.queryKey(),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.sessions.listSessions.queryKey(),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.projects.getAssignments.queryKey({ projectId }),
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    createMutation.mutate({
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const worktree = await createWorktreeMutation.mutateAsync({
+        projectId,
+        branchName: fullBranchName,
+        createNewBranch,
+        baseBranch: createNewBranch
+          ? baseBranch || defaultBranch || undefined
+          : undefined,
+      });
+
+      if (spawnAgent) {
+        await spawnAgentInWorktree(worktree.id, worktree.path);
+      }
+
+      invalidateQueries();
+      setOpen(false);
+      resetForm();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create worktree",
+      );
+      invalidateQueries();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const spawnAgentInWorktree = async (
+    worktreeId: string,
+    worktreePath: string,
+  ) => {
+    const client = await spawnClientMutation.mutateAsync({
+      agentType,
+      cwd: worktreePath,
+    });
+
+    const session = await createSessionMutation.mutateAsync({
+      clientId: client.id,
+    });
+
+    await assignAgentMutation.mutateAsync({
+      sessionId: session.id,
+      clientId: client.id,
+      worktreeId,
       projectId,
-      branchName: fullBranchName,
-      createNewBranch,
-      baseBranch: createNewBranch
-        ? baseBranch || defaultBranch || undefined
-        : undefined,
     });
   };
 
@@ -215,12 +289,48 @@ export function WorktreeCreateDialog({
               </div>
             )}
 
+            {/* Spawn agent toggle */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="spawn-agent"
+                  className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"
+                >
+                  <Play className="size-4" />
+                  Spawn agent
+                </label>
+                <Switch
+                  id="spawn-agent"
+                  size="sm"
+                  checked={spawnAgent}
+                  onCheckedChange={setSpawnAgent}
+                />
+              </div>
+
+              {spawnAgent && (
+                <div className="flex flex-wrap gap-2">
+                  {agentTypes.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setAgentType(type)}
+                      className={`px-3 py-2 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${
+                        agentType === type
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-secondary/50 hover:bg-secondary hover:border-border"
+                      }`}
+                    >
+                      <AgentBadge type={type} size="sm" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Error */}
-            {createMutation.isError && (
+            {error && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <p className="text-sm text-destructive">
-                  {createMutation.error?.message ?? "Failed to create worktree"}
-                </p>
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
           </div>
@@ -235,11 +345,17 @@ export function WorktreeCreateDialog({
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending || !branchName}
+              disabled={isSubmitting || !branchName}
               className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 cursor-pointer"
             >
               <GitBranch className="size-4" />
-              {createMutation.isPending ? "Creating..." : "Create"}
+              {isSubmitting
+                ? spawnAgent
+                  ? "Creating & Spawning..."
+                  : "Creating..."
+                : spawnAgent
+                  ? "Create & Spawn"
+                  : "Create"}
             </button>
           </DialogFooter>
         </form>
