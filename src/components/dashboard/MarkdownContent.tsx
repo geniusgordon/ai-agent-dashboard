@@ -11,7 +11,9 @@ import { CopyButton } from "./CopyButton";
  */
 export function MarkdownContent({
   children,
-}: { children: string | null | undefined }) {
+}: {
+  children: string | null | undefined;
+}) {
   if (!children) return null;
   return (
     <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_hr]:border-border [&_hr]:my-3">
