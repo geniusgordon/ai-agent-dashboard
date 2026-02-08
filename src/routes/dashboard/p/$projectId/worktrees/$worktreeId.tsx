@@ -10,8 +10,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
   ArrowLeft,
+  ChevronDown,
+  ChevronRight,
   CircleDot,
   FolderGit2,
+  GitBranch,
   GitCommitHorizontal,
   Play,
   Users,
@@ -77,6 +80,9 @@ function WorktreeDetailPage() {
   );
   const commitsQuery = useQuery(
     trpc.worktrees.getRecentCommits.queryOptions({ id: worktreeId }),
+  );
+  const branchCommitsQuery = useQuery(
+    trpc.worktrees.getBranchCommits.queryOptions({ id: worktreeId }),
   );
   const sessionsQuery = useQuery(
     trpc.sessions.listSessions.queryOptions({ projectId }),
@@ -162,6 +168,7 @@ function WorktreeDetailPage() {
   const worktree = worktreeQuery.data;
   const assignments = assignmentsQuery.data ?? [];
   const commits = commitsQuery.data ?? [];
+  const branchCommits = branchCommitsQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
   const status = statusQuery.data;
 
@@ -242,8 +249,19 @@ function WorktreeDetailPage() {
         onSpawn={() => setShowSpawnDialog(true)}
       />
 
-      {/* Recent Commits */}
-      <CommitsSection commits={commits} />
+      {/* Branch Commits (since checkout) */}
+      {!worktree.isMainWorktree && (
+        <BranchCommitsSection
+          commits={branchCommits}
+          branch={worktree.branch}
+        />
+      )}
+
+      {/* Full History */}
+      <FullHistorySection
+        commits={commits}
+        defaultExpanded={worktree.isMainWorktree}
+      />
 
       {/* Spawn Agent Dialog */}
       {showSpawnDialog && (
@@ -366,11 +384,37 @@ function AgentsSection({
 }
 
 // =============================================================================
-// Commits Section
+// Commit Row
 // =============================================================================
 
-function CommitsSection({
+function CommitRow({
+  commit,
+}: {
+  commit: { hash: string; message: string; authorName: string; date: string };
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-card/50 transition-colors">
+      <code className="text-xs text-purple-400 font-mono shrink-0">
+        {commit.hash}
+      </code>
+      <span className="text-sm truncate flex-1">{commit.message}</span>
+      <span className="text-xs text-muted-foreground shrink-0">
+        {commit.authorName}
+      </span>
+      <span className="text-xs text-muted-foreground shrink-0">
+        {timeAgo(commit.date)}
+      </span>
+    </div>
+  );
+}
+
+// =============================================================================
+// Branch Commits Section (since checkout)
+// =============================================================================
+
+function BranchCommitsSection({
   commits,
+  branch,
 }: {
   commits: {
     hash: string;
@@ -378,38 +422,86 @@ function CommitsSection({
     authorName: string;
     date: string;
   }[];
+  branch: string;
 }) {
-  if (commits.length === 0) return null;
-
   return (
     <div>
       <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-        <GitCommitHorizontal className="size-5 text-muted-foreground" />
-        Recent Commits
+        <GitBranch className="size-5 text-muted-foreground" />
+        Branch Commits
         <span className="text-sm text-muted-foreground font-normal">
           ({commits.length})
         </span>
       </h2>
 
-      <div className="space-y-1">
-        {commits.map((commit) => (
-          <div
-            key={commit.hash}
-            className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-card/50 transition-colors"
-          >
-            <code className="text-xs text-purple-400 font-mono shrink-0">
-              {commit.hash}
-            </code>
-            <span className="text-sm truncate flex-1">{commit.message}</span>
-            <span className="text-xs text-muted-foreground shrink-0">
-              {commit.authorName}
-            </span>
-            <span className="text-xs text-muted-foreground shrink-0">
-              {timeAgo(commit.date)}
-            </span>
-          </div>
-        ))}
-      </div>
+      {commits.length === 0 ? (
+        <div className="px-4 py-8 rounded-xl border border-dashed border-border text-center">
+          <GitCommitHorizontal className="size-8 text-muted-foreground/40 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">
+            No commits on{" "}
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+              {branch}
+            </code>{" "}
+            since checkout
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {commits.map((commit) => (
+            <CommitRow key={commit.hash} commit={commit} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Full History Section (collapsible)
+// =============================================================================
+
+function FullHistorySection({
+  commits,
+  defaultExpanded,
+}: {
+  commits: {
+    hash: string;
+    message: string;
+    authorName: string;
+    date: string;
+  }[];
+  defaultExpanded: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  if (commits.length === 0) return null;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-lg font-semibold cursor-pointer hover:text-foreground/80 transition-colors"
+      >
+        {expanded ? (
+          <ChevronDown className="size-5 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="size-5 text-muted-foreground" />
+        )}
+        <GitCommitHorizontal className="size-5 text-muted-foreground" />
+        Recent Commits
+        <span className="text-sm text-muted-foreground font-normal">
+          ({commits.length})
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="space-y-1 mt-4">
+          {commits.map((commit) => (
+            <CommitRow key={commit.hash} commit={commit} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

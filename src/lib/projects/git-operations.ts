@@ -265,6 +265,41 @@ export async function getRecentCommits(
   }
 }
 
+/**
+ * Get commits on the current branch that are not on the given base branch.
+ * Uses `git log base..HEAD` to show only the branch-specific history.
+ * Returns empty array for the main/default branch or if there are no unique commits.
+ */
+export async function getCommitsSinceBranch(
+  worktreePath: string,
+  baseBranch: string,
+  limit = 50,
+): Promise<GitCommit[]> {
+  try {
+    const SEP = "<<SEP>>";
+    const { stdout } = await git(
+      [
+        "log",
+        `--max-count=${limit}`,
+        `--format=${["%h", "%s", "%an", "%aI"].join(SEP)}`,
+        `${baseBranch}..HEAD`,
+      ],
+      worktreePath,
+    );
+
+    return stdout
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [hash, message, authorName, date] = line.split(SEP);
+        return { hash, message, authorName, date };
+      });
+  } catch {
+    return [];
+  }
+}
+
 export async function deleteBranch(
   repoPath: string,
   branchName: string,

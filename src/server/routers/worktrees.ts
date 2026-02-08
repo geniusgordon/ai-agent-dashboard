@@ -84,6 +84,32 @@ export const worktreesRouter = createTRPCRouter({
       return getRecentCommits(worktree.path, input.limit ?? 10);
     }),
 
+  getBranchCommits: publicProcedure
+    .input(
+      z.object({ id: z.string(), limit: z.number().min(1).max(50).optional() }),
+    )
+    .query(async ({ input }) => {
+      const manager = getProjectManager();
+      const worktree = manager.getWorktree(input.id);
+      if (!worktree) throw new Error(`Worktree not found: ${input.id}`);
+
+      // Main worktree has no "since branch" — return empty
+      if (worktree.isMainWorktree) return [];
+
+      const project = manager.getProject(worktree.projectId);
+      if (!project) throw new Error(`Project not found: ${worktree.projectId}`);
+
+      const { getDefaultBranch, getCommitsSinceBranch } = await import(
+        "../../lib/projects/git-operations.js"
+      );
+      const defaultBranch = await getDefaultBranch(project.repoPath);
+      return getCommitsSinceBranch(
+        worktree.path,
+        defaultBranch,
+        input.limit ?? 50,
+      );
+    }),
+
   getAssignments: publicProcedure
     .input(z.object({ worktreeId: z.string() }))
     .query(({ input }) => {
