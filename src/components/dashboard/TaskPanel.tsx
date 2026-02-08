@@ -7,12 +7,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { summarizePlanEntries } from "@/lib/agents/event-utils";
+import type { PlanPayload } from "@/lib/agents/types";
 
-interface PlanEntry {
-  content: string;
-  priority: string;
-  status: string;
-}
+type PlanEntry = PlanPayload["entries"][number];
 
 export interface TaskPanelProps {
   entries: PlanEntry[];
@@ -37,8 +34,12 @@ function ProgressBar({ entries }: { entries: PlanEntry[] }) {
   const total = entries.length;
   if (total === 0) return null;
 
-  const completed = entries.filter((e) => e.status === "completed").length;
-  const inProgress = entries.filter((e) => e.status === "in_progress").length;
+  let completed = 0;
+  let inProgress = 0;
+  for (const e of entries) {
+    if (e.status === "completed") completed++;
+    else if (e.status === "in_progress") inProgress++;
+  }
   const completedPct = (completed / total) * 100;
   const inProgressPct = (inProgress / total) * 100;
 
