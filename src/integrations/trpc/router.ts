@@ -1,5 +1,6 @@
 import {
   approvalsRouter,
+  codeReviewsRouter,
   projectsRouter,
   sessionsRouter,
   worktreesRouter,
@@ -11,5 +12,6 @@ export const trpcRouter = createTRPCRouter({
   approvals: approvalsRouter,
   projects: projectsRouter,
   worktrees: worktreesRouter,
+  codeReviews: codeReviewsRouter,
 });
 export type TRPCRouter = typeof trpcRouter;
