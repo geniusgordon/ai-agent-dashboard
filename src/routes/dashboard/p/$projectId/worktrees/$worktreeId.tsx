@@ -189,29 +189,29 @@ function WorktreeDetailPage() {
           {projectQuery.data?.name ?? "Project"}
         </Link>
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4 min-w-0">
-            <div className="p-3 rounded-xl bg-git/10 shrink-0">
-              <FolderGit2 className="size-6 text-git-muted" />
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-git/10 shrink-0">
+              <FolderGit2 className="size-5 sm:size-6 text-git-muted" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold tracking-tight truncate">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
                   {worktree.name}
                 </h1>
                 {worktree.isMainWorktree && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                  <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
                     main
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-3 mt-1">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
                 <BranchBadge branch={worktree.branch} size="md" />
                 <GitStatusPill status={status} />
               </div>
 
-              <p className="text-sm text-muted-foreground font-mono truncate mt-2">
+              <p className="text-xs sm:text-sm text-muted-foreground font-mono truncate mt-2">
                 {worktree.path}
               </p>
             </div>
@@ -393,12 +393,12 @@ function CommitRow({
   commit: { hash: string; message: string; authorName: string; date: string };
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-card/50 transition-colors">
+    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 rounded-lg hover:bg-card/50 transition-colors">
       <code className="text-xs text-git-muted font-mono shrink-0">
         {commit.hash}
       </code>
-      <span className="text-sm truncate flex-1">{commit.message}</span>
-      <span className="text-xs text-muted-foreground shrink-0">
+      <span className="text-sm truncate flex-1 min-w-0">{commit.message}</span>
+      <span className="text-xs text-muted-foreground shrink-0 hidden md:inline">
         {commit.authorName}
       </span>
       <span className="text-xs text-muted-foreground shrink-0">
