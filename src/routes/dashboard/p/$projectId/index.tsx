@@ -307,16 +307,14 @@ function ProjectOverviewPage() {
             <GitMerge className="size-5 text-muted-foreground" />
             Code Review
           </h2>
-          {!activeReview && (
-            <button
-              type="button"
-              onClick={() => setReviewDialogOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center gap-1.5 cursor-pointer"
-            >
-              <GitMerge className="size-4" />
-              New Review
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setReviewDialogOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <GitMerge className="size-4" />
+            New Review
+          </button>
         </div>
 
         {activeReview ? (
