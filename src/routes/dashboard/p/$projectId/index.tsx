@@ -225,6 +225,7 @@ function ProjectOverviewPage() {
               <WorktreeCard
                 key={worktree.id}
                 worktree={worktree}
+                projectId={projectId}
                 onSpawnAgent={() => setSpawningWorktreeId(worktree.id)}
                 onDelete={() => setWorktreeToDelete(worktree)}
                 isDeleting={

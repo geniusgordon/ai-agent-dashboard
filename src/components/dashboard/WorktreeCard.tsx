@@ -2,16 +2,19 @@
  * Worktree Card Component
  *
  * Displays a worktree with its branch, assigned agents, and actions.
+ * Clicking the card navigates to the worktree detail page.
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Play, Trash2, Users } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { AlertTriangle, ChevronRight, Play, Trash2, Users } from "lucide-react";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { Worktree } from "@/lib/projects/types";
 import { BranchBadge } from "./BranchBadge";
 
 interface WorktreeCardProps {
   worktree: Worktree;
+  projectId: string;
   onSpawnAgent?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean;
@@ -19,6 +22,7 @@ interface WorktreeCardProps {
 
 export function WorktreeCard({
   worktree,
+  projectId,
   onSpawnAgent,
   onDelete,
   isDeleting,
@@ -34,9 +38,16 @@ export function WorktreeCard({
   const assignments = assignmentsQuery.data ?? [];
   const hasMultipleAgents = assignments.length > 1;
 
+  const stopNav = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
-    <div
-      className={`p-4 rounded-xl border bg-card/50 shadow-sm ${
+    <Link
+      to="/dashboard/p/$projectId/worktrees/$worktreeId"
+      params={{ projectId, worktreeId: worktree.id }}
+      className={`block p-4 rounded-xl border bg-card/50 shadow-sm transition-all hover:bg-card hover:border-primary/20 hover:shadow-md group ${
         hasMultipleAgents ? "border-amber-500/40" : "border-border"
       }`}
     >
@@ -57,7 +68,10 @@ export function WorktreeCard({
         {!worktree.isMainWorktree && (
           <button
             type="button"
-            onClick={onDelete}
+            onClick={(e) => {
+              stopNav(e);
+              onDelete?.();
+            }}
             disabled={isDeleting}
             className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer disabled:opacity-50"
             title="Delete worktree"
@@ -72,7 +86,7 @@ export function WorktreeCard({
         {worktree.path}
       </p>
 
-      {/* Agents */}
+      {/* Agents + Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           {assignments.length > 0 ? (
@@ -93,17 +107,23 @@ export function WorktreeCard({
           )}
         </div>
 
-        {onSpawnAgent && (
-          <button
-            type="button"
-            onClick={onSpawnAgent}
-            className="px-2.5 py-1 rounded-md text-xs font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1"
-          >
-            <Play className="size-3" />
-            Spawn
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onSpawnAgent && (
+            <button
+              type="button"
+              onClick={(e) => {
+                stopNav(e);
+                onSpawnAgent();
+              }}
+              className="px-2.5 py-1 rounded-md text-xs font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1"
+            >
+              <Play className="size-3" />
+              Spawn
+            </button>
+          )}
+          <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -230,6 +230,41 @@ export async function getDefaultBranch(repoPath: string): Promise<string> {
   }
 }
 
+export interface GitCommit {
+  hash: string;
+  message: string;
+  authorName: string;
+  date: string;
+}
+
+export async function getRecentCommits(
+  worktreePath: string,
+  limit = 10,
+): Promise<GitCommit[]> {
+  try {
+    const SEP = "<<SEP>>";
+    const { stdout } = await git(
+      [
+        "log",
+        `--max-count=${limit}`,
+        `--format=${["%h", "%s", "%an", "%aI"].join(SEP)}`,
+      ],
+      worktreePath,
+    );
+
+    return stdout
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [hash, message, authorName, date] = line.split(SEP);
+        return { hash, message, authorName, date };
+      });
+  } catch {
+    return [];
+  }
+}
+
 export async function deleteBranch(
   repoPath: string,
   branchName: string,

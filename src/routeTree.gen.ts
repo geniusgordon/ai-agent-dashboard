@@ -20,6 +20,7 @@ import { Route as DashboardPProjectIdRouteRouteImport } from './routes/dashboard
 import { Route as DashboardPProjectIdIndexRouteImport } from './routes/dashboard/p/$projectId/index'
 import { Route as DashboardPProjectIdApprovalsRouteImport } from './routes/dashboard/p/$projectId/approvals'
 import { Route as DashboardPProjectIdSessionsIndexRouteImport } from './routes/dashboard/p/$projectId/sessions/index'
+import { Route as DashboardPProjectIdWorktreesWorktreeIdRouteImport } from './routes/dashboard/p/$projectId/worktrees/$worktreeId'
 import { Route as DashboardPProjectIdSessionsSessionIdRouteImport } from './routes/dashboard/p/$projectId/sessions/$sessionId'
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
@@ -82,6 +83,12 @@ const DashboardPProjectIdSessionsIndexRoute =
     path: '/sessions/',
     getParentRoute: () => DashboardPProjectIdRouteRoute,
   } as any)
+const DashboardPProjectIdWorktreesWorktreeIdRoute =
+  DashboardPProjectIdWorktreesWorktreeIdRouteImport.update({
+    id: '/worktrees/$worktreeId',
+    path: '/worktrees/$worktreeId',
+    getParentRoute: () => DashboardPProjectIdRouteRoute,
+  } as any)
 const DashboardPProjectIdSessionsSessionIdRoute =
   DashboardPProjectIdSessionsSessionIdRouteImport.update({
     id: '/sessions/$sessionId',
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/p/$projectId/approvals': typeof DashboardPProjectIdApprovalsRoute
   '/dashboard/p/$projectId/': typeof DashboardPProjectIdIndexRoute
   '/dashboard/p/$projectId/sessions/$sessionId': typeof DashboardPProjectIdSessionsSessionIdRoute
+  '/dashboard/p/$projectId/worktrees/$worktreeId': typeof DashboardPProjectIdWorktreesWorktreeIdRoute
   '/dashboard/p/$projectId/sessions/': typeof DashboardPProjectIdSessionsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/dashboard/p/$projectId/approvals': typeof DashboardPProjectIdApprovalsRoute
   '/dashboard/p/$projectId': typeof DashboardPProjectIdIndexRoute
   '/dashboard/p/$projectId/sessions/$sessionId': typeof DashboardPProjectIdSessionsSessionIdRoute
+  '/dashboard/p/$projectId/worktrees/$worktreeId': typeof DashboardPProjectIdWorktreesWorktreeIdRoute
   '/dashboard/p/$projectId/sessions': typeof DashboardPProjectIdSessionsIndexRoute
 }
 export interface FileRoutesById {
@@ -128,6 +137,7 @@ export interface FileRoutesById {
   '/dashboard/p/$projectId/approvals': typeof DashboardPProjectIdApprovalsRoute
   '/dashboard/p/$projectId/': typeof DashboardPProjectIdIndexRoute
   '/dashboard/p/$projectId/sessions/$sessionId': typeof DashboardPProjectIdSessionsSessionIdRoute
+  '/dashboard/p/$projectId/worktrees/$worktreeId': typeof DashboardPProjectIdWorktreesWorktreeIdRoute
   '/dashboard/p/$projectId/sessions/': typeof DashboardPProjectIdSessionsIndexRoute
 }
 export interface FileRouteTypes {
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/dashboard/p/$projectId/approvals'
     | '/dashboard/p/$projectId/'
     | '/dashboard/p/$projectId/sessions/$sessionId'
+    | '/dashboard/p/$projectId/worktrees/$worktreeId'
     | '/dashboard/p/$projectId/sessions/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/dashboard/p/$projectId/approvals'
     | '/dashboard/p/$projectId'
     | '/dashboard/p/$projectId/sessions/$sessionId'
+    | '/dashboard/p/$projectId/worktrees/$worktreeId'
     | '/dashboard/p/$projectId/sessions'
   id:
     | '__root__'
@@ -170,6 +182,7 @@ export interface FileRouteTypes {
     | '/dashboard/p/$projectId/approvals'
     | '/dashboard/p/$projectId/'
     | '/dashboard/p/$projectId/sessions/$sessionId'
+    | '/dashboard/p/$projectId/worktrees/$worktreeId'
     | '/dashboard/p/$projectId/sessions/'
   fileRoutesById: FileRoutesById
 }
@@ -259,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardPProjectIdSessionsIndexRouteImport
       parentRoute: typeof DashboardPProjectIdRouteRoute
     }
+    '/dashboard/p/$projectId/worktrees/$worktreeId': {
+      id: '/dashboard/p/$projectId/worktrees/$worktreeId'
+      path: '/worktrees/$worktreeId'
+      fullPath: '/dashboard/p/$projectId/worktrees/$worktreeId'
+      preLoaderRoute: typeof DashboardPProjectIdWorktreesWorktreeIdRouteImport
+      parentRoute: typeof DashboardPProjectIdRouteRoute
+    }
     '/dashboard/p/$projectId/sessions/$sessionId': {
       id: '/dashboard/p/$projectId/sessions/$sessionId'
       path: '/sessions/$sessionId'
@@ -273,6 +293,7 @@ interface DashboardPProjectIdRouteRouteChildren {
   DashboardPProjectIdApprovalsRoute: typeof DashboardPProjectIdApprovalsRoute
   DashboardPProjectIdIndexRoute: typeof DashboardPProjectIdIndexRoute
   DashboardPProjectIdSessionsSessionIdRoute: typeof DashboardPProjectIdSessionsSessionIdRoute
+  DashboardPProjectIdWorktreesWorktreeIdRoute: typeof DashboardPProjectIdWorktreesWorktreeIdRoute
   DashboardPProjectIdSessionsIndexRoute: typeof DashboardPProjectIdSessionsIndexRoute
 }
 
@@ -282,6 +303,8 @@ const DashboardPProjectIdRouteRouteChildren: DashboardPProjectIdRouteRouteChildr
     DashboardPProjectIdIndexRoute: DashboardPProjectIdIndexRoute,
     DashboardPProjectIdSessionsSessionIdRoute:
       DashboardPProjectIdSessionsSessionIdRoute,
+    DashboardPProjectIdWorktreesWorktreeIdRoute:
+      DashboardPProjectIdWorktreesWorktreeIdRoute,
     DashboardPProjectIdSessionsIndexRoute:
       DashboardPProjectIdSessionsIndexRoute,
   }
@@ -318,12 +341,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
