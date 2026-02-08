@@ -233,7 +233,7 @@ export function CodeReviewDialog({
                     key={branch.name}
                     type="button"
                     onClick={() => toggleBranch(branch.name)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer min-w-0 ${
                       isSelected
                         ? "bg-primary/10 border border-primary/30"
                         : "hover:bg-card/50 border border-transparent"
@@ -290,10 +290,10 @@ export function CodeReviewDialog({
                 {Array.from(selectedBranches).map((name) => (
                   <span
                     key={name}
-                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-purple-500/10 text-purple-400 font-mono"
+                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-purple-500/10 text-purple-400 font-mono max-w-full"
                   >
-                    <GitBranch className="size-3" />
-                    {name}
+                    <GitBranch className="size-3 shrink-0" />
+                    <span className="truncate">{name}</span>
                   </span>
                 ))}
               </div>

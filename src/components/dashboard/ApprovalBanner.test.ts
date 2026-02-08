@@ -32,9 +32,7 @@ describe("extractDetail", () => {
   });
 
   it("extracts file_path", () => {
-    expect(extractDetail({ file_path: "/src/index.ts" })).toBe(
-      "/src/index.ts",
-    );
+    expect(extractDetail({ file_path: "/src/index.ts" })).toBe("/src/index.ts");
   });
 
   it("extracts path", () => {

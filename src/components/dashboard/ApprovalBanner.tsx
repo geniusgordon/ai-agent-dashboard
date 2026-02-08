@@ -88,8 +88,7 @@ export function ApprovalBanner({
   const title = stripBackticks(approval.toolCall.title);
   const rawDetail = extractDetail(approval.toolCall.rawInput);
   // Skip detail when it's already visible in the title (e.g. bash titles like "`npm install`")
-  const detail =
-    rawDetail && !title.includes(rawDetail) ? rawDetail : null;
+  const detail = rawDetail && !title.includes(rawDetail) ? rawDetail : null;
 
   return (
     <div className="p-3 sm:p-4 rounded-xl border border-border bg-card/50 shadow-sm border-l-2 border-l-status-waiting animate-in fade-in slide-in-from-top-2 duration-200">
