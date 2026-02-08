@@ -205,6 +205,18 @@ export const sessionsRouter = createTRPCRouter({
     }),
 
   /**
+   * Mark a session as completed
+   */
+  completeSession: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      manager.completeSession(input.sessionId);
+      getProjectManager().unassignAgent(input.sessionId);
+      return { success: true };
+    }),
+
+  /**
    * Delete a session (permanent)
    */
   deleteSession: publicProcedure

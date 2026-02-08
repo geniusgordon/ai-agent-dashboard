@@ -308,6 +308,19 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  const completeSessionMutation = useMutation(
+    trpc.sessions.completeSession.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.listSessions.queryKey(),
+        });
+      },
+    }),
+  );
+
   const renameSessionMutation = useMutation(
     trpc.sessions.renameSession.mutationOptions({
       onSuccess: () => {
@@ -374,6 +387,8 @@ export function useSessionDetail(sessionId: string) {
 
   const killSession = () => killSessionMutation.mutate({ sessionId });
 
+  const completeSession = () => completeSessionMutation.mutate({ sessionId });
+
   const renameSession = (name: string) =>
     renameSessionMutation.mutate({ sessionId, name });
 
@@ -420,6 +435,7 @@ export function useSessionDetail(sessionId: string) {
     isLoading: sessionQuery.isLoading,
     isAgentBusy: session?.status === "running",
     isKilling: killSessionMutation.isPending,
+    isCompleting: completeSessionMutation.isPending,
     isRenaming: renameSessionMutation.isPending,
     isApproving: approveMutation.isPending,
     isDenying: denyMutation.isPending,
@@ -432,6 +448,7 @@ export function useSessionDetail(sessionId: string) {
     approve,
     deny,
     killSession,
+    completeSession,
     renameSession,
     setMode,
     reconnect,

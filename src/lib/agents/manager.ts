@@ -525,6 +525,46 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   }
 
   /**
+   * Mark a session as completed (soft close — client stays alive)
+   */
+  completeSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      store.updateSessionStatus(sessionId, "completed");
+      return;
+    }
+
+    // Drop any queued messages — user said "done"
+    this.drainQueue(sessionId, "Session completed");
+    this.messageQueues.delete(sessionId);
+
+    session.status = "completed";
+    session.updatedAt = new Date();
+
+    this.emitEvent({
+      type: "complete",
+      clientId: session.clientId,
+      sessionId,
+      timestamp: new Date(),
+      payload: { stopReason: "user_completed" },
+    });
+
+    // Remove from in-memory tracking (keep on disk for history)
+    this.sessions.delete(sessionId);
+    this.sessionToClient.delete(sessionId);
+    this.sessionEvents.delete(sessionId);
+
+    store.updateSessionStatus(sessionId, "completed");
+
+    // Remove related approvals
+    for (const [approvalId, approval] of this.approvals) {
+      if (approval.sessionId === sessionId) {
+        this.approvals.delete(approvalId);
+      }
+    }
+  }
+
+  /**
    * Kill an entire client (and all its sessions)
    */
   killClient(clientId: string): void {
@@ -641,6 +681,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         if (
           !current ||
           current.status === "killed" ||
+          current.status === "completed" ||
           current.status === "error"
         ) {
           this.drainQueue(sessionId, "Session is no longer active");

@@ -75,6 +75,7 @@ export function SessionDetailView({
     isLoading,
     isAgentBusy,
     isKilling,
+    isCompleting,
     isRenaming,
     isApproving,
     isDenying,
@@ -85,6 +86,7 @@ export function SessionDetailView({
     approve,
     deny,
     killSession,
+    completeSession,
     renameSession,
     setMode,
     reconnect,
@@ -130,6 +132,8 @@ export function SessionDetailView({
         onClearLogs={clearLogs}
         onKillSession={killSession}
         isKilling={isKilling}
+        onCompleteSession={completeSession}
+        isCompleting={isCompleting}
         onRename={renameSession}
         isRenaming={isRenaming}
         backTo={headerBackTo}
