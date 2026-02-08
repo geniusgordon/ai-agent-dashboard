@@ -157,7 +157,7 @@ function BranchRow({
         )}
 
         {branch.hasWorktree && (
-          <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium inline-flex items-center gap-1">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-action-success/10 text-action-success-muted font-medium inline-flex items-center gap-1">
             <GitFork className="size-3" />
             worktree
           </span>

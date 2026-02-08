@@ -254,7 +254,7 @@ export function CodeReviewDialog({
                       {branch.name}
                     </span>
                     {branch.hasWorktree && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 ml-auto shrink-0">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-action-success/10 text-action-success-muted ml-auto shrink-0">
                         worktree
                       </span>
                     )}
@@ -286,7 +286,7 @@ export function CodeReviewDialog({
                 {Array.from(selectedBranches).map((name) => (
                   <span
                     key={name}
-                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-purple-500/10 text-purple-400 font-mono max-w-full"
+                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-git/10 text-git-muted font-mono max-w-full"
                   >
                     <GitBranch className="size-3 shrink-0" />
                     <span className="truncate">{name}</span>

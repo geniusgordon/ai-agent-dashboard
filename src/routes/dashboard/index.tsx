@@ -120,17 +120,17 @@ function DashboardHome() {
       {/* Stats Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          icon={<FolderGit2 className="size-5 text-purple-400" />}
+          icon={<FolderGit2 className="size-5 text-git-muted" />}
           label="Projects"
           value={projects.length}
         />
         <StatCard
-          icon={<Bot className="size-5 text-emerald-400" />}
+          icon={<Bot className="size-5 text-action-success-muted" />}
           label="Active Agents"
           value={activeAgents}
         />
         <StatCard
-          icon={<ShieldAlert className="size-5 text-amber-400" />}
+          icon={<ShieldAlert className="size-5 text-action-warning-muted" />}
           label="Pending Approvals"
           value={pendingApprovals}
         />
@@ -192,7 +192,7 @@ function OnboardingView() {
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="max-w-lg text-center space-y-6">
         {/* Logo / Hero */}
-        <div className="mx-auto size-20 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+        <div className="mx-auto size-20 rounded-2xl bg-gradient-to-br from-action-success-muted to-action-success flex items-center justify-center text-white text-3xl font-bold shadow-lg">
           AI
         </div>
 
@@ -211,8 +211,8 @@ function OnboardingView() {
           to="/dashboard/projects/new"
           className="flex flex-col items-center gap-3 p-8 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all group mt-8"
         >
-          <div className="p-3 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-            <FolderGit2 className="size-6 text-purple-400" />
+          <div className="p-3 rounded-xl bg-git/10 group-hover:bg-git/20 transition-colors">
+            <FolderGit2 className="size-6 text-git-muted" />
           </div>
           <div>
             <div className="font-semibold">Add a Project</div>

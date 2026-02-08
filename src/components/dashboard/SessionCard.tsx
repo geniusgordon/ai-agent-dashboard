@@ -81,7 +81,7 @@ export function SessionCard({ session, projectId }: SessionCardProps) {
         ${
           isInactive
             ? "border-border/30 bg-card/30 opacity-60"
-            : "border-border bg-card/50 hover:bg-card hover:border-primary/20 hover:shadow-md"
+            : "border-border bg-card/50 hover:bg-card hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5"
         }
       `}
     >

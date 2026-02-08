@@ -120,7 +120,7 @@ export function StartReviewDialog({
               Reviewing against{" "}
               <span className="font-mono text-foreground">{defaultBranch}</span>
             </p>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-purple-500/10 text-purple-400 font-mono">
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-git/10 text-git-muted font-mono">
               <GitBranch className="size-3" />
               {branch}
             </span>

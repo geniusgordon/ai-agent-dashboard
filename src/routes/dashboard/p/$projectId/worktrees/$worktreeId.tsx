@@ -191,8 +191,8 @@ function WorktreeDetailPage() {
 
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
-            <div className="p-3 rounded-xl bg-purple-500/10 shrink-0">
-              <FolderGit2 className="size-6 text-purple-400" />
+            <div className="p-3 rounded-xl bg-git/10 shrink-0">
+              <FolderGit2 className="size-6 text-git-muted" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -302,7 +302,7 @@ function GitStatusPill({
 
   if (status.hasUncommittedChanges) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-action-warning/10 text-action-warning-muted border border-action-warning/20">
         <CircleDot className="size-3" />
         Uncommitted changes
       </span>
@@ -310,7 +310,7 @@ function GitStatusPill({
   }
 
   return (
-    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-action-success/10 text-action-success-muted border border-action-success/20">
       <CircleDot className="size-3" />
       Clean
     </span>
@@ -343,9 +343,9 @@ function AgentsSection({
       </h2>
 
       {hasMultipleAgents && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
-          <AlertTriangle className="size-4 text-amber-400 shrink-0" />
-          <p className="text-sm text-amber-300">
+        <div className="mb-4 px-4 py-3 rounded-lg bg-action-warning/10 border border-action-warning/20 flex items-center gap-2">
+          <AlertTriangle className="size-4 text-action-warning-muted shrink-0" />
+          <p className="text-sm text-action-warning-muted">
             Multiple agents are assigned to this worktree. They may conflict
             with each other's changes.
           </p>
@@ -394,7 +394,7 @@ function CommitRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-card/50 transition-colors">
-      <code className="text-xs text-purple-400 font-mono shrink-0">
+      <code className="text-xs text-git-muted font-mono shrink-0">
         {commit.hash}
       </code>
       <span className="text-sm truncate flex-1">{commit.message}</span>
