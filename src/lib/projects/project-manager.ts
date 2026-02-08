@@ -536,30 +536,41 @@ export class ProjectManager {
     const reviewId = randomUUID();
     const now = new Date().toISOString();
 
-    db.prepare(
-      `INSERT INTO code_reviews (id, project_id, base_branch, agent_type, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'running', ?, ?)`,
-    ).run(reviewId, opts.projectId, opts.baseBranch, opts.agentType, now, now);
-
     const branches: CodeReviewBranch[] = [];
-    for (const branchName of opts.branchNames) {
-      const branchId = randomUUID();
+
+    // Atomic: review + all branch rows in a single transaction
+    db.transaction(() => {
       db.prepare(
-        `INSERT INTO code_review_branches (id, review_id, branch_name, status, created_at)
-         VALUES (?, ?, ?, 'pending', ?)`,
-      ).run(branchId, reviewId, branchName, now);
-      branches.push({
-        id: branchId,
+        `INSERT INTO code_reviews (id, project_id, base_branch, agent_type, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'running', ?, ?)`,
+      ).run(
         reviewId,
-        branchName,
-        sessionId: null,
-        clientId: null,
-        worktreeId: null,
-        status: "pending",
-        error: null,
-        createdAt: new Date(now),
-      });
-    }
+        opts.projectId,
+        opts.baseBranch,
+        opts.agentType,
+        now,
+        now,
+      );
+
+      for (const branchName of opts.branchNames) {
+        const branchId = randomUUID();
+        db.prepare(
+          `INSERT INTO code_review_branches (id, review_id, branch_name, status, created_at)
+           VALUES (?, ?, ?, 'pending', ?)`,
+        ).run(branchId, reviewId, branchName, now);
+        branches.push({
+          id: branchId,
+          reviewId,
+          branchName,
+          sessionId: null,
+          clientId: null,
+          worktreeId: null,
+          status: "pending",
+          error: null,
+          createdAt: new Date(now),
+        });
+      }
+    })();
 
     return {
       id: reviewId,
@@ -591,20 +602,69 @@ export class ProjectManager {
 
   listCodeReviews(projectId: string): CodeReview[] {
     const db = getDatabase();
-    const reviewRows = db
-      .prepare(
-        "SELECT * FROM code_reviews WHERE project_id = ? ORDER BY created_at DESC",
-      )
-      .all(projectId) as CodeReviewRow[];
 
-    return reviewRows.map((row) => {
-      const branchRows = db
-        .prepare(
-          "SELECT * FROM code_review_branches WHERE review_id = ? ORDER BY created_at ASC",
-        )
-        .all(row.id) as CodeReviewBranchRow[];
-      return rowToCodeReview(row, branchRows.map(rowToCodeReviewBranch));
-    });
+    // Single joined query to avoid N+1
+    const rows = db
+      .prepare(
+        `SELECT
+           r.id AS r_id, r.project_id AS r_project_id, r.base_branch AS r_base_branch,
+           r.agent_type AS r_agent_type, r.status AS r_status,
+           r.created_at AS r_created_at, r.updated_at AS r_updated_at,
+           b.id AS b_id, b.review_id AS b_review_id, b.branch_name AS b_branch_name,
+           b.session_id AS b_session_id, b.client_id AS b_client_id,
+           b.worktree_id AS b_worktree_id, b.status AS b_status,
+           b.error AS b_error, b.created_at AS b_created_at
+         FROM code_reviews r
+         LEFT JOIN code_review_branches b ON b.review_id = r.id
+         WHERE r.project_id = ?
+         ORDER BY r.created_at DESC, b.created_at ASC`,
+      )
+      .all(projectId) as Array<Record<string, unknown>>;
+
+    // Group joined rows by review
+    const reviewMap = new Map<
+      string,
+      { row: CodeReviewRow; branches: CodeReviewBranch[] }
+    >();
+
+    for (const row of rows) {
+      const reviewId = row.r_id as string;
+      if (!reviewMap.has(reviewId)) {
+        reviewMap.set(reviewId, {
+          row: {
+            id: row.r_id as string,
+            project_id: row.r_project_id as string,
+            base_branch: row.r_base_branch as string,
+            agent_type: row.r_agent_type as string,
+            status: row.r_status as string,
+            created_at: row.r_created_at as string,
+            updated_at: row.r_updated_at as string,
+          },
+          branches: [],
+        });
+      }
+
+      // LEFT JOIN: branch columns are null when a review has no branches
+      if (row.b_id != null) {
+        reviewMap.get(reviewId)!.branches.push(
+          rowToCodeReviewBranch({
+            id: row.b_id as string,
+            review_id: row.b_review_id as string,
+            branch_name: row.b_branch_name as string,
+            session_id: row.b_session_id as string | null,
+            client_id: row.b_client_id as string | null,
+            worktree_id: row.b_worktree_id as string | null,
+            status: row.b_status as string,
+            error: row.b_error as string | null,
+            created_at: row.b_created_at as string,
+          }),
+        );
+      }
+    }
+
+    return Array.from(reviewMap.values()).map(({ row, branches }) =>
+      rowToCodeReview(row, branches),
+    );
   }
 
   updateCodeReviewBranch(

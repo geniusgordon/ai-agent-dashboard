@@ -200,7 +200,7 @@ export const codeReviewsRouter = createTRPCRouter({
         projectId: z.string(),
         baseBranch: z.string(),
         branchNames: z.array(z.string()).min(1),
-        reviewId: z.string().optional(),
+        reviewId: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -224,9 +224,7 @@ export const codeReviewsRouter = createTRPCRouter({
       }
 
       // Load review branches for status updates
-      const review = input.reviewId
-        ? projectManager.getCodeReview(input.reviewId)
-        : undefined;
+      const review = projectManager.getCodeReview(input.reviewId);
 
       const results: Array<{
         branchName: string;
