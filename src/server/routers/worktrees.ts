@@ -7,6 +7,7 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "../../integrations/trpc/init.js";
+import { getAgentManager } from "../../lib/agents/index.js";
 import {
   getCommitsSinceBranch,
   getDefaultBranch,
@@ -126,8 +127,20 @@ export const worktreesRouter = createTRPCRouter({
       }),
     )
     .mutation(({ input }) => {
-      const manager = getProjectManager();
-      return manager.assignAgentToWorktree(input);
+      const projectManager = getProjectManager();
+      const assignment = projectManager.assignAgentToWorktree(input);
+
+      // Stamp session with project context so it survives after unassignment
+      const worktree = projectManager.getWorktree(input.worktreeId);
+      if (worktree) {
+        getAgentManager().setSessionProjectContext(input.sessionId, {
+          projectId: input.projectId,
+          worktreeId: input.worktreeId,
+          worktreeBranch: worktree.branch,
+        });
+      }
+
+      return assignment;
     }),
 
   unassignAgent: publicProcedure

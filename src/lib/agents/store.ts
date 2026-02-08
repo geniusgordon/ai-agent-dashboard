@@ -67,6 +67,9 @@ export interface StoredSession {
   updatedAt: string;
   availableModes?: Array<{ id: string; name: string; description?: string }>;
   currentModeId?: string;
+  projectId?: string;
+  worktreeId?: string;
+  worktreeBranch?: string;
 }
 
 /** Legacy format — only used during migration from old JSON files. */
@@ -83,6 +86,9 @@ interface SessionRow {
   status: string;
   available_modes: string | null;
   current_mode_id: string | null;
+  project_id: string | null;
+  worktree_id: string | null;
+  worktree_branch: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -103,6 +109,9 @@ function rowToStoredSession(row: SessionRow): StoredSession {
       ? JSON.parse(row.available_modes)
       : undefined,
     currentModeId: row.current_mode_id ?? undefined,
+    projectId: row.project_id ?? undefined,
+    worktreeId: row.worktree_id ?? undefined,
+    worktreeBranch: row.worktree_branch ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -303,6 +312,25 @@ export function updateSessionName(sessionId: string, name: string): void {
   const db = getDatabase();
   db.prepare("UPDATE sessions SET name = ?, updated_at = ? WHERE id = ?").run(
     name,
+    new Date().toISOString(),
+    sessionId,
+  );
+}
+
+/**
+ * Update session project context (projectId, worktreeId, worktreeBranch).
+ */
+export function updateSessionProjectContext(
+  sessionId: string,
+  context: { projectId: string; worktreeId: string; worktreeBranch: string },
+): void {
+  const db = getDatabase();
+  db.prepare(
+    "UPDATE sessions SET project_id = ?, worktree_id = ?, worktree_branch = ?, updated_at = ? WHERE id = ?",
+  ).run(
+    context.projectId,
+    context.worktreeId,
+    context.worktreeBranch,
     new Date().toISOString(),
     sessionId,
   );

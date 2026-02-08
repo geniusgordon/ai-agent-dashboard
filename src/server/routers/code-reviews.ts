@@ -107,6 +107,11 @@ export const codeReviewsRouter = createTRPCRouter({
             worktreeId: worktree.id,
             projectId: input.projectId,
           });
+          agentManager.setSessionProjectContext(session.id, {
+            projectId: input.projectId,
+            worktreeId: worktree.id,
+            worktreeBranch: worktree.branch,
+          });
         }
 
         const [diff, files] = await Promise.all([

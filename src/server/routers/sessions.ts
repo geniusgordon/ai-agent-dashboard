@@ -126,30 +126,11 @@ export const sessionsRouter = createTRPCRouter({
       const sessions = manager.listSessions(input?.clientId);
 
       if (input?.projectId) {
-        const projectManager = getProjectManager();
-        const assignments = projectManager.getAssignmentsForProject(
-          input.projectId,
-        );
-        const assignedSessionIds = new Set(assignments.map((a) => a.sessionId));
-
-        // Build worktree branch lookup: sessionId → branch
-        const worktreeBranchMap = new Map<string, string>();
-        for (const assignment of assignments) {
-          const worktree = projectManager.getWorktree(assignment.worktreeId);
-          if (worktree) {
-            worktreeBranchMap.set(assignment.sessionId, worktree.branch);
-          }
-        }
-
-        return sessions
-          .filter((s) => assignedSessionIds.has(s.id))
-          .map((s) => ({
-            ...s,
-            worktreeBranch: worktreeBranchMap.get(s.id),
-          }));
+        // Filter by the session's own projectId (survives after unassignment)
+        return sessions.filter((s) => s.projectId === input.projectId);
       }
 
-      return sessions.map((s) => ({ ...s, worktreeBranch: undefined }));
+      return sessions;
     }),
 
   /**

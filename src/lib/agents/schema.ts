@@ -27,4 +27,21 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions(created_at);
     `,
   },
+  {
+    version: 5,
+    sql: `
+      ALTER TABLE sessions ADD COLUMN project_id TEXT;
+      ALTER TABLE sessions ADD COLUMN worktree_id TEXT;
+      ALTER TABLE sessions ADD COLUMN worktree_branch TEXT;
+
+      CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_worktree ON sessions(worktree_id);
+
+      -- Backfill from existing assignments
+      UPDATE sessions SET
+        project_id = (SELECT project_id FROM agent_worktree_assignments WHERE session_id = sessions.id),
+        worktree_id = (SELECT worktree_id FROM agent_worktree_assignments WHERE session_id = sessions.id),
+        worktree_branch = (SELECT w.branch FROM agent_worktree_assignments a JOIN worktrees w ON a.worktree_id = w.id WHERE a.session_id = sessions.id);
+    `,
+  },
 ];
