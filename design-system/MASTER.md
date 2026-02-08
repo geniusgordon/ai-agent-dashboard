@@ -103,14 +103,16 @@
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
-  transition: all 200ms ease;
+  transition: background 200ms ease, border-color 200ms ease;
   cursor: pointer;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  background: #1E293B;
+  border-color: rgba(var(--color-primary-rgb), 0.2);
 }
+
+/* NOTE: Cards use flat hover (color change only). No translateY or shadow-lift. */
 ```
 
 ### Inputs
@@ -183,7 +185,7 @@
 
 - ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
 - ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
+- ❌ **Layout-shifting hovers** — No translateY, scale, or shadow-lift on card hover. Use color transitions only
 - ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
 - ❌ **Instant state changes** — Always use transitions (150-300ms)
 - ❌ **Invisible focus states** — Focus states must be visible for a11y

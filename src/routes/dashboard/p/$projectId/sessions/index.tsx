@@ -34,7 +34,7 @@ function ProjectSessionsPage() {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
   const [collapsedWorktrees, setCollapsedWorktrees] = useState<Set<string>>(
-    new Set(),
+    new Set(["__unassigned"]),
   );
 
   // Queries
