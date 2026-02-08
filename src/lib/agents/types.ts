@@ -54,6 +54,8 @@ export interface AgentSession {
   availableModes?: SessionMode[];
   /** Current mode ID */
   currentModeId?: string;
+  /** Branch name from the assigned worktree, if any */
+  worktreeBranch?: string;
 }
 
 export interface AgentClient {
