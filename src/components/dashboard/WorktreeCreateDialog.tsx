@@ -16,6 +16,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useTRPC } from "@/integrations/trpc/react";
 
 interface WorktreeCreateDialogProps {
@@ -35,7 +42,7 @@ export function WorktreeCreateDialog({
   const [createNewBranch, setCreateNewBranch] = useState(true);
   const [baseBranch, setBaseBranch] = useState("");
 
-  const branchPrefixes = ["feat", "fix", "chore", "refactor"] as const;
+  const branchPrefixes = ["feat", "fix", "hotfix", "release", "chore"] as const;
   const fullBranchName = createNewBranch
     ? `${branchPrefix}/${branchName}`
     : branchName;
@@ -63,7 +70,7 @@ export function WorktreeCreateDialog({
     }),
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     createMutation.mutate({
       projectId,
@@ -136,18 +143,19 @@ export function WorktreeCreateDialog({
                 Branch Name
               </label>
               {createNewBranch ? (
-                <div className="flex gap-2">
-                  <select
-                    value={branchPrefix}
-                    onChange={(e) => setBranchPrefix(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {branchPrefixes.map((p) => (
-                      <option key={p} value={p}>
-                        {p}/
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Select value={branchPrefix} onValueChange={setBranchPrefix}>
+                    <SelectTrigger className="w-full sm:w-auto font-mono">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branchPrefixes.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}/
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <input
                     id="branchName"
                     type="text"
@@ -163,20 +171,18 @@ export function WorktreeCreateDialog({
                   />
                 </div>
               ) : (
-                <select
-                  id="branchName"
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="">Select a branch...</option>
-                  {branches.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
+                <Select value={branchName} onValueChange={setBranchName}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a branch..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
 
@@ -192,19 +198,20 @@ export function WorktreeCreateDialog({
                     (optional, defaults to {defaultBranch || "main"})
                   </span>
                 </label>
-                <select
-                  id="baseBranch"
-                  value={baseBranch}
-                  onChange={(e) => setBaseBranch(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="">{defaultBranch || "main"} (default)</option>
-                  {branches.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
+                <Select value={baseBranch} onValueChange={setBaseBranch}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={`${defaultBranch || "main"} (default)`}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 

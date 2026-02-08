@@ -8,6 +8,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Play } from "lucide-react";
 import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
 import type { Worktree } from "@/lib/projects/types";
@@ -105,18 +112,21 @@ export function ProjectSpawnFlow({
       </h3>
 
       {/* Worktree selector */}
-      <select
-        value={selectedWorktreeId}
-        onChange={(e) => setSelectedWorktreeId(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+      <Select
+        value={selectedWorktreeId || undefined}
+        onValueChange={setSelectedWorktreeId}
       >
-        <option value="">Select a worktree...</option>
-        {worktrees.map((wt) => (
-          <option key={wt.id} value={wt.id}>
-            {wt.name} ({wt.branch})
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select a worktree..." />
+        </SelectTrigger>
+        <SelectContent>
+          {worktrees.map((wt) => (
+            <SelectItem key={wt.id} value={wt.id}>
+              {wt.name} ({wt.branch})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Agent type buttons */}
       <div className="flex flex-wrap gap-2">
