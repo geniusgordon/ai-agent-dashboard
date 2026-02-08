@@ -481,9 +481,6 @@ function WorktreeAgentGroup({
                   </span>
                 </Link>
               </SidebarMenuSubButton>
-              <span className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">
-                <StatusDot status={session.status} />
-              </span>
             </SidebarMenuSubItem>
           );
         })}
