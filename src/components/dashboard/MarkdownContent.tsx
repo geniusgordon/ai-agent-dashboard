@@ -9,7 +9,10 @@ import { CopyButton } from "./CopyButton";
  * highlighting + copy button), tables, and inline code.  Used by both
  * LogEntryContent and GenericToolUpdateEntry so styling stays consistent.
  */
-export function MarkdownContent({ children }: { children: string }) {
+export function MarkdownContent({
+  children,
+}: { children: string | null | undefined }) {
+  if (!children) return null;
   return (
     <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_hr]:border-border [&_hr]:my-3">
       <Markdown components={markdownComponents}>{children}</Markdown>
