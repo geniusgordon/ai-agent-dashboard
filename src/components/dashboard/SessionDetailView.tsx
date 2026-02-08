@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useState } from "react";
 import {
   ApprovalBanner,
   MessageInput,
   ReconnectBanner,
   SessionHeader,
   SessionLog,
+  SessionRightPanel,
   TaskPanel,
 } from "@/components/dashboard";
+import { useIsDesktop } from "@/hooks/use-mobile";
 import { useSessionDetail } from "@/hooks/useSessionDetail";
 import { useTRPC } from "@/integrations/trpc/react";
 
@@ -24,6 +27,32 @@ export interface SessionDetailViewProps {
   onAfterDelete: () => void;
 }
 
+function useLocalStorageState(key: string, defaultValue: boolean) {
+  const [value, setValue] = useState<boolean>(() => {
+    if (typeof window === "undefined") return defaultValue;
+    try {
+      const stored = localStorage.getItem(key);
+      return stored !== null ? JSON.parse(stored) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  });
+
+  const setAndPersist = (next: boolean | ((prev: boolean) => boolean)) => {
+    setValue((prev) => {
+      const resolved = typeof next === "function" ? next(prev) : next;
+      try {
+        localStorage.setItem(key, JSON.stringify(resolved));
+      } catch {
+        // localStorage full or unavailable
+      }
+      return resolved;
+    });
+  };
+
+  return [value, setAndPersist] as const;
+}
+
 export function SessionDetailView({
   sessionId,
   projectId,
@@ -34,6 +63,11 @@ export function SessionDetailView({
   onAfterDelete,
 }: SessionDetailViewProps) {
   const trpc = useTRPC();
+  const isDesktop = useIsDesktop();
+  const [panelOpen, setPanelOpen] = useLocalStorageState(
+    "session-right-panel",
+    true,
+  );
   const hasProject = typeof projectId === "string";
 
   const assignmentsQuery = useQuery({
@@ -126,67 +160,81 @@ export function SessionDetailView({
     );
   }
 
+  const showInput =
+    session.status !== "completed" &&
+    session.status !== "killed" &&
+    session.status !== "error";
+
+  const handleDelete = () => {
+    deleteSession();
+    onAfterDelete();
+  };
+
   return (
-    <div className="h-[calc(100dvh-3.5rem-2rem)] sm:h-[calc(100dvh-3.5rem-3rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col gap-3">
-      <SessionHeader
-        session={session}
-        connected={connected}
-        autoScroll={autoScroll}
-        onToggleAutoScroll={toggleAutoScroll}
-        onClearLogs={clearLogs}
-        onKillSession={killSession}
-        isKilling={isKilling}
-        onCompleteSession={completeSession}
-        isCompleting={isCompleting}
-        onRename={renameSession}
-        isRenaming={isRenaming}
-        backTo={headerBackTo}
-        backParams={headerBackParams}
-        onDeleteSession={() => {
-          deleteSession();
-          onAfterDelete();
-        }}
-        isDeleting={isDeleting}
-        branch={branch}
-        projectName={projectQuery.data?.name}
-      />
-
-      {session.isActive === false && (
-        <ReconnectBanner
-          onReconnect={reconnect}
-          isReconnecting={isReconnecting}
+    <div className="h-[calc(100dvh-3.5rem-2rem)] sm:h-[calc(100dvh-3.5rem-3rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col lg:flex-row gap-3">
+      {/* Main column */}
+      <div className="flex-1 flex flex-col gap-3 min-w-0">
+        <SessionHeader
+          session={session}
+          connected={connected}
+          autoScroll={autoScroll}
+          onToggleAutoScroll={toggleAutoScroll}
+          onClearLogs={clearLogs}
+          onKillSession={killSession}
+          isKilling={isKilling}
+          onCompleteSession={completeSession}
+          isCompleting={isCompleting}
+          onRename={renameSession}
+          isRenaming={isRenaming}
+          backTo={headerBackTo}
+          backParams={headerBackParams}
+          onDeleteSession={handleDelete}
+          isDeleting={isDeleting}
+          branch={branch}
+          projectName={projectQuery.data?.name}
+          compact={isDesktop}
+          kebabMenu={!isDesktop}
         />
-      )}
 
-      {pendingApproval && (
-        <ApprovalBanner
-          approval={pendingApproval}
-          onApprove={approve}
-          onDeny={deny}
-          isApproving={isApproving}
-          isDenying={isDenying}
+        {/* Mobile/tablet: inline banners and task panel */}
+        {!isDesktop && (
+          <>
+            {session.isActive === false && (
+              <ReconnectBanner
+                onReconnect={reconnect}
+                isReconnecting={isReconnecting}
+              />
+            )}
+
+            {pendingApproval && (
+              <ApprovalBanner
+                approval={pendingApproval}
+                onApprove={approve}
+                onDeny={deny}
+                isApproving={isApproving}
+                isDenying={isDenying}
+              />
+            )}
+
+            {latestPlan && (
+              <TaskPanel
+                entries={latestPlan.entries}
+                isCollapsed={taskPanelCollapsed}
+                onToggleCollapse={toggleTaskPanel}
+              />
+            )}
+          </>
+        )}
+
+        <SessionLog
+          events={events}
+          logsEndRef={logsEndRef}
+          containerRef={logContainerRef}
+          showScrollButton={showScrollButton}
+          onScrollToBottom={manualScrollToBottom}
         />
-      )}
 
-      {latestPlan && (
-        <TaskPanel
-          entries={latestPlan.entries}
-          isCollapsed={taskPanelCollapsed}
-          onToggleCollapse={toggleTaskPanel}
-        />
-      )}
-
-      <SessionLog
-        events={events}
-        logsEndRef={logsEndRef}
-        containerRef={logContainerRef}
-        showScrollButton={showScrollButton}
-        onScrollToBottom={manualScrollToBottom}
-      />
-
-      {session.status !== "completed" &&
-        session.status !== "killed" &&
-        session.status !== "error" && (
+        {showInput && (
           <MessageInput
             onSend={sendMessage}
             disabled={!!pendingApproval}
@@ -201,6 +249,46 @@ export function SessionDetailView({
             isSettingMode={isSettingMode}
           />
         )}
+      </div>
+
+      {/* Right panel — desktop only */}
+      {isDesktop && (
+        <SessionRightPanel
+          isOpen={panelOpen}
+          onToggle={() => setPanelOpen((prev) => !prev)}
+          session={session}
+          connected={connected}
+          branch={branch}
+          projectName={projectQuery.data?.name}
+          approval={{
+            pendingApproval,
+            onApprove: approve,
+            onDeny: deny,
+            isApproving,
+            isDenying,
+          }}
+          actions={{
+            onKillSession: killSession,
+            isKilling,
+            onCompleteSession: completeSession,
+            isCompleting,
+            onDeleteSession: handleDelete,
+            isDeleting,
+            onReconnect: reconnect,
+            isReconnecting,
+          }}
+          logControls={{
+            autoScroll,
+            onToggleAutoScroll: toggleAutoScroll,
+            onClearLogs: clearLogs,
+          }}
+          tasks={{
+            latestPlan,
+            taskPanelCollapsed,
+            onToggleTaskPanel: toggleTaskPanel,
+          }}
+        />
+      )}
     </div>
   );
 }
