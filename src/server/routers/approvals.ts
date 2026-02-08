@@ -21,12 +21,20 @@ export const approvalsRouter = createTRPCRouter({
       const approvals = manager.getPendingApprovals();
 
       if (input?.projectId) {
+        // Fallback: also check assignment table for sessions not yet stamped
         const projectManager = getProjectManager();
         const assignments = projectManager.getAssignmentsForProject(
           input.projectId,
         );
         const assignedSessionIds = new Set(assignments.map((a) => a.sessionId));
-        return approvals.filter((a) => assignedSessionIds.has(a.sessionId));
+
+        return approvals.filter((a) => {
+          const session = manager.getSession(a.sessionId);
+          return (
+            session?.projectId === input.projectId ||
+            assignedSessionIds.has(a.sessionId)
+          );
+        });
       }
 
       return approvals;

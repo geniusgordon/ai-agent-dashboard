@@ -71,46 +71,6 @@ export function SessionDetailView({
   );
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
-  // Resolve project context: use prop if provided, otherwise reverse-lookup
-  const sessionAssignmentQuery = useQuery({
-    ...trpc.sessions.getAssignment.queryOptions({ sessionId }),
-    enabled: !projectId,
-  });
-  const resolvedProjectId =
-    projectId ?? sessionAssignmentQuery.data?.projectId ?? undefined;
-  const hasProject = typeof resolvedProjectId === "string";
-
-  const assignmentsQuery = useQuery({
-    ...trpc.projects.getAssignments.queryOptions({
-      projectId: resolvedProjectId ?? "",
-    }),
-    enabled: hasProject,
-  });
-  const projectQuery = useQuery({
-    ...trpc.projects.get.queryOptions({ id: resolvedProjectId ?? "" }),
-    enabled: hasProject,
-  });
-  const worktreesQuery = useQuery({
-    ...trpc.worktrees.list.queryOptions({ projectId: resolvedProjectId ?? "" }),
-    enabled: hasProject,
-  });
-  const branch = hasProject
-    ? (() => {
-        // Fast path: if we got the branch from the session assignment query
-        if (sessionAssignmentQuery.data?.worktreeBranch) {
-          return sessionAssignmentQuery.data.worktreeBranch;
-        }
-        const assignment = assignmentsQuery.data?.find(
-          (a) => a.sessionId === sessionId,
-        );
-        if (!assignment) return undefined;
-        const worktree = worktreesQuery.data?.find(
-          (w) => w.id === assignment.worktreeId,
-        );
-        return worktree?.branch;
-      })()
-    : undefined;
-
   const {
     session,
     events,
@@ -147,6 +107,16 @@ export function SessionDetailView({
     toggleTaskPanel,
     manualScrollToBottom,
   } = useSessionDetail(sessionId);
+
+  // Project context comes from the session itself (stamped at assignment time)
+  const resolvedProjectId = projectId ?? session?.projectId;
+  const hasProject = typeof resolvedProjectId === "string";
+  const branch = session?.worktreeBranch;
+
+  const projectQuery = useQuery({
+    ...trpc.projects.get.queryOptions({ id: resolvedProjectId ?? "" }),
+    enabled: hasProject,
+  });
 
   if (isLoading) {
     return (

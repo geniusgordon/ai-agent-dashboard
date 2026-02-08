@@ -82,6 +82,9 @@ interface ManagedSession {
   updatedAt: Date;
   availableModes?: Array<{ id: string; name: string; description?: string }>;
   currentModeId?: string;
+  projectId?: string;
+  worktreeId?: string;
+  worktreeBranch?: string;
 }
 
 /**
@@ -339,6 +342,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         updatedAt: new Date(stored.updatedAt),
         availableModes: stored.availableModes,
         currentModeId: stored.currentModeId,
+        projectId: stored.projectId,
+        worktreeId: stored.worktreeId,
+        worktreeBranch: stored.worktreeBranch,
         isActive: false,
       };
     }
@@ -378,6 +384,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           updatedAt: new Date(s.updatedAt),
           availableModes: s.availableModes,
           currentModeId: s.currentModeId,
+          projectId: s.projectId,
+          worktreeId: s.worktreeId,
+          worktreeBranch: s.worktreeBranch,
           isActive: false, // Stored sessions without in-memory counterpart are inactive
         })),
     ];
@@ -395,6 +404,23 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   // -------------------------------------------------------------------------
   // Session Management
   // -------------------------------------------------------------------------
+
+  /**
+   * Set the project context on a session (persisted to disk).
+   */
+  setSessionProjectContext(
+    sessionId: string,
+    context: { projectId: string; worktreeId: string; worktreeBranch: string },
+  ): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.projectId = context.projectId;
+      session.worktreeId = context.worktreeId;
+      session.worktreeBranch = context.worktreeBranch;
+      session.updatedAt = new Date();
+    }
+    store.updateSessionProjectContext(sessionId, context);
+  }
 
   /**
    * Rename a session
@@ -462,12 +488,20 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           updatedAt: new Date(),
           availableModes: newSession.availableModes,
           currentModeId: newSession.currentModeId,
+          projectId: stored.projectId,
+          worktreeId: stored.worktreeId,
+          worktreeBranch: stored.worktreeBranch,
         };
 
         this.sessions.set(session.id, session);
         this.sessionToClient.set(session.id, client.id);
 
-        return this.toAgentSession(session);
+        // Persist project context to new session ID
+        if (stored.projectId && stored.worktreeId && stored.worktreeBranch) {
+          store.saveSession(session, []);
+        }
+
+        return { ...this.toAgentSession(session), isActive: true };
       }
     } else {
       console.log(
@@ -490,6 +524,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       updatedAt: new Date(),
       availableModes: acpSession?.availableModes,
       currentModeId: acpSession?.currentModeId,
+      projectId: stored.projectId,
+      worktreeId: stored.worktreeId,
+      worktreeBranch: stored.worktreeBranch,
     };
 
     this.sessions.set(sessionId, session);
@@ -1267,6 +1304,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       updatedAt: managed.updatedAt,
       availableModes: managed.availableModes,
       currentModeId: managed.currentModeId,
+      projectId: managed.projectId,
+      worktreeId: managed.worktreeId,
+      worktreeBranch: managed.worktreeBranch,
     };
   }
 
