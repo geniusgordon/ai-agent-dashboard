@@ -190,6 +190,18 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+
+    /* Functional animations: spinners indicate loading state — keep them running */
+    .animate-spin {
+      animation-duration: 1.5s !important;
+      animation-iteration-count: infinite !important;
+    }
+
+    /* Status pulses are functional indicators — use a gentler version */
+    .animate-ping {
+      animation-duration: 2s !important;
+      animation-iteration-count: infinite !important;
+    }
   }
 }
 
