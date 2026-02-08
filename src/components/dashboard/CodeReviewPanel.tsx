@@ -96,6 +96,7 @@ export function CodeReviewPanel({
 
     const result = await mergeMutation.mutateAsync({
       projectId,
+      baseBranch: batch.baseBranch,
       branchNames,
     });
 
@@ -209,19 +210,10 @@ export function CodeReviewPanel({
                     }`}
                   >
                     {mergeSelection.has(entry.branchName) && (
-                      <svg
+                      <Check
                         className="size-3 text-primary-foreground"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
                         strokeWidth={3}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
+                      />
                     )}
                   </div>
                 </button>

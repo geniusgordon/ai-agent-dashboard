@@ -26,6 +26,13 @@ export function buildReviewPrompt(
   const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
   const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
 
+  const MAX_DIFF_CHARS = 200_000;
+  const truncated = diff.length > MAX_DIFF_CHARS;
+  const safeDiff = truncated ? diff.slice(0, MAX_DIFF_CHARS) : diff;
+  const truncationNote = truncated
+    ? "\n\n(Diff truncated — full diff too large to include)"
+    : "";
+
   return `Review the changes in branch \`${branchName}\` compared to \`${baseBranch}\`.
 
 ${files.length} files changed, +${totalAdditions} -${totalDeletions}
@@ -33,6 +40,6 @@ ${files.length} files changed, +${totalAdditions} -${totalDeletions}
 ${fileList}
 
 \`\`\`diff
-${diff}
-\`\`\``;
+${safeDiff}
+\`\`\`${truncationNote}`;
 }

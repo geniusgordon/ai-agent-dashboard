@@ -10,6 +10,10 @@ import {
 import { getAgentManager } from "../../lib/agents/index.js";
 import { buildReviewPrompt } from "../../lib/code-review/prompt-builder.js";
 import {
+  deleteBranch,
+  getCurrentBranch,
+} from "../../lib/projects/git-operations.js";
+import {
   getDiff,
   getFilesChanged,
   getProjectManager,
@@ -77,14 +81,22 @@ export const codeReviewsRouter = createTRPCRouter({
         return { branchName, sessionId: session.id, clientId: client.id };
       });
 
+      const failures: Array<{ branchName: string; error: string }> = [];
+
       const results = await Promise.allSettled(spawnPromises);
-      for (const result of results) {
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
         if (result.status === "fulfilled") {
           sessions.push(result.value);
+        } else {
+          failures.push({
+            branchName: input.branchNames[i],
+            error: result.reason?.message ?? "Unknown error",
+          });
         }
       }
 
-      return { reviewId, sessions };
+      return { reviewId, sessions, failures };
     }),
 
   /**
@@ -117,12 +129,13 @@ export const codeReviewsRouter = createTRPCRouter({
 
   /**
    * Merge selected branches into the base branch.
-   * Runs in the main worktree (where the base branch is checked out).
+   * Runs in the main worktree after verifying the correct branch is checked out.
    */
   mergeBranches: publicProcedure
     .input(
       z.object({
         projectId: z.string(),
+        baseBranch: z.string(),
         branchNames: z.array(z.string()).min(1),
       }),
     )
@@ -136,6 +149,14 @@ export const codeReviewsRouter = createTRPCRouter({
       const mainWorktree = worktrees.find((wt) => wt.isMainWorktree);
       if (!mainWorktree) {
         throw new Error("No main worktree found for this project");
+      }
+
+      // Verify the main worktree has the expected base branch checked out
+      const currentBranch = await getCurrentBranch(mainWorktree.path);
+      if (currentBranch !== input.baseBranch) {
+        throw new Error(
+          `Main worktree has '${currentBranch}' checked out, expected '${input.baseBranch}'`,
+        );
       }
 
       const results: Array<{
@@ -205,10 +226,6 @@ export const codeReviewsRouter = createTRPCRouter({
             result.worktreeDeleted = true;
             result.branchDeleted = input.deleteBranches;
           } else if (input.deleteBranches && !worktree) {
-            // No worktree, just delete the branch
-            const { deleteBranch } = await import(
-              "../../lib/projects/git-operations.js"
-            );
             await deleteBranch(project.repoPath, branchName, true);
             result.branchDeleted = true;
           }

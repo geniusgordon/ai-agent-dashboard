@@ -7,7 +7,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GitBranch, GitMerge, Search } from "lucide-react";
+import { Check, GitBranch, GitMerge, Search } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -38,6 +38,7 @@ interface ReviewBatchSession {
 
 export interface ReviewBatch {
   reviewId: string;
+  baseBranch: string;
   sessions: ReviewBatchSession[];
 }
 
@@ -136,7 +137,7 @@ export function CodeReviewDialog({
         queryKey: trpc.sessions.listSessions.queryKey(),
       });
 
-      onReviewStarted(result);
+      onReviewStarted({ ...result, baseBranch: effectiveBase });
       onOpenChange(false);
       resetDialog();
     } catch (err) {
@@ -258,19 +259,10 @@ export function CodeReviewDialog({
                       }`}
                     >
                       {isSelected && (
-                        <svg
+                        <Check
                           className="size-3 text-primary-foreground"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
                           strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
+                        />
                       )}
                     </div>
                     <GitBranch className="size-3.5 text-muted-foreground shrink-0" />
