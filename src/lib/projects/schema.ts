@@ -130,4 +130,10 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_code_reviews_worktree ON code_reviews(worktree_id);
     `,
   },
+  {
+    version: 5,
+    sql: `
+      DROP TABLE IF EXISTS code_reviews;
+    `,
+  },
 ];

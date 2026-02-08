@@ -20,7 +20,6 @@ import {
   BranchBadge,
   BranchList,
   CodeReviewDialog,
-  CodeReviewList,
   ErrorDisplay,
   SpawnAgentDialog,
   StatusBadge,
@@ -77,11 +76,6 @@ function ProjectOverviewPage() {
   const sessionsQuery = useQuery(
     trpc.sessions.listSessions.queryOptions({ projectId }),
   );
-  const reviewsQuery = useQuery(
-    trpc.codeReviews.list.queryOptions({ projectId }),
-  );
-
-  const reviews = reviewsQuery.data ?? [];
 
   // Keep fresh via SSE
   useAgentEvents({
@@ -96,9 +90,6 @@ function ProjectOverviewPage() {
         });
         queryClient.invalidateQueries({
           queryKey: trpc.projects.getAssignments.queryKey({ projectId }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.codeReviews.list.queryKey({ projectId }),
         });
       }
     },
@@ -295,7 +286,7 @@ function ProjectOverviewPage() {
 
       {/* Code Review */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <GitMerge className="size-5 text-muted-foreground" />
             Code Review
@@ -309,17 +300,9 @@ function ProjectOverviewPage() {
             New Review
           </button>
         </div>
-
-        {reviews.length > 0 ? (
-          <CodeReviewList reviews={reviews} projectId={projectId} />
-        ) : (
-          <div className="p-8 rounded-xl border border-dashed border-border text-center">
-            <GitMerge className="size-8 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Select branches to review with an AI agent
-            </p>
-          </div>
-        )}
+        <p className="text-sm text-muted-foreground mt-1">
+          Select branches and spawn agents to review changes
+        </p>
       </div>
 
       <CodeReviewDialog
