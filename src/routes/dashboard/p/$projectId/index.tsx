@@ -22,7 +22,6 @@ import {
   CodeReviewDialog,
   CodeReviewPanel,
   ErrorDisplay,
-  type ReviewBatch,
   SpawnAgentDialog,
   StatusBadge,
   WorktreeCard,
@@ -67,7 +66,7 @@ function ProjectOverviewPage() {
     null,
   );
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [reviewBatch, setReviewBatch] = useState<ReviewBatch | null>(null);
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
 
   // Queries
   const projectQuery = useQuery(
@@ -79,6 +78,17 @@ function ProjectOverviewPage() {
   const sessionsQuery = useQuery(
     trpc.sessions.listSessions.queryOptions({ projectId }),
   );
+  const reviewsQuery = useQuery(
+    trpc.codeReviews.list.queryOptions({ projectId }),
+  );
+
+  // Determine which review to show: selected by user, or the most recent active one
+  const reviews = reviewsQuery.data ?? [];
+  const activeReview =
+    reviews.find((r) => r.id === selectedReviewId) ??
+    reviews.find((r) => r.status === "running") ??
+    reviews.find((r) => r.status === "error") ??
+    null;
 
   // Keep fresh via SSE
   useAgentEvents({
@@ -93,6 +103,9 @@ function ProjectOverviewPage() {
         });
         queryClient.invalidateQueries({
           queryKey: trpc.projects.getAssignments.queryKey({ projectId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.codeReviews.list.queryKey({ projectId }),
         });
       }
     },
@@ -294,7 +307,7 @@ function ProjectOverviewPage() {
             <GitMerge className="size-5 text-muted-foreground" />
             Code Review
           </h2>
-          {!reviewBatch && (
+          {!activeReview && (
             <button
               type="button"
               onClick={() => setReviewDialogOpen(true)}
@@ -306,11 +319,11 @@ function ProjectOverviewPage() {
           )}
         </div>
 
-        {reviewBatch ? (
+        {activeReview ? (
           <CodeReviewPanel
-            batch={reviewBatch}
+            review={activeReview}
             projectId={projectId}
-            onClose={() => setReviewBatch(null)}
+            onClose={() => setSelectedReviewId(null)}
           />
         ) : (
           <div className="p-8 rounded-xl border border-dashed border-border text-center">
@@ -326,7 +339,7 @@ function ProjectOverviewPage() {
         projectId={projectId}
         open={reviewDialogOpen}
         onOpenChange={setReviewDialogOpen}
-        onReviewStarted={setReviewBatch}
+        onReviewStarted={(review) => setSelectedReviewId(review.id)}
       />
 
       {/* Branches */}

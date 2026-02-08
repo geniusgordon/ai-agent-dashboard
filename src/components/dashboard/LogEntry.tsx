@@ -11,9 +11,9 @@ import {
   formatTime,
   summarizePlanEntries,
 } from "@/lib/agents/event-utils";
+import type { AgentEvent, PlanPayload } from "@/lib/agents/types";
 import { CopyButton, CopyIconButton } from "./CopyButton";
 import { ToolUpdateEntry } from "./ToolUpdateEntry";
-import type { AgentEvent, PlanPayload } from "@/lib/agents/types";
 
 export interface LogEntryProps {
   event: AgentEvent;

@@ -24,8 +24,28 @@ const AgentTypeSchema = z.enum(["gemini", "claude-code", "codex"]);
 
 export const codeReviewsRouter = createTRPCRouter({
   /**
+   * List code reviews for a project (most recent first).
+   */
+  list: publicProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(({ input }) => {
+      return getProjectManager().listCodeReviews(input.projectId);
+    }),
+
+  /**
+   * Get a single code review by ID.
+   */
+  get: publicProcedure
+    .input(z.object({ reviewId: z.string() }))
+    .query(({ input }) => {
+      const review = getProjectManager().getCodeReview(input.reviewId);
+      if (!review) throw new Error("Code review not found");
+      return review;
+    }),
+
+  /**
    * Start a batch code review — spawns one agent per branch.
-   * Returns session info so the UI can track progress.
+   * Persists review metadata in SQLite and binds to existing worktrees.
    */
   startBatch: publicProcedure
     .input(
@@ -42,35 +62,65 @@ export const codeReviewsRouter = createTRPCRouter({
       if (!project) throw new Error("Project not found");
 
       const agentManager = getAgentManager();
-      const reviewId = `review_${Date.now()}`;
 
-      const sessions: Array<{
-        branchName: string;
-        sessionId: string;
-        clientId: string;
-      }> = [];
+      // Persist the review batch
+      const review = projectManager.createCodeReview({
+        projectId: input.projectId,
+        baseBranch: input.baseBranch,
+        agentType: input.agentType,
+        branchNames: input.branchNames,
+      });
 
       // Spawn an agent for each branch in parallel
-      const spawnPromises = input.branchNames.map(async (branchName) => {
+      const spawnPromises = review.branches.map(async (branch) => {
+        // Look up existing worktree for this branch
+        const worktree = projectManager.findWorktreeByBranch(
+          input.projectId,
+          branch.branchName,
+        );
+        const cwd = worktree?.path ?? project.repoPath;
+
         const client = await agentManager.spawnClient({
           agentType: input.agentType,
-          cwd: project.repoPath,
+          cwd,
         });
 
         const session = await agentManager.createSession({
           clientId: client.id,
         });
 
-        agentManager.renameSession(session.id, `[review] ${branchName}`);
+        agentManager.renameSession(session.id, `[review] ${branch.branchName}`);
 
-        // Get diff context
+        // Update the persisted branch entry with session + worktree binding
+        projectManager.updateCodeReviewBranch(branch.id, {
+          sessionId: session.id,
+          clientId: client.id,
+          worktreeId: worktree?.id ?? null,
+          status: "running",
+        });
+
+        // If worktree exists, create an agent assignment so it shows on WorktreeCard
+        if (worktree) {
+          projectManager.assignAgentToWorktree({
+            sessionId: session.id,
+            clientId: client.id,
+            worktreeId: worktree.id,
+            projectId: input.projectId,
+          });
+        }
+
+        // Get diff context and send review prompt
         const [diff, files] = await Promise.all([
-          getDiff(project.repoPath, input.baseBranch, branchName),
-          getFilesChanged(project.repoPath, input.baseBranch, branchName),
+          getDiff(project.repoPath, input.baseBranch, branch.branchName),
+          getFilesChanged(
+            project.repoPath,
+            input.baseBranch,
+            branch.branchName,
+          ),
         ]);
 
         const prompt = buildReviewPrompt(
-          branchName,
+          branch.branchName,
           input.baseBranch,
           files,
           diff,
@@ -78,7 +128,11 @@ export const codeReviewsRouter = createTRPCRouter({
 
         agentManager.sendMessage(session.id, prompt);
 
-        return { branchName, sessionId: session.id, clientId: client.id };
+        return {
+          branchId: branch.id,
+          sessionId: session.id,
+          clientId: client.id,
+        };
       });
 
       const failures: Array<{ branchName: string; error: string }> = [];
@@ -86,17 +140,26 @@ export const codeReviewsRouter = createTRPCRouter({
       const results = await Promise.allSettled(spawnPromises);
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        if (result.status === "fulfilled") {
-          sessions.push(result.value);
-        } else {
-          failures.push({
-            branchName: input.branchNames[i],
-            error: result.reason?.message ?? "Unknown error",
+        if (result.status === "rejected") {
+          const branch = review.branches[i];
+          const errorMsg = result.reason?.message ?? "Unknown error";
+          failures.push({ branchName: branch.branchName, error: errorMsg });
+
+          // Mark failed branch
+          projectManager.updateCodeReviewBranch(branch.id, {
+            status: "error",
+            error: errorMsg,
           });
         }
       }
 
-      return { reviewId, sessions, failures };
+      // Update review-level status if any failures
+      if (failures.length > 0) {
+        projectManager.updateCodeReviewStatus(review.id);
+      }
+
+      // Return the fresh persisted review
+      return projectManager.getCodeReview(review.id)!;
     }),
 
   /**
@@ -129,7 +192,7 @@ export const codeReviewsRouter = createTRPCRouter({
 
   /**
    * Merge selected branches into the base branch.
-   * Runs in the main worktree after verifying the correct branch is checked out.
+   * Updates review branch status to "merged" on success.
    */
   mergeBranches: publicProcedure
     .input(
@@ -137,6 +200,7 @@ export const codeReviewsRouter = createTRPCRouter({
         projectId: z.string(),
         baseBranch: z.string(),
         branchNames: z.array(z.string()).min(1),
+        reviewId: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -144,7 +208,7 @@ export const codeReviewsRouter = createTRPCRouter({
       const project = projectManager.getProject(input.projectId);
       if (!project) throw new Error("Project not found");
 
-      // Find the main worktree (first in list, sorted by is_main_worktree DESC)
+      // Find the main worktree
       const worktrees = projectManager.listWorktrees(input.projectId);
       const mainWorktree = worktrees.find((wt) => wt.isMainWorktree);
       if (!mainWorktree) {
@@ -158,6 +222,11 @@ export const codeReviewsRouter = createTRPCRouter({
           `Main worktree has '${currentBranch}' checked out, expected '${input.baseBranch}'`,
         );
       }
+
+      // Load review branches for status updates
+      const review = input.reviewId
+        ? projectManager.getCodeReview(input.reviewId)
+        : undefined;
 
       const results: Array<{
         branchName: string;
@@ -174,8 +243,26 @@ export const codeReviewsRouter = createTRPCRouter({
         });
         results.push({ branchName, ...result });
 
+        // Update review branch status
+        if (review) {
+          const reviewBranch = review.branches.find(
+            (b) => b.branchName === branchName,
+          );
+          if (reviewBranch) {
+            projectManager.updateCodeReviewBranch(reviewBranch.id, {
+              status: result.success ? "merged" : "error",
+              error: result.success ? null : (result.error ?? null),
+            });
+          }
+        }
+
         // Stop on first failure — subsequent merges may depend on order
         if (!result.success) break;
+      }
+
+      // Update review-level status
+      if (review) {
+        projectManager.updateCodeReviewStatus(review.id);
       }
 
       return { results };
@@ -237,5 +324,14 @@ export const codeReviewsRouter = createTRPCRouter({
       }
 
       return { results };
+    }),
+
+  /**
+   * Delete a code review record.
+   */
+  delete: publicProcedure
+    .input(z.object({ reviewId: z.string() }))
+    .mutation(({ input }) => {
+      getProjectManager().deleteCodeReview(input.reviewId);
     }),
 });

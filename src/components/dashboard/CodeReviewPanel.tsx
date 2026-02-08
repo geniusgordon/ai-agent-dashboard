@@ -19,12 +19,12 @@ import {
 import { useState } from "react";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
-import type { AgentEvent } from "@/lib/agents/types";
-import type { ReviewBatch } from "./CodeReviewDialog";
+import type { AgentEvent, SessionStatus } from "@/lib/agents/types";
+import type { CodeReview, CodeReviewBranchStatus } from "@/lib/projects/types";
 import { StatusBadge } from "./StatusBadge";
 
 interface CodeReviewPanelProps {
-  batch: ReviewBatch;
+  review: CodeReview;
   projectId: string;
   onClose: () => void;
 }
@@ -32,7 +32,7 @@ interface CodeReviewPanelProps {
 type BranchMergeState = "pending" | "success" | "failed";
 
 export function CodeReviewPanel({
-  batch,
+  review,
   projectId,
   onClose,
 }: CodeReviewPanelProps) {
@@ -44,8 +44,12 @@ export function CodeReviewPanel({
   >(new Map());
   const [cleanupDone, setCleanupDone] = useState(false);
 
+  // Session IDs from the persisted review branches
+  const sessionIds = review.branches
+    .map((b) => b.sessionId)
+    .filter((id): id is string => id !== null);
+
   // Fetch session status for each review branch
-  const sessionIds = batch.sessions.map((s) => s.sessionId);
   const sessionsQuery = useQuery(
     trpc.sessions.listSessions.queryOptions({ projectId }),
   );
@@ -53,7 +57,7 @@ export function CodeReviewPanel({
   // Build a map of sessionId → session for quick lookup
   const sessionMap = new Map((sessionsQuery.data ?? []).map((s) => [s.id, s]));
 
-  // Track completion via SSE
+  // Track completion via SSE — invalidate both sessions and review data
   useAgentEvents({
     onEvent: (event: AgentEvent) => {
       if (event.type === "complete" || event.type === "error") {
@@ -61,21 +65,30 @@ export function CodeReviewPanel({
           queryClient.invalidateQueries({
             queryKey: trpc.sessions.listSessions.queryKey({ projectId }),
           });
+          queryClient.invalidateQueries({
+            queryKey: trpc.codeReviews.list.queryKey({ projectId }),
+          });
         }
       }
     },
   });
 
-  // Compute status per branch
-  const branchStatuses = batch.sessions.map((entry) => {
-    const session = sessionMap.get(entry.sessionId);
-    const status = session?.status ?? "starting";
+  // Compute status per branch — derive from session when available
+  const branchStatuses = review.branches.map((branch) => {
+    const session = branch.sessionId
+      ? sessionMap.get(branch.sessionId)
+      : undefined;
+    // Use session status if available, otherwise fall back to persisted branch status
+    const sessionStatus: SessionStatus | undefined = session?.status;
+    const branchStatus: CodeReviewBranchStatus = branch.status;
     const isTerminal =
-      status === "completed" ||
-      status === "error" ||
-      status === "killed" ||
-      status === "idle";
-    return { ...entry, session, status, isTerminal };
+      sessionStatus === "completed" ||
+      sessionStatus === "error" ||
+      sessionStatus === "killed" ||
+      sessionStatus === "idle" ||
+      branchStatus === "merged" ||
+      branchStatus === "error";
+    return { ...branch, session, sessionStatus, branchStatus, isTerminal };
   });
 
   const completedCount = branchStatuses.filter((b) => b.isTerminal).length;
@@ -96,8 +109,9 @@ export function CodeReviewPanel({
 
     const result = await mergeMutation.mutateAsync({
       projectId,
-      baseBranch: batch.baseBranch,
+      baseBranch: review.baseBranch,
       branchNames,
+      reviewId: review.id,
     });
 
     const newResults = new Map(mergeResults);
@@ -109,12 +123,15 @@ export function CodeReviewPanel({
     }
     setMergeResults(newResults);
 
-    // Invalidate to refresh branch list
+    // Invalidate to refresh branch list and review status
     queryClient.invalidateQueries({
       queryKey: trpc.projects.listBranchesWithStatus.queryKey({ projectId }),
     });
     queryClient.invalidateQueries({
       queryKey: trpc.worktrees.list.queryKey({ projectId }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.codeReviews.list.queryKey({ projectId }),
     });
   };
 
@@ -187,12 +204,13 @@ export function CodeReviewPanel({
       <div className="space-y-1">
         {branchStatuses.map((entry) => {
           const mergeResult = mergeResults.get(entry.branchName);
-          const isMerged = mergeResult?.state === "success";
+          const isMerged =
+            mergeResult?.state === "success" || entry.branchStatus === "merged";
           const showCheckbox = allDone && !isMerged && !mergeResult;
 
           return (
             <div
-              key={entry.sessionId}
+              key={entry.id}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-card/80 transition-colors"
             >
               {/* Merge checkbox (only when all reviews done) */}
@@ -233,8 +251,10 @@ export function CodeReviewPanel({
                 {entry.branchName}
               </span>
 
-              {/* Status */}
-              {entry.session && <StatusBadge status={entry.status} />}
+              {/* Status — show session status when available, skip merged branches */}
+              {entry.session && entry.sessionStatus && !isMerged && (
+                <StatusBadge status={entry.sessionStatus} />
+              )}
 
               {/* Merge error */}
               {mergeResult?.state === "failed" && mergeResult.error && (
@@ -246,14 +266,16 @@ export function CodeReviewPanel({
               )}
 
               {/* Link to session */}
-              <Link
-                to="/dashboard/p/$projectId/sessions/$sessionId"
-                params={{ projectId, sessionId: entry.sessionId }}
-                className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                title="View review"
-              >
-                <ExternalLink className="size-3.5" />
-              </Link>
+              {entry.sessionId && (
+                <Link
+                  to="/dashboard/p/$projectId/sessions/$sessionId"
+                  params={{ projectId, sessionId: entry.sessionId }}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  title="View review"
+                >
+                  <ExternalLink className="size-3.5" />
+                </Link>
+              )}
             </div>
           );
         })}

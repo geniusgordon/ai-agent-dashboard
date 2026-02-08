@@ -26,27 +26,16 @@ import {
 } from "@/components/ui/select";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
+import type { CodeReview } from "@/lib/projects/types";
 import { AgentBadge } from "./AgentBadge";
 
 const agentTypes: AgentType[] = ["claude-code", "codex", "gemini"];
-
-interface ReviewBatchSession {
-  branchName: string;
-  sessionId: string;
-  clientId: string;
-}
-
-export interface ReviewBatch {
-  reviewId: string;
-  baseBranch: string;
-  sessions: ReviewBatchSession[];
-}
 
 interface CodeReviewDialogProps {
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onReviewStarted: (batch: ReviewBatch) => void;
+  onReviewStarted: (review: CodeReview) => void;
 }
 
 export function CodeReviewDialog({
@@ -123,7 +112,7 @@ export function CodeReviewDialog({
   const handleStart = async () => {
     setError(null);
     try {
-      const result = await startBatchMutation.mutateAsync({
+      const review = await startBatchMutation.mutateAsync({
         projectId,
         baseBranch: effectiveBase,
         branchNames: Array.from(selectedBranches),
@@ -136,8 +125,11 @@ export function CodeReviewDialog({
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.listSessions.queryKey(),
       });
+      queryClient.invalidateQueries({
+        queryKey: trpc.codeReviews.list.queryKey({ projectId }),
+      });
 
-      onReviewStarted({ ...result, baseBranch: effectiveBase });
+      onReviewStarted(review);
       onOpenChange(false);
       resetDialog();
     } catch (err) {

@@ -50,4 +50,35 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_assignments_project ON agent_worktree_assignments(project_id);
     `,
   },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE IF NOT EXISTS code_reviews (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        base_branch TEXT NOT NULL,
+        agent_type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'running',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS code_review_branches (
+        id TEXT PRIMARY KEY,
+        review_id TEXT NOT NULL REFERENCES code_reviews(id) ON DELETE CASCADE,
+        branch_name TEXT NOT NULL,
+        session_id TEXT,
+        client_id TEXT,
+        worktree_id TEXT REFERENCES worktrees(id) ON DELETE SET NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        error TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_code_reviews_project ON code_reviews(project_id);
+      CREATE INDEX IF NOT EXISTS idx_review_branches_review ON code_review_branches(review_id);
+      CREATE INDEX IF NOT EXISTS idx_review_branches_session ON code_review_branches(session_id);
+      CREATE INDEX IF NOT EXISTS idx_review_branches_worktree ON code_review_branches(worktree_id);
+    `,
+  },
 ];

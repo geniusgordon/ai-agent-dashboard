@@ -11,6 +11,10 @@ import { getDatabase } from "./db.js";
 import * as git from "./git-operations.js";
 import type {
   AgentWorktreeAssignment,
+  CodeReview,
+  CodeReviewBranch,
+  CodeReviewBranchStatus,
+  CodeReviewStatus,
   CreateWorktreeOptions,
   Project,
   ProjectSettings,
@@ -97,6 +101,58 @@ function rowToAssignment(row: AssignmentRow): AgentWorktreeAssignment {
     clientId: row.client_id,
     worktreeId: row.worktree_id,
     projectId: row.project_id,
+    createdAt: new Date(row.created_at),
+  };
+}
+
+interface CodeReviewRow {
+  id: string;
+  project_id: string;
+  base_branch: string;
+  agent_type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface CodeReviewBranchRow {
+  id: string;
+  review_id: string;
+  branch_name: string;
+  session_id: string | null;
+  client_id: string | null;
+  worktree_id: string | null;
+  status: string;
+  error: string | null;
+  created_at: string;
+}
+
+function rowToCodeReview(
+  row: CodeReviewRow,
+  branches: CodeReviewBranch[],
+): CodeReview {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    baseBranch: row.base_branch,
+    agentType: row.agent_type as CodeReview["agentType"],
+    status: row.status as CodeReviewStatus,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    branches,
+  };
+}
+
+function rowToCodeReviewBranch(row: CodeReviewBranchRow): CodeReviewBranch {
+  return {
+    id: row.id,
+    reviewId: row.review_id,
+    branchName: row.branch_name,
+    sessionId: row.session_id,
+    clientId: row.client_id,
+    worktreeId: row.worktree_id,
+    status: row.status as CodeReviewBranchStatus,
+    error: row.error,
     createdAt: new Date(row.created_at),
   };
 }
@@ -464,6 +520,173 @@ export class ProjectManager {
       )
       .all(projectId) as AssignmentRow[];
     return rows.map(rowToAssignment);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Code Reviews
+  // ---------------------------------------------------------------------------
+
+  createCodeReview(opts: {
+    projectId: string;
+    baseBranch: string;
+    agentType: string;
+    branchNames: string[];
+  }): CodeReview {
+    const db = getDatabase();
+    const reviewId = randomUUID();
+    const now = new Date().toISOString();
+
+    db.prepare(
+      `INSERT INTO code_reviews (id, project_id, base_branch, agent_type, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'running', ?, ?)`,
+    ).run(reviewId, opts.projectId, opts.baseBranch, opts.agentType, now, now);
+
+    const branches: CodeReviewBranch[] = [];
+    for (const branchName of opts.branchNames) {
+      const branchId = randomUUID();
+      db.prepare(
+        `INSERT INTO code_review_branches (id, review_id, branch_name, status, created_at)
+         VALUES (?, ?, ?, 'pending', ?)`,
+      ).run(branchId, reviewId, branchName, now);
+      branches.push({
+        id: branchId,
+        reviewId,
+        branchName,
+        sessionId: null,
+        clientId: null,
+        worktreeId: null,
+        status: "pending",
+        error: null,
+        createdAt: new Date(now),
+      });
+    }
+
+    return {
+      id: reviewId,
+      projectId: opts.projectId,
+      baseBranch: opts.baseBranch,
+      agentType: opts.agentType as CodeReview["agentType"],
+      status: "running",
+      createdAt: new Date(now),
+      updatedAt: new Date(now),
+      branches,
+    };
+  }
+
+  getCodeReview(id: string): CodeReview | undefined {
+    const db = getDatabase();
+    const row = db.prepare("SELECT * FROM code_reviews WHERE id = ?").get(id) as
+      | CodeReviewRow
+      | undefined;
+    if (!row) return undefined;
+
+    const branchRows = db
+      .prepare(
+        "SELECT * FROM code_review_branches WHERE review_id = ? ORDER BY created_at ASC",
+      )
+      .all(id) as CodeReviewBranchRow[];
+
+    return rowToCodeReview(row, branchRows.map(rowToCodeReviewBranch));
+  }
+
+  listCodeReviews(projectId: string): CodeReview[] {
+    const db = getDatabase();
+    const reviewRows = db
+      .prepare(
+        "SELECT * FROM code_reviews WHERE project_id = ? ORDER BY created_at DESC",
+      )
+      .all(projectId) as CodeReviewRow[];
+
+    return reviewRows.map((row) => {
+      const branchRows = db
+        .prepare(
+          "SELECT * FROM code_review_branches WHERE review_id = ? ORDER BY created_at ASC",
+        )
+        .all(row.id) as CodeReviewBranchRow[];
+      return rowToCodeReview(row, branchRows.map(rowToCodeReviewBranch));
+    });
+  }
+
+  updateCodeReviewBranch(
+    branchId: string,
+    updates: {
+      sessionId?: string;
+      clientId?: string;
+      worktreeId?: string | null;
+      status?: CodeReviewBranchStatus;
+      error?: string | null;
+    },
+  ): void {
+    const db = getDatabase();
+    const sets: string[] = [];
+    const values: unknown[] = [];
+
+    if (updates.sessionId !== undefined) {
+      sets.push("session_id = ?");
+      values.push(updates.sessionId);
+    }
+    if (updates.clientId !== undefined) {
+      sets.push("client_id = ?");
+      values.push(updates.clientId);
+    }
+    if (updates.worktreeId !== undefined) {
+      sets.push("worktree_id = ?");
+      values.push(updates.worktreeId);
+    }
+    if (updates.status !== undefined) {
+      sets.push("status = ?");
+      values.push(updates.status);
+    }
+    if (updates.error !== undefined) {
+      sets.push("error = ?");
+      values.push(updates.error);
+    }
+
+    if (sets.length === 0) return;
+
+    values.push(branchId);
+    db.prepare(
+      `UPDATE code_review_branches SET ${sets.join(", ")} WHERE id = ?`,
+    ).run(...values);
+  }
+
+  updateCodeReviewStatus(reviewId: string): void {
+    const db = getDatabase();
+    const branchRows = db
+      .prepare("SELECT status FROM code_review_branches WHERE review_id = ?")
+      .all(reviewId) as Array<{ status: string }>;
+
+    const statuses = branchRows.map((r) => r.status);
+    let newStatus: CodeReviewStatus;
+
+    if (statuses.every((s) => s === "completed" || s === "merged")) {
+      newStatus = "completed";
+    } else if (statuses.some((s) => s === "error")) {
+      newStatus = "error";
+    } else {
+      newStatus = "running";
+    }
+
+    const now = new Date().toISOString();
+    db.prepare(
+      "UPDATE code_reviews SET status = ?, updated_at = ? WHERE id = ?",
+    ).run(newStatus, now, reviewId);
+  }
+
+  deleteCodeReview(id: string): void {
+    const db = getDatabase();
+    db.prepare("DELETE FROM code_reviews WHERE id = ?").run(id);
+  }
+
+  findWorktreeByBranch(
+    projectId: string,
+    branchName: string,
+  ): Worktree | undefined {
+    const db = getDatabase();
+    const row = db
+      .prepare("SELECT * FROM worktrees WHERE project_id = ? AND branch = ?")
+      .get(projectId, branchName) as WorktreeRow | undefined;
+    return row ? rowToWorktree(row) : undefined;
   }
 
   // ---------------------------------------------------------------------------
