@@ -4,7 +4,7 @@ export { BranchBadge } from "./BranchBadge";
 export { BranchList } from "./BranchList";
 export { ClientCard } from "./ClientCard";
 export { CodeReviewDialog } from "./CodeReviewDialog";
-export { CodeReviewPanel } from "./CodeReviewPanel";
+export { CodeReviewList } from "./CodeReviewList";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay } from "./ErrorDisplay";
 export { LogEntry } from "./LogEntry";

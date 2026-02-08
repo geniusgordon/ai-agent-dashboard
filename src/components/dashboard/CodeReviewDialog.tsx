@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
-import type { CodeReview } from "@/lib/projects/types";
 import { AgentBadge } from "./AgentBadge";
 
 const agentTypes: AgentType[] = ["claude-code", "codex", "gemini"];
@@ -35,14 +34,12 @@ interface CodeReviewDialogProps {
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onReviewStarted: (review: CodeReview) => void;
 }
 
 export function CodeReviewDialog({
   projectId,
   open,
   onOpenChange,
-  onReviewStarted,
 }: CodeReviewDialogProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -112,7 +109,7 @@ export function CodeReviewDialog({
   const handleStart = async () => {
     setError(null);
     try {
-      const review = await startBatchMutation.mutateAsync({
+      await startBatchMutation.mutateAsync({
         projectId,
         baseBranch: effectiveBase,
         branchNames: Array.from(selectedBranches),
@@ -129,7 +126,6 @@ export function CodeReviewDialog({
         queryKey: trpc.codeReviews.list.queryKey({ projectId }),
       });
 
-      onReviewStarted(review);
       onOpenChange(false);
       resetDialog();
     } catch (err) {

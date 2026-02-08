@@ -67,8 +67,7 @@ export interface AgentWorktreeAssignment {
 // Code Review Types
 // =============================================================================
 
-export type CodeReviewStatus = "running" | "completed" | "error";
-export type CodeReviewBranchStatus =
+export type CodeReviewStatus =
   | "pending"
   | "running"
   | "completed"
@@ -78,24 +77,17 @@ export type CodeReviewBranchStatus =
 export interface CodeReview {
   id: string;
   projectId: string;
+  batchId: string | null;
+  branchName: string;
   baseBranch: string;
   agentType: AgentType;
-  status: CodeReviewStatus;
-  createdAt: Date;
-  updatedAt: Date;
-  branches: CodeReviewBranch[];
-}
-
-export interface CodeReviewBranch {
-  id: string;
-  reviewId: string;
-  branchName: string;
   sessionId: string | null;
   clientId: string | null;
   worktreeId: string | null;
-  status: CodeReviewBranchStatus;
+  status: CodeReviewStatus;
   error: string | null;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 // =============================================================================
