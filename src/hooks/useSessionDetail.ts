@@ -24,7 +24,7 @@ export function useSessionDetail(sessionId: string) {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const eventsRef = useRef(events);
-  const [pendingApproval, setPendingApproval] =
+  const [optimisticApproval, setOptimisticApproval] =
     useState<ApprovalRequest | null>(null);
   const initialScrollDone = useRef(false);
   const lastEventTimeRef = useRef(0);
@@ -36,7 +36,7 @@ export function useSessionDetail(sessionId: string) {
     if (prevSessionIdRef.current !== sessionId) {
       prevSessionIdRef.current = sessionId;
       setEvents([]);
-      setPendingApproval(null);
+      setOptimisticApproval(null);
       setAutoScroll(true);
       autoScrollRef.current = true;
       setShowScrollButton(false);
@@ -70,17 +70,12 @@ export function useSessionDetail(sessionId: string) {
 
   const approvalsQuery = useQuery(trpc.approvals.list.queryOptions());
 
-  // Load pending approval on mount
-  useEffect(() => {
-    if (approvalsQuery.data) {
-      const approval = approvalsQuery.data.find(
-        (a) => a.sessionId === sessionId,
-      );
-      if (approval && !pendingApproval) {
-        setPendingApproval(approval);
-      }
-    }
-  }, [approvalsQuery.data, sessionId, pendingApproval]);
+  // Derive pendingApproval: query data is the authority, optimistic state
+  // provides instant display from SSE before the query refetches.
+  const queryApproval = approvalsQuery.data?.find(
+    (a) => a.sessionId === sessionId,
+  );
+  const pendingApproval = queryApproval ?? optimisticApproval ?? null;
 
   // Keep eventsRef in sync for use in scroll handler
   eventsRef.current = events;
@@ -232,7 +227,7 @@ export function useSessionDetail(sessionId: string) {
     scheduleScroll();
 
     if (event.type === "complete" || event.type === "error") {
-      setPendingApproval(null);
+      setOptimisticApproval(null);
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
       });
@@ -240,7 +235,11 @@ export function useSessionDetail(sessionId: string) {
   };
 
   const handleApproval = (approval: ApprovalRequest) => {
-    setPendingApproval(approval);
+    // Optimistic: show the banner immediately before query refetches
+    setOptimisticApproval(approval);
+    queryClient.invalidateQueries({
+      queryKey: trpc.approvals.list.queryKey(),
+    });
     queryClient.invalidateQueries({
       queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
     });
@@ -257,30 +256,36 @@ export function useSessionDetail(sessionId: string) {
   // Mutations
   // ---------------------------------------------------------------------------
 
+  // Shared handler: optimistically dismiss the banner, then refetch
+  const onApprovalResolved = (approvalId: string) => {
+    setOptimisticApproval(null);
+    // Optimistically remove from cache so banner disappears instantly
+    // (before the refetch round-trip completes)
+    queryClient.setQueryData(
+      trpc.approvals.list.queryKey(),
+      (old: ApprovalRequest[] | undefined) =>
+        old?.filter((a) => a.id !== approvalId),
+    );
+    queryClient.invalidateQueries({
+      queryKey: trpc.approvals.list.queryKey(),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+    });
+  };
+
   const approveMutation = useMutation(
     trpc.approvals.approve.mutationOptions({
-      onSuccess: () => {
-        setPendingApproval(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.approvals.list.queryKey(),
-        });
+      onSuccess: (_data, variables) => {
+        onApprovalResolved(variables.approvalId);
       },
     }),
   );
 
   const denyMutation = useMutation(
     trpc.approvals.deny.mutationOptions({
-      onSuccess: () => {
-        setPendingApproval(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.approvals.list.queryKey(),
-        });
+      onSuccess: (_data, variables) => {
+        onApprovalResolved(variables.approvalId);
       },
     }),
   );
