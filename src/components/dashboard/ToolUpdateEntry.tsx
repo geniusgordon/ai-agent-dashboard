@@ -321,6 +321,42 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true when the tool-update carries no meaningful content to display.
+ * These are lifecycle bookkeeping events (status-only confirmations, terminal
+ * reference arrays, etc.) that just add noise — the corresponding tool-call
+ * entry already shows the tool was invoked.
+ */
+function isNoiseUpdate(payload: Record<string, unknown>): boolean {
+  const { content } = payload;
+
+  // No content at all — pure status echo (e.g. { toolCallId, status })
+  if (content === undefined || content === null) return true;
+
+  // Terminal reference array (e.g. [{ terminalId, type: "terminal" }])
+  if (
+    Array.isArray(content) &&
+    content.length > 0 &&
+    content.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        (item as Record<string, unknown>).type === "terminal",
+    )
+  )
+    return true;
+
+  // Empty string content
+  if (content === "") return true;
+
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
 
@@ -335,6 +371,9 @@ export function ToolUpdateEntry({ event }: { event: AgentEvent }) {
   if (isTerminalErrorContent(content)) {
     return <TerminalErrorEntry event={event} />;
   }
+
+  // Hide low-information bookkeeping updates (status-only, terminal refs, etc.)
+  if (isNoiseUpdate(payload)) return null;
 
   return <GenericToolUpdateEntry event={event} />;
 }
