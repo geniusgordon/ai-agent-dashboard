@@ -176,8 +176,8 @@ function ProjectOverviewPage() {
       {/* Project Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 min-w-0">
-          <div className="p-3 rounded-xl bg-purple-500/10 shrink-0">
-            <FolderGit2 className="size-6 text-purple-400" />
+          <div className="p-3 rounded-xl bg-git/10 shrink-0">
+            <FolderGit2 className="size-6 text-git-muted" />
           </div>
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight truncate">

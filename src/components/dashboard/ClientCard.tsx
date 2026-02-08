@@ -39,7 +39,7 @@ export function ClientCard({
   return (
     <div
       className={`
-        p-5 rounded-xl border border-border bg-card/50 shadow-sm hover:shadow-md transition-shadow
+        p-5 rounded-xl border border-border bg-card/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200
         border-t-2 ${agentAccentBorder[client.agentType] ?? "border-t-border"}
       `}
     >
@@ -112,7 +112,7 @@ export function ClientCard({
         <button
           type="button"
           onClick={() => onImportToProject(client.cwd)}
-          className="mt-3 w-full px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 border border-transparent hover:border-purple-500/20"
+          className="mt-3 w-full px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-git-muted hover:bg-git/10 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 border border-transparent hover:border-git/20"
         >
           <FolderGit2 className="size-3" />
           Add to Projects

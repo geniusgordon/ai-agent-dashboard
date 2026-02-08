@@ -107,7 +107,7 @@ export function GitInfoPanel({ cwd }: GitInfoPanelProps) {
     <div className="space-y-1">
       {/* Uncommitted changes indicator */}
       {data.hasUncommitted && (
-        <div className="flex items-center gap-1.5 text-xs text-amber-400 px-1">
+        <div className="flex items-center gap-1.5 text-xs text-action-warning-muted px-1">
           <CircleDot className="size-3 shrink-0" />
           <span>Uncommitted changes</span>
         </div>
@@ -155,11 +155,11 @@ export function GitInfoPanel({ cwd }: GitInfoPanelProps) {
           <div className="space-y-0.5">
             {/* Summary line */}
             <div className="flex items-center gap-2 text-[10px] pb-1 mb-1 border-b border-border">
-              <span className="text-green-400 flex items-center gap-0.5">
+              <span className="text-action-success-muted flex items-center gap-0.5">
                 <Plus className="size-2.5" />
                 {totalAdditions}
               </span>
-              <span className="text-red-400 flex items-center gap-0.5">
+              <span className="text-destructive-foreground flex items-center gap-0.5">
                 <Minus className="size-2.5" />
                 {totalDeletions}
               </span>
@@ -173,10 +173,10 @@ export function GitInfoPanel({ cwd }: GitInfoPanelProps) {
                 <span className="font-mono text-[10px] truncate min-w-0 flex-1">
                   {file.path}
                 </span>
-                <span className="text-green-400 text-[10px] shrink-0">
+                <span className="text-action-success-muted text-[10px] shrink-0">
                   +{file.additions}
                 </span>
-                <span className="text-red-400 text-[10px] shrink-0">
+                <span className="text-destructive-foreground text-[10px] shrink-0">
                   -{file.deletions}
                 </span>
               </div>

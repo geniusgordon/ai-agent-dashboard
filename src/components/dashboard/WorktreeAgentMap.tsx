@@ -54,7 +54,7 @@ export function WorktreeAgentMap({
               key={wt.id}
               className={`p-3 rounded-lg border ${
                 hasMultiple
-                  ? "border-amber-500/40 bg-amber-500/5"
+                  ? "border-action-warning/40 bg-action-warning/5"
                   : "border-border bg-card/30"
               }`}
             >
@@ -85,7 +85,7 @@ export function WorktreeAgentMap({
                     </div>
                   ))}
                   {hasMultiple && (
-                    <div className="flex items-center gap-1 text-[10px] text-amber-400 mt-1">
+                    <div className="flex items-center gap-1 text-[10px] text-action-warning-muted mt-1">
                       <AlertTriangle className="size-3" />
                       Multiple agents on same worktree
                     </div>

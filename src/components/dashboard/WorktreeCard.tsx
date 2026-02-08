@@ -47,8 +47,8 @@ export function WorktreeCard({
     <Link
       to="/dashboard/p/$projectId/worktrees/$worktreeId"
       params={{ projectId, worktreeId: worktree.id }}
-      className={`block p-4 rounded-xl border bg-card/50 shadow-sm transition-all hover:bg-card hover:border-primary/20 hover:shadow-md group ${
-        hasMultipleAgents ? "border-amber-500/40" : "border-border"
+      className={`block p-4 rounded-xl border bg-card/50 shadow-sm transition-all duration-200 hover:bg-card hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5 group ${
+        hasMultipleAgents ? "border-action-warning/40" : "border-border"
       }`}
     >
       {/* Header */}
@@ -96,7 +96,7 @@ export function WorktreeCard({
                 {assignments.length} agent{assignments.length !== 1 ? "s" : ""}
               </span>
               {hasMultipleAgents && (
-                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-action-warning/10 text-action-warning-muted">
                   <AlertTriangle className="size-3" />
                   shared
                 </span>

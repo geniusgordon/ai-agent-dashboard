@@ -186,7 +186,7 @@ export function Sidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <Link to="/dashboard" onClick={handleNavClick}>
-                  <div className="size-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  <div className="size-8 rounded-lg bg-gradient-to-br from-action-success-muted to-action-success flex items-center justify-center text-white font-bold text-sm shrink-0">
                     AI
                   </div>
                   <span className="font-semibold text-base tracking-tight truncate">

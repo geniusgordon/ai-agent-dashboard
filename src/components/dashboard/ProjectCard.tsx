@@ -31,11 +31,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Link
       to="/dashboard/p/$projectId"
       params={{ projectId: project.id }}
-      className="block p-5 rounded-xl border border-border bg-card/50 shadow-sm hover:shadow-md hover:bg-card hover:border-primary/20 transition-all duration-200 cursor-pointer group"
+      className="block p-5 rounded-xl border border-border bg-card/50 shadow-sm hover:shadow-md hover:bg-card hover:border-primary/20 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="p-2 rounded-lg bg-purple-500/10">
-          <FolderGit2 className="size-5 text-purple-400" />
+        <div className="p-2 rounded-lg bg-git/10">
+          <FolderGit2 className="size-5 text-git-muted" />
         </div>
         <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
           Open

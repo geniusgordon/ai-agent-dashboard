@@ -69,7 +69,7 @@ export function ProjectSwitcher({
               size="lg"
               tooltip={currentProject?.name ?? "Select project"}
             >
-              <div className="size-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white shrink-0">
+              <div className="size-8 rounded-lg bg-gradient-to-br from-git-muted to-git flex items-center justify-center text-white shrink-0">
                 <FolderGit2 className="size-4" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none min-w-0">

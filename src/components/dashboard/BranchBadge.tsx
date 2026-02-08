@@ -37,7 +37,7 @@ export function BranchBadge({ branch, size = "sm" }: BranchBadgeProps) {
       type="button"
       onClick={handleCopy}
       title="Copy branch name"
-      className={`inline-flex items-center rounded-md bg-purple-500/10 text-purple-400 font-mono hover:bg-purple-500/20 transition-colors cursor-pointer ${sizeStyles[size]}`}
+      className={`inline-flex items-center rounded-md bg-git/10 text-git-muted font-mono hover:bg-git/20 transition-colors cursor-pointer ${sizeStyles[size]}`}
     >
       <GitBranch className={iconSize[size]} />
       <span className="truncate max-w-32">{branch}</span>
