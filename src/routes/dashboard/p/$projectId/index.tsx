@@ -174,32 +174,30 @@ function ProjectOverviewPage() {
   return (
     <div className="space-y-8">
       {/* Project Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4 min-w-0">
-          <div className="p-3 rounded-xl bg-git/10 shrink-0">
-            <FolderGit2 className="size-6 text-git-muted" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight truncate">
-              {project.name}
-            </h1>
-            <p className="text-sm text-muted-foreground font-mono truncate mt-0.5">
-              {project.repoPath}
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-git/10 shrink-0">
+          <FolderGit2 className="size-5 sm:size-6 text-git-muted" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
+            {project.name}
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground font-mono truncate mt-0.5">
+            {project.repoPath}
+          </p>
+          {project.description && (
+            <p className="text-sm text-muted-foreground mt-2">
+              {project.description}
             </p>
-            {project.description && (
-              <p className="text-sm text-muted-foreground mt-2">
-                {project.description}
-              </p>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
       {/* Worktree Grid */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <GitFork className="size-5 text-muted-foreground" />
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <h2 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+            <GitFork className="size-4 sm:size-5 text-muted-foreground" />
             Worktrees
             <span className="text-sm text-muted-foreground font-normal">
               ({worktrees.length})
@@ -338,7 +336,7 @@ function ProjectOverviewPage() {
                 key={session.id}
                 to="/dashboard/p/$projectId/sessions/$sessionId"
                 params={{ projectId, sessionId: session.id }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card/60 hover:border-border transition-all group"
+                className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card/60 hover:border-border transition-all group"
               >
                 {/* Agent + Name */}
                 <AgentBadge type={session.agentType} size="sm" iconOnly />
@@ -351,21 +349,21 @@ function ProjectOverviewPage() {
                   </div>
 
                   {/* Branch + Error details */}
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
                     {session.worktreeBranch && (
                       <BranchBadge branch={session.worktreeBranch} size="sm" />
                     )}
                     {session.status === "error" && session.error && (
-                      <span className="text-xs text-status-error truncate flex items-center gap-1">
+                      <span className="text-xs text-status-error truncate flex items-center gap-1 min-w-0">
                         <AlertCircle className="size-3 shrink-0" />
-                        {session.error}
+                        <span className="truncate">{session.error}</span>
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Timestamp */}
-                <span className="text-xs text-muted-foreground shrink-0">
+                <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
                   {timeAgo(session.updatedAt)}
                 </span>
               </Link>

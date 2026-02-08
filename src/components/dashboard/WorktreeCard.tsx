@@ -87,18 +87,18 @@ export function WorktreeCard({
       </p>
 
       {/* Agents + Actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
           {assignments.length > 0 ? (
             <>
-              <Users className="size-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
+              <Users className="size-3 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {assignments.length} agent{assignments.length !== 1 ? "s" : ""}
               </span>
               {hasMultipleAgents && (
-                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-action-warning/10 text-action-warning-muted">
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-action-warning/10 text-action-warning-muted shrink-0">
                   <AlertTriangle className="size-3" />
-                  shared
+                  <span className="hidden sm:inline">shared</span>
                 </span>
               )}
             </>
@@ -107,7 +107,7 @@ export function WorktreeCard({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {onSpawnAgent && (
             <button
               type="button"
@@ -118,7 +118,7 @@ export function WorktreeCard({
               className="px-2.5 py-1 rounded-md text-xs font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1"
             >
               <Play className="size-3" />
-              Spawn
+              <span className="hidden sm:inline">Spawn</span>
             </button>
           )}
           <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

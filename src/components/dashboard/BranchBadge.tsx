@@ -40,7 +40,9 @@ export function BranchBadge({ branch, size = "sm" }: BranchBadgeProps) {
       className={`inline-flex items-center rounded-md bg-git/10 text-git-muted font-mono hover:bg-git/20 transition-colors cursor-pointer ${sizeStyles[size]}`}
     >
       <GitBranch className={iconSize[size]} />
-      <span className="truncate max-w-32">{branch}</span>
+      <span className="truncate max-w-24 sm:max-w-40 md:max-w-56">
+        {branch}
+      </span>
       {copied ? (
         <Check className={`${iconSize[size]} text-action-success-hover`} />
       ) : (

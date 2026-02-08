@@ -66,15 +66,17 @@ function ProjectApprovalsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Approvals</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+            Approvals
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Permission requests from this project's agents
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {connected ? (
             <span className="text-xs text-live flex items-center gap-1.5 shadow-live-glow">
               <span className="relative flex h-2 w-2">
