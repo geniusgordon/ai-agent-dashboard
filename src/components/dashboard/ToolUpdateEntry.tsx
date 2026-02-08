@@ -23,7 +23,7 @@ function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
   const minutes = Math.floor(ms / 60_000);
-  const seconds = ((ms % 60_000) / 1000).toFixed(0);
+  const seconds = Math.floor((ms % 60_000) / 1000);
   return `${minutes}m${seconds}s`;
 }
 
@@ -312,7 +312,7 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
       <div className="flex-1 text-[13px] leading-relaxed min-w-0">
         <span className="whitespace-pre-wrap break-all">{content}</span>
         {succeeded && (
-          <span className="text-event-complete ml-2">&#10003;</span>
+          <Check className="inline size-3.5 text-event-complete ml-2" />
         )}
       </div>
     </div>
