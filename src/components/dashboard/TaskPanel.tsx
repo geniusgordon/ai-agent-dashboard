@@ -90,7 +90,7 @@ export function TaskPanel({
 
       {/* Expanded task list */}
       {!isCollapsed && (
-        <div className="border-t border-border max-h-48 overflow-y-auto">
+        <div className="border-t border-border overflow-y-auto">
           <div className="px-4 py-1.5 space-y-0.5">
             {entries.map((entry, i) => (
               <div
