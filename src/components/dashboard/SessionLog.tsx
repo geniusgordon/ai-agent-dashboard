@@ -23,7 +23,7 @@ export function SessionLog({
       {/* Scrollable container */}
       <div
         ref={containerRef}
-        className="absolute inset-0 overflow-y-auto rounded-none lg:rounded-xl border-0 lg:border lg:border-border bg-transparent lg:bg-background/50 font-mono text-sm"
+        className="absolute inset-0 overflow-y-auto overflow-x-hidden rounded-none lg:rounded-xl border-0 lg:border lg:border-border bg-transparent lg:bg-background/50 font-mono text-sm"
       >
         <div className="px-2 py-1.5 lg:p-3">
           {events.length === 0 ? (
