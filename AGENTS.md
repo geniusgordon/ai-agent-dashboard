@@ -25,6 +25,9 @@ pnpm validate         # typecheck + check:ci + test (full CI pipeline)
 - **Indent**: 2 spaces, double quotes for JS/TS strings.
 - **Imports**: Use `@/` path alias for `src/` (e.g., `import { foo } from "@/lib/foo"`).
 - **React Compiler**: Enabled via `babel-plugin-react-compiler` — avoid manual `useMemo`/`useCallback` for render optimization; the compiler handles it.
+- **Icons**: Use `lucide-react` — never hand-craft SVG markup. The project already depends on lucide.
+- **Static imports only**: No lazy `import()` for modules already loaded by the server process. Use static imports at the top of the file.
+- **Barrel exports**: New components in `src/components/dashboard/` must be added to `index.ts` or imports from `@/components/dashboard` will fail at build time.
 - Biome ignores `src/routeTree.gen.ts` and `src/styles.css` (auto-generated files).
 
 ## Architecture
@@ -56,6 +59,7 @@ Routes live in `src/routes/` and follow TanStack Router's file-based convention.
   - `approvals.ts` — List/approve/deny permission requests
   - `projects.ts` — Project CRUD, import from directory, list branches
   - `worktrees.ts` — Worktree CRUD, sync, status, agent assignments
+  - `code-reviews.ts` — Batch code review orchestration: spawn agents per branch, merge, cleanup
 
 ### ACP Client Layer (`src/lib/acp/`)
 
@@ -80,7 +84,7 @@ Manages projects (git repos) and worktrees for parallel agent workflows. `Projec
 - `schema.ts` — SQLite schema with versioned migrations
 - `db.ts` — Database connection
 - `project-manager.ts` — CRUD, worktree lifecycle, agent assignments, auto-import
-- `git-operations.ts` — Safe git wrappers using `execFile` (not `exec`)
+- `git-operations.ts` — Safe git wrappers using `execFile` (not `exec`). All branch name inputs must go through `validateBranchName()`.
 
 SQLite tables: `projects`, `worktrees`, `agent_worktree_assignments` (FK cascades on delete).
 
@@ -113,3 +117,4 @@ Managed via T3 Env in `src/env.ts`. Server vars are unprefixed, client vars requ
 - **Session persistence**: Sessions are stored both in-memory (for active use) and on disk as JSON files in `.agent-store/` (for history across restarts).
 - **Project persistence**: Projects, worktrees, and agent assignments stored in SQLite at `.agent-store/projects.db` with FK cascades.
 - **Worktree workflow**: Projects group agent sessions around a git repo. Each worktree gets its own branch, agents are assigned to worktrees, and assignments auto-cleanup on session kill/delete.
+- **Agent prompt size**: Truncate large inputs (diffs, logs, file contents) before sending to agents — unbounded content can exceed context windows or cause OOM.
