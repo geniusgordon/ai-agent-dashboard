@@ -237,29 +237,55 @@ export interface GitCommit {
   date: string;
 }
 
+function parseCommitLines(stdout: string): GitCommit[] {
+  return stdout
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [hash, message, authorName, date] = line.split("\0");
+      return { hash, message, authorName, date };
+    });
+}
+
 export async function getRecentCommits(
   worktreePath: string,
   limit = 10,
 ): Promise<GitCommit[]> {
   try {
-    const SEP = "<<SEP>>";
+    const { stdout } = await git(
+      ["log", `--max-count=${limit}`, "--format=%h%x00%s%x00%an%x00%aI"],
+      worktreePath,
+    );
+
+    return parseCommitLines(stdout);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get commits on the current branch that are not on the given base branch.
+ * Uses `git log base..HEAD` to show only the branch-specific history.
+ * Returns empty array for the main/default branch or if there are no unique commits.
+ */
+export async function getCommitsSinceBranch(
+  worktreePath: string,
+  baseBranch: string,
+  limit = 50,
+): Promise<GitCommit[]> {
+  try {
     const { stdout } = await git(
       [
         "log",
         `--max-count=${limit}`,
-        `--format=${["%h", "%s", "%an", "%aI"].join(SEP)}`,
+        "--format=%h%x00%s%x00%an%x00%aI",
+        `${baseBranch}..HEAD`,
       ],
       worktreePath,
     );
 
-    return stdout
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        const [hash, message, authorName, date] = line.split(SEP);
-        return { hash, message, authorName, date };
-      });
+    return parseCommitLines(stdout);
   } catch {
     return [];
   }

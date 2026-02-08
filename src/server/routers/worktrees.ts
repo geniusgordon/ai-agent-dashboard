@@ -7,6 +7,11 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "../../integrations/trpc/init.js";
+import {
+  getCommitsSinceBranch,
+  getDefaultBranch,
+  getRecentCommits,
+} from "../../lib/projects/git-operations.js";
 import { getProjectManager } from "../../lib/projects/index.js";
 
 export const worktreesRouter = createTRPCRouter({
@@ -78,10 +83,30 @@ export const worktreesRouter = createTRPCRouter({
       const worktree = manager.getWorktree(input.id);
       if (!worktree) throw new Error(`Worktree not found: ${input.id}`);
 
-      const { getRecentCommits } = await import(
-        "../../lib/projects/git-operations.js"
-      );
       return getRecentCommits(worktree.path, input.limit ?? 10);
+    }),
+
+  getBranchCommits: publicProcedure
+    .input(
+      z.object({ id: z.string(), limit: z.number().min(1).max(50).optional() }),
+    )
+    .query(async ({ input }) => {
+      const manager = getProjectManager();
+      const worktree = manager.getWorktree(input.id);
+      if (!worktree) throw new Error(`Worktree not found: ${input.id}`);
+
+      // Main worktree has no "since branch" — return empty
+      if (worktree.isMainWorktree) return [];
+
+      const project = manager.getProject(worktree.projectId);
+      if (!project) throw new Error(`Project not found: ${worktree.projectId}`);
+
+      const defaultBranch = await getDefaultBranch(project.repoPath);
+      return getCommitsSinceBranch(
+        worktree.path,
+        defaultBranch,
+        input.limit ?? 50,
+      );
     }),
 
   getAssignments: publicProcedure
