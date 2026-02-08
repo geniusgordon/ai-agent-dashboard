@@ -10,7 +10,7 @@ import {
   formatTime,
   summarizePlanEntries,
 } from "@/lib/agents/event-utils";
-import type { AgentEvent } from "@/lib/agents/types";
+import type { AgentEvent, PlanPayload } from "@/lib/agents/types";
 
 export interface LogEntryProps {
   event: AgentEvent;
@@ -136,10 +136,7 @@ export function LogEntry({ event }: LogEntryProps) {
   // Richer content extraction: handles stopReason, message fallbacks
   let content: string;
   if (isPlan) {
-    const entries = (payload.entries ?? []) as Array<{
-      content: string;
-      status: string;
-    }>;
+    const { entries } = payload as unknown as PlanPayload;
     content = `Updated tasks: ${summarizePlanEntries(entries)}`;
   } else if (typeof payload.title === "string") {
     // Tool calls have title
