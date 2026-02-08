@@ -65,7 +65,7 @@ export function StartReviewDialog({
   const handleStart = async () => {
     setError(null);
     try {
-      await startBatchMutation.mutateAsync({
+      const result = await startBatchMutation.mutateAsync({
         projectId,
         baseBranch: defaultBranch,
         branchNames: [branch],
@@ -78,17 +78,16 @@ export function StartReviewDialog({
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.listSessions.queryKey(),
       });
-      queryClient.invalidateQueries({
-        queryKey: trpc.codeReviews.list.queryKey({ projectId }),
-      });
-
       onOpenChange(false);
       reset();
 
-      // Navigate to the project page where the review panel shows
+      // Navigate to the created review session
+      const sessionId = result.sessionIds[0];
       navigate({
-        to: "/dashboard/p/$projectId",
-        params: { projectId },
+        to: sessionId
+          ? "/dashboard/p/$projectId/sessions/$sessionId"
+          : "/dashboard/p/$projectId",
+        params: sessionId ? { projectId, sessionId } : { projectId },
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start review");

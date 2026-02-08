@@ -7,6 +7,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { Check, GitBranch, GitMerge, Search } from "lucide-react";
 import { useState } from "react";
 import {
@@ -43,6 +44,7 @@ export function CodeReviewDialog({
 }: CodeReviewDialogProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedBranches, setSelectedBranches] = useState<Set<string>>(
     new Set(),
@@ -124,6 +126,11 @@ export function CodeReviewDialog({
       });
       onOpenChange(false);
       resetDialog();
+
+      navigate({
+        to: "/dashboard/p/$projectId",
+        params: { projectId },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start review");
     }
