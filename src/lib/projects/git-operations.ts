@@ -237,29 +237,28 @@ export interface GitCommit {
   date: string;
 }
 
+function parseCommitLines(stdout: string): GitCommit[] {
+  return stdout
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [hash, message, authorName, date] = line.split("\0");
+      return { hash, message, authorName, date };
+    });
+}
+
 export async function getRecentCommits(
   worktreePath: string,
   limit = 10,
 ): Promise<GitCommit[]> {
   try {
-    const SEP = "<<SEP>>";
     const { stdout } = await git(
-      [
-        "log",
-        `--max-count=${limit}`,
-        `--format=${["%h", "%s", "%an", "%aI"].join(SEP)}`,
-      ],
+      ["log", `--max-count=${limit}`, "--format=%h%x00%s%x00%an%x00%aI"],
       worktreePath,
     );
 
-    return stdout
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        const [hash, message, authorName, date] = line.split(SEP);
-        return { hash, message, authorName, date };
-      });
+    return parseCommitLines(stdout);
   } catch {
     return [];
   }
@@ -276,25 +275,17 @@ export async function getCommitsSinceBranch(
   limit = 50,
 ): Promise<GitCommit[]> {
   try {
-    const SEP = "<<SEP>>";
     const { stdout } = await git(
       [
         "log",
         `--max-count=${limit}`,
-        `--format=${["%h", "%s", "%an", "%aI"].join(SEP)}`,
+        "--format=%h%x00%s%x00%an%x00%aI",
         `${baseBranch}..HEAD`,
       ],
       worktreePath,
     );
 
-    return stdout
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        const [hash, message, authorName, date] = line.split(SEP);
-        return { hash, message, authorName, date };
-      });
+    return parseCommitLines(stdout);
   } catch {
     return [];
   }

@@ -7,6 +7,11 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "../../integrations/trpc/init.js";
+import {
+  getCommitsSinceBranch,
+  getDefaultBranch,
+  getRecentCommits,
+} from "../../lib/projects/git-operations.js";
 import { getProjectManager } from "../../lib/projects/index.js";
 
 export const worktreesRouter = createTRPCRouter({
@@ -78,9 +83,6 @@ export const worktreesRouter = createTRPCRouter({
       const worktree = manager.getWorktree(input.id);
       if (!worktree) throw new Error(`Worktree not found: ${input.id}`);
 
-      const { getRecentCommits } = await import(
-        "../../lib/projects/git-operations.js"
-      );
       return getRecentCommits(worktree.path, input.limit ?? 10);
     }),
 
@@ -99,9 +101,6 @@ export const worktreesRouter = createTRPCRouter({
       const project = manager.getProject(worktree.projectId);
       if (!project) throw new Error(`Project not found: ${worktree.projectId}`);
 
-      const { getDefaultBranch, getCommitsSinceBranch } = await import(
-        "../../lib/projects/git-operations.js"
-      );
       const defaultBranch = await getDefaultBranch(project.repoPath);
       return getCommitsSinceBranch(
         worktree.path,
