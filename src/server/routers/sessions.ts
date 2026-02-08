@@ -12,15 +12,13 @@ import {
   loadRecentDirectories,
 } from "../../lib/agents/index.js";
 import {
+  getBranchInfo,
   getCommitsSinceBranch,
   getCurrentBranch,
   getDefaultBranch,
-  getRecentCommits,
-} from "../../lib/projects/git-operations.js";
-import {
-  getBranchInfo,
   getFilesChanged,
   getProjectManager,
+  getRecentCommits,
   hasUncommittedChanges,
   isGitRepo,
 } from "../../lib/projects/index.js";

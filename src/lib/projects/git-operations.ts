@@ -220,13 +220,30 @@ export async function listBranches(repoPath: string): Promise<string[]> {
 }
 
 export async function getDefaultBranch(repoPath: string): Promise<string> {
+  // Try remote HEAD first — this correctly resolves the default branch
+  // regardless of which branch is currently checked out locally.
   try {
+    const { stdout } = await git(
+      ["symbolic-ref", "refs/remotes/origin/HEAD"],
+      repoPath,
+    );
+    // "refs/remotes/origin/main" → "main"
+    return stdout.trim().replace("refs/remotes/origin/", "");
+  } catch {
+    // No origin remote or origin/HEAD not set — fall through
+  }
+
+  // Fallback: check for common default branch names
+  try {
+    const branches = await listBranches(repoPath);
+    for (const candidate of ["main", "master"]) {
+      if (branches.includes(candidate)) return candidate;
+    }
+    // Last resort: bare repo HEAD or first branch
     const { stdout } = await git(["symbolic-ref", "--short", "HEAD"], repoPath);
     return stdout.trim();
   } catch {
-    // Fallback for bare repos or detached HEAD — use first branch
-    const branches = await listBranches(repoPath);
-    return branches[0] ?? "main";
+    return "main";
   }
 }
 
