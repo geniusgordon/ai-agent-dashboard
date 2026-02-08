@@ -365,6 +365,13 @@ export function useSessionDetail(sessionId: string) {
       mimeType: img.mimeType,
     }));
     sendMessageMutation.mutate({ sessionId, message, contentBlocks });
+
+    // Re-engage auto-scroll and jump to bottom so the user sees the response
+    autoScrollRef.current = true;
+    setAutoScroll(true);
+    requestAnimationFrame(() => {
+      logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
   };
 
   const approve = (approvalId: string, optionId: string) =>
