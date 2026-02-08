@@ -21,6 +21,7 @@ import {
 import type { AgentEvent, DiffContentBlock } from "@/lib/agents/types";
 import {
   hasDiffContent,
+  isDiffContentBlock,
   isTerminalErrorContent,
   isTerminalExitContent,
 } from "@/lib/agents/types";
@@ -230,7 +231,7 @@ function TerminalErrorEntry({ event }: { event: AgentEvent }) {
 // ---------------------------------------------------------------------------
 
 function DiffBlock({ block }: { block: DiffContentBlock }) {
-  const diffText = computeLineDiff(block.oldText, block.newText);
+  const diffText = computeLineDiff(block.oldText ?? "", block.newText);
   const lines = diffText.split("\n");
   const isLong = lines.length > OUTPUT_COLLAPSE_THRESHOLD;
   const [isExpanded, setIsExpanded] = useState(!isLong);
@@ -310,17 +311,25 @@ function DiffBlock({ block }: { block: DiffContentBlock }) {
 
 function DiffEntry({ event }: { event: AgentEvent }) {
   const payload = event.payload as Record<string, unknown>;
-  const blocks = (payload.content as DiffContentBlock[]).filter(
-    (b) => b.type === "diff",
-  );
+  const blocks = (payload.content as unknown[]).filter(isDiffContentBlock);
+
+  // If all blocks were filtered out, fall back to the generic renderer.
+  if (blocks.length === 0) {
+    return <GenericToolUpdateEntry event={event} />;
+  }
+
+  const allDiffText = blocks
+    .map((b) => computeLineDiff(b.oldText ?? "", b.newText))
+    .join("\n");
 
   return (
     <div className="group flex gap-2.5 py-2 px-3 rounded-md border-l-2 border-l-event-tool/50 transition-colors duration-200 hover:bg-accent/50">
       {/* Timestamp */}
-      <div className="shrink-0 hidden sm:flex items-center w-[5.5rem] pt-0.5">
+      <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
           {formatTime(event.timestamp)}
         </span>
+        <CopyIconButton text={allDiffText} />
       </div>
 
       {/* Icon */}

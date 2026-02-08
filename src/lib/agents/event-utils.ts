@@ -25,7 +25,11 @@ export function extractContent(payload: Record<string, unknown>): string {
     return payload.content;
   }
   if (Array.isArray(payload.content)) {
-    return extractTextFromContentBlocks(payload.content);
+    const text = extractTextFromContentBlocks(payload.content);
+    if (text === "" && payload.content.length > 0) {
+      return JSON.stringify(payload.content, null, 2);
+    }
+    return text;
   }
   if (typeof payload.content === "object" && payload.content !== null) {
     const nested = payload.content as Record<string, unknown>;
@@ -72,6 +76,18 @@ export function extractTextFromContentBlocks(blocks: unknown[]): string {
  * compatible with Prism's `diff` language highlighter.
  */
 export function computeLineDiff(oldText: string, newText: string): string {
+  if (!oldText && !newText) return "";
+  if (!oldText)
+    return newText
+      .split("\n")
+      .map((l) => `+${l}`)
+      .join("\n");
+  if (!newText)
+    return oldText
+      .split("\n")
+      .map((l) => `-${l}`)
+      .join("\n");
+
   const oldLines = oldText.split("\n");
   const newLines = newText.split("\n");
 

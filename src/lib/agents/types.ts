@@ -189,26 +189,25 @@ export function isTerminalErrorContent(v: unknown): v is TerminalErrorContent {
 
 export interface DiffContentBlock {
   type: "diff";
-  oldText: string;
+  /** Absent or null for newly created files. */
+  oldText?: string | null;
   newText: string;
   path: string;
 }
 
-export function hasDiffContent(v: unknown): v is DiffContentBlock[] {
+export function isDiffContentBlock(item: unknown): item is DiffContentBlock {
+  if (typeof item !== "object" || item === null) return false;
+  const r = item as Record<string, unknown>;
   return (
-    Array.isArray(v) &&
-    v.length > 0 &&
-    v.some(
-      (item) =>
-        typeof item === "object" &&
-        item !== null &&
-        "type" in item &&
-        (item as Record<string, unknown>).type === "diff" &&
-        "oldText" in item &&
-        "newText" in item &&
-        "path" in item,
-    )
+    r.type === "diff" &&
+    typeof r.newText === "string" &&
+    typeof r.path === "string"
   );
+}
+
+/** Returns true when `v` is an array containing at least one diff block. */
+export function hasDiffContent(v: unknown): boolean {
+  return Array.isArray(v) && v.length > 0 && v.some(isDiffContentBlock);
 }
 
 export interface PlanPayload {
