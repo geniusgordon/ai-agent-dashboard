@@ -182,6 +182,7 @@ function TerminalErrorEntry({ event }: { event: AgentEvent }) {
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
           {formatTime(event.timestamp)}
         </span>
+        <CopyIconButton text={error} />
       </div>
 
       {/* Icon */}
