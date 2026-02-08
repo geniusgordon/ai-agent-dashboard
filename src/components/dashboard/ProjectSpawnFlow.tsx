@@ -2,7 +2,7 @@
  * Project Spawn Flow
  *
  * Compact agent spawner within project detail: select worktree → select agent type → spawn.
- * Chains three tRPC mutations: spawnClient → createSession → assignAgent.
+ * Chains three tRPC mutations: getOrSpawnClient → createSession → assignAgent.
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,7 +38,7 @@ export function ProjectSpawnFlow({
   const [error, setError] = useState<string | null>(null);
 
   const spawnMutation = useMutation(
-    trpc.sessions.spawnClient.mutationOptions(),
+    trpc.sessions.getOrSpawnClient.mutationOptions(),
   );
   const createSessionMutation = useMutation(
     trpc.sessions.createSession.mutationOptions(),

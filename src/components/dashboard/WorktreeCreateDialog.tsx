@@ -70,7 +70,7 @@ export function WorktreeCreateDialog({
     trpc.worktrees.create.mutationOptions(),
   );
   const spawnClientMutation = useMutation(
-    trpc.sessions.spawnClient.mutationOptions(),
+    trpc.sessions.getOrSpawnClient.mutationOptions(),
   );
   const createSessionMutation = useMutation(
     trpc.sessions.createSession.mutationOptions(),

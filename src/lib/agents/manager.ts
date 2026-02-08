@@ -6,6 +6,7 @@
  */
 
 import { EventEmitter } from "node:events";
+import path from "node:path";
 import type * as acp from "@agentclientprotocol/sdk";
 import {
   type AgentType as ACPAgentType,
@@ -41,6 +42,16 @@ function collapsePath(cwd: string): string {
     return `~${cwd.slice(HOME_DIR.length)}`;
   }
   return cwd;
+}
+
+/**
+ * Expand ~ and resolve . / .. / trailing slashes so string comparison works.
+ */
+function normalizeCwd(cwd: string): string {
+  const expanded = cwd.startsWith("~")
+    ? (process.env.HOME ?? "") + cwd.slice(1)
+    : cwd;
+  return path.resolve(expanded);
 }
 
 /**
@@ -110,15 +121,52 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   // Client Lifecycle
   // -------------------------------------------------------------------------
 
+  /**
+   * Deduplicates in-flight spawns so concurrent callers sharing the same
+   * (agentType, cwd) pair don't each create a separate process.
+   */
+  private pendingSpawns = new Map<string, Promise<AgentClient>>();
+
+  /**
+   * Find an existing alive client with matching agentType and cwd,
+   * or spawn a new one if none exists.
+   */
+  async findOrSpawnClient(options: SpawnClientOptions): Promise<AgentClient> {
+    const cwd = normalizeCwd(options.cwd);
+
+    for (const managed of this.clients.values()) {
+      if (
+        managed.agentType === options.agentType &&
+        managed.cwd === cwd &&
+        managed.status === "ready" &&
+        managed.acpClient.isRunning()
+      ) {
+        return this.toAgentClient(managed);
+      }
+    }
+
+    // Deduplicate concurrent spawns for the same (agentType, cwd)
+    const key = `${options.agentType}:${cwd}`;
+    const pending = this.pendingSpawns.get(key);
+    if (pending) return pending;
+
+    const promise = this.spawnClient({ ...options, cwd }).finally(() => {
+      this.pendingSpawns.delete(key);
+    });
+    this.pendingSpawns.set(key, promise);
+    return promise;
+  }
+
   async spawnClient(options: SpawnClientOptions): Promise<AgentClient> {
     const clientId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const cwd = normalizeCwd(options.cwd);
 
     const acpClient = new ACPClient(
       {
         type: options.agentType as ACPAgentType,
         env: options.env,
       },
-      options.cwd,
+      cwd,
     );
 
     const managed: ManagedClient = {
@@ -126,7 +174,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       acpClient,
       agentType: options.agentType,
       status: "starting",
-      cwd: options.cwd,
+      cwd,
       createdAt: new Date(),
     };
 
@@ -137,7 +185,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       const capabilities = await acpClient.start();
       managed.status = "ready";
       managed.capabilities = capabilities;
-      recordRecentDirectory(collapsePath(options.cwd));
+      recordRecentDirectory(collapsePath(cwd));
     } catch (error) {
       managed.status = "error";
       managed.error = error as Error;
@@ -240,11 +288,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       throw new Error(`Client not ready: ${managed.status}`);
     }
 
-    // Expand ~ to home directory
-    let cwd = options.cwd ?? managed.cwd;
-    if (cwd.startsWith("~")) {
-      cwd = cwd.replace("~", process.env.HOME ?? "");
-    }
+    const cwd = normalizeCwd(options.cwd ?? managed.cwd);
 
     const acpSession = await managed.acpClient.createSession(cwd);
 
@@ -376,8 +420,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
-    // Spawn new client
-    const client = await this.spawnClient({
+    // Reuse existing client or spawn a new one
+    const client = await this.findOrSpawnClient({
       agentType: stored.agentType,
       cwd: stored.cwd ?? process.cwd(),
     });
@@ -944,6 +988,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     this.sessionToClient.clear();
     this.messageQueues.clear();
     this.processingSession.clear();
+    this.pendingSpawns.clear();
     this.removeAllListeners();
   }
 

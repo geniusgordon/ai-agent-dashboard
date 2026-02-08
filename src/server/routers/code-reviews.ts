@@ -82,7 +82,7 @@ export const codeReviewsRouter = createTRPCRouter({
         );
         const cwd = worktree?.path ?? project.repoPath;
 
-        const client = await agentManager.spawnClient({
+        const client = await agentManager.findOrSpawnClient({
           agentType: input.agentType,
           cwd,
         });

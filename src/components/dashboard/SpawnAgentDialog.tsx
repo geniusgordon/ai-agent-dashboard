@@ -43,7 +43,7 @@ export function SpawnAgentDialog({
   const [error, setError] = useState<string | null>(null);
 
   const spawnMutation = useMutation(
-    trpc.sessions.spawnClient.mutationOptions(),
+    trpc.sessions.getOrSpawnClient.mutationOptions(),
   );
   const createSessionMutation = useMutation(
     trpc.sessions.createSession.mutationOptions(),
