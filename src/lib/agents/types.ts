@@ -242,6 +242,7 @@ export type UnsubscribeFn = () => void;
 
 export interface IAgentManager {
   // Client lifecycle
+  findOrSpawnClient(options: SpawnClientOptions): Promise<AgentClient>;
   spawnClient(options: SpawnClientOptions): Promise<AgentClient>;
   stopClient(clientId: string): Promise<void>;
   getClient(clientId: string): AgentClient | undefined;

@@ -21,9 +21,9 @@ export const sessionsRouter = createTRPCRouter({
   // ---------------------------------------------------------------------------
 
   /**
-   * Spawn a new ACP client for an agent type
+   * Get an existing client for the given agent type and cwd, or spawn a new one.
    */
-  spawnClient: publicProcedure
+  getOrSpawnClient: publicProcedure
     .input(
       z.object({
         agentType: AgentTypeSchema,
@@ -33,7 +33,7 @@ export const sessionsRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const manager = getAgentManager();
-      return manager.spawnClient(input);
+      return manager.findOrSpawnClient(input);
     }),
 
   /**
