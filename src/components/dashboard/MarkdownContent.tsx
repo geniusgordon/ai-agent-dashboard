@@ -1,7 +1,13 @@
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import {
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/cjs/styles/prism";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 
+import { useTheme } from "@/hooks/useTheme";
 import { CopyButton } from "./CopyButton";
 
 /**
@@ -11,17 +17,35 @@ import { CopyButton } from "./CopyButton";
  */
 export function MarkdownContent({
   children,
-}: { children: string | null | undefined }) {
+}: {
+  children: string | null | undefined;
+}) {
+  const { theme } = useTheme();
   if (!children) return null;
+
+  const isDark = theme === "dark";
   return (
-    <div className="prose prose-sm prose-invert max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_hr]:border-border [&_hr]:my-3">
-      <Markdown components={markdownComponents}>{children}</Markdown>
+    <div
+      className={`prose prose-sm max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_hr]:border-border [&_hr]:my-3 ${isDark ? "prose-invert" : ""}`}
+    >
+      <Markdown
+        components={getMarkdownComponents(isDark)}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+      >
+        {children}
+      </Markdown>
     </div>
   );
 }
 
-const markdownComponents: React.ComponentProps<typeof Markdown>["components"] =
-  {
+function getMarkdownComponents(
+  isDark: boolean,
+): React.ComponentProps<typeof Markdown>["components"] {
+  const syntaxTheme = isDark ? oneDark : oneLight;
+  const codeBlockBg = isDark ? "bg-[#282c34]" : "bg-[#fafafa]";
+  const codeBlockHeaderBg = isDark ? "bg-white/5" : "bg-black/[0.03]";
+
+  return {
     code({ className, children, ...props }) {
       const match = /language-(\w+)/.exec(className || "");
       const codeString = String(children).replace(/\n$/, "");
@@ -40,8 +64,12 @@ const markdownComponents: React.ComponentProps<typeof Markdown>["components"] =
       }
 
       return (
-        <div className="not-prose my-3 rounded-lg border border-border/50 overflow-hidden bg-[#282c34]">
-          <div className="flex items-center justify-between px-4 py-1.5 bg-white/5 border-b border-border/30">
+        <div
+          className={`not-prose my-3 rounded-lg border border-border/50 overflow-hidden ${codeBlockBg}`}
+        >
+          <div
+            className={`flex items-center justify-between px-4 py-1.5 ${codeBlockHeaderBg} border-b border-border/30`}
+          >
             <span className="text-xs text-muted-foreground font-mono select-none">
               {language || "text"}
             </span>
@@ -49,7 +77,7 @@ const markdownComponents: React.ComponentProps<typeof Markdown>["components"] =
           </div>
           {language ? (
             <SyntaxHighlighter
-              style={oneDark}
+              style={syntaxTheme}
               language={language}
               PreTag="div"
               customStyle={{
@@ -109,3 +137,4 @@ const markdownComponents: React.ComponentProps<typeof Markdown>["components"] =
       return <>{children}</>;
     },
   };
+}
