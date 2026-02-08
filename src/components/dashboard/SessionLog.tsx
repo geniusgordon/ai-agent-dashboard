@@ -23,21 +23,11 @@ export function SessionLog({
       {/* Scrollable container */}
       <div
         ref={containerRef}
-        className="absolute inset-0 overflow-y-auto rounded-xl border border-border bg-background/50 font-mono text-sm shadow-lg"
+        className="absolute inset-0 overflow-y-auto rounded-none lg:rounded-xl border-0 lg:border lg:border-border bg-transparent lg:bg-background/50 font-mono text-sm"
       >
-        {/* Sticky log header */}
-        <div className="sticky top-0 z-10 px-4 py-2.5 bg-background/90 backdrop-blur-md border-b border-border flex items-center justify-between">
-          <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-            Session Log
-          </span>
-          <span className="text-xs tabular-nums text-muted-foreground">
-            {events.length} events
-          </span>
-        </div>
-
-        <div className="p-3">
+        <div className="px-2 py-1.5 lg:p-3">
           {events.length === 0 ? (
-            <div className="text-muted-foreground text-center py-16">
+            <div className="text-muted-foreground text-center py-8 lg:py-16">
               <MessageSquare className="size-10 mx-auto mb-4 text-muted-foreground/30" />
               <p className="text-sm font-medium">No messages yet</p>
               <p className="text-xs mt-1.5 text-muted-foreground/70">
