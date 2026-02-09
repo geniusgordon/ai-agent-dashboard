@@ -318,6 +318,30 @@ export interface ChangedFile {
   deletions: number;
 }
 
+export async function getMergeBase(
+  repoPath: string,
+  branchA: string,
+  branchB: string,
+): Promise<string> {
+  validateBranchName(branchA);
+  validateBranchName(branchB);
+
+  const { stdout } = await git(["merge-base", branchA, branchB], repoPath);
+  return stdout.trim();
+}
+
+export async function getCommitCount(
+  repoPath: string,
+  fromRef: string,
+  toRef: string,
+): Promise<number> {
+  const { stdout } = await git(
+    ["rev-list", "--count", `${fromRef}..${toRef}`],
+    repoPath,
+  );
+  return Number.parseInt(stdout.trim(), 10);
+}
+
 export async function getDiff(
   repoPath: string,
   baseBranch: string,

@@ -13,8 +13,11 @@ import {
 import { getAgentManager } from "../../lib/agents/index.js";
 import { buildReviewPrompt } from "../../lib/code-review/prompt-builder.js";
 import {
+  getCommitCount,
+  getCommitsSinceBranch,
   getDiff,
   getFilesChanged,
+  getMergeBase,
   getProjectManager,
 } from "../../lib/projects/index.js";
 
@@ -74,17 +77,26 @@ export const codeReviewsRouter = createTRPCRouter({
           });
         }
 
-        const [diff, files] = await Promise.all([
+        const [diff, files, mergeBase] = await Promise.all([
           getDiff(project.repoPath, input.baseBranch, branchName),
           getFilesChanged(project.repoPath, input.baseBranch, branchName),
+          getMergeBase(project.repoPath, input.baseBranch, branchName),
         ]);
 
-        const prompt = buildReviewPrompt(
+        const [baseDivergedCount, branchCommits] = await Promise.all([
+          getCommitCount(project.repoPath, mergeBase, input.baseBranch),
+          getCommitsSinceBranch(cwd, input.baseBranch),
+        ]);
+
+        const prompt = buildReviewPrompt({
           branchName,
-          input.baseBranch,
+          baseBranch: input.baseBranch,
           files,
           diff,
-        );
+          mergeBase,
+          baseDivergedCount,
+          branchCommits,
+        });
 
         agentManager.sendMessage(session.id, prompt);
 
