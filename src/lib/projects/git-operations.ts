@@ -49,6 +49,26 @@ export function validateBranchName(name: string): void {
   }
 }
 
+const HEX_SHA = /^[0-9a-f]{4,40}$/;
+
+/**
+ * Validate a git ref that may be a branch name or a hex commit SHA.
+ * Used for functions like `getCommitCount` where inputs can come from
+ * either user input (branch names) or prior git output (SHA hashes).
+ */
+export function validateRef(ref: string): void {
+  if (!ref || ref.length === 0) {
+    throw new Error("Git ref cannot be empty");
+  }
+  if (ref.startsWith("-")) {
+    throw new Error("Git ref cannot start with '-'");
+  }
+  // Accept full/abbreviated hex SHAs (e.g. from getMergeBase output)
+  if (HEX_SHA.test(ref)) return;
+  // Otherwise validate as a branch name
+  validateBranchName(ref);
+}
+
 export function validatePath(dirPath: string): void {
   if (!dirPath) {
     throw new Error("Path cannot be empty");
@@ -316,6 +336,33 @@ export interface ChangedFile {
   path: string;
   additions: number;
   deletions: number;
+}
+
+export async function getMergeBase(
+  repoPath: string,
+  branchA: string,
+  branchB: string,
+): Promise<string> {
+  validateBranchName(branchA);
+  validateBranchName(branchB);
+
+  const { stdout } = await git(["merge-base", branchA, branchB], repoPath);
+  return stdout.trim();
+}
+
+export async function getCommitCount(
+  repoPath: string,
+  fromRef: string,
+  toRef: string,
+): Promise<number> {
+  validateRef(fromRef);
+  validateRef(toRef);
+
+  const { stdout } = await git(
+    ["rev-list", "--count", `${fromRef}..${toRef}`],
+    repoPath,
+  );
+  return Number.parseInt(stdout.trim(), 10);
 }
 
 export async function getDiff(
