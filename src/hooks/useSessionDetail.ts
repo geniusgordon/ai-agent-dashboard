@@ -294,10 +294,8 @@ export function useSessionDetail(sessionId: string) {
     setOptimisticApproval(null);
     // Optimistically remove from cache so banner disappears instantly
     // (before the refetch round-trip completes)
-    queryClient.setQueryData(
-      trpc.approvals.list.queryKey(),
-      (old: ApprovalRequest[] | undefined) =>
-        old?.filter((a) => a.id !== approvalId),
+    queryClient.setQueryData(trpc.approvals.list.queryKey(), (old) =>
+      old?.filter((a) => a.id !== approvalId),
     );
     queryClient.invalidateQueries({
       queryKey: trpc.approvals.list.queryKey(),
