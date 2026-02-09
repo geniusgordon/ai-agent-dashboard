@@ -131,26 +131,32 @@ export function StartReviewDialog({
             <Select
               value={effectiveBase}
               onValueChange={(val) => setBaseBranch(val)}
+              disabled={branchesQuery.isLoading}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {branches.map((b) => (
-                  <SelectItem key={b.name} value={b.name}>
-                    {b.name}
-                    {b.isDefault ? " (default)" : ""}
-                  </SelectItem>
-                ))}
+                {branches
+                  .filter((b) => b.name !== branch)
+                  .map((b) => (
+                    <SelectItem key={b.name} value={b.name}>
+                      {b.name}
+                      {b.isDefault ? " (default)" : ""}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Branch being reviewed */}
-          <div className="p-3 rounded-lg bg-card border border-border">
-            <p className="text-sm text-muted-foreground mb-1.5">Reviewing</p>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-git/10 text-git-muted font-mono">
-              <GitBranch className="size-3" />
+          {/* Comparison summary: base ← feature */}
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-card border border-border text-sm font-mono">
+            <span className="text-muted-foreground truncate">
+              {effectiveBase}
+            </span>
+            <span className="text-muted-foreground/60 shrink-0">&larr;</span>
+            <span className="inline-flex items-center gap-1 text-git-muted truncate">
+              <GitBranch className="size-3 shrink-0" />
               {branch}
             </span>
           </div>
