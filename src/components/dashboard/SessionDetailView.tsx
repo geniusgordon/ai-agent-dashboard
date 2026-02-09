@@ -6,8 +6,9 @@ import {
   ApprovalBanner,
   MessageInput,
   ReconnectBanner,
-  SessionHeader,
+  SessionContextHeader,
   SessionLog,
+  SessionMobileDrawer,
   SessionRightPanel,
   StartReviewDialog,
   TaskPanel,
@@ -70,6 +71,7 @@ export function SessionDetailView({
     true,
   );
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const {
     session,
@@ -120,26 +122,30 @@ export function SessionDetailView({
 
   if (isLoading) {
     return (
-      <div className="text-center py-12">
-        <Loader2 className="size-8 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-muted-foreground">Loading session...</p>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="size-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading session...</p>
+        </div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-2">Session not found</p>
-        <p className="text-sm text-muted-foreground font-mono">{sessionId}</p>
-        <Link
-          to={notFoundBackTo}
-          params={notFoundBackParams}
-          className="mt-4 inline-flex items-center gap-1.5 text-primary hover:text-primary/80"
-        >
-          <ArrowLeft className="size-4" />
-          Back to sessions
-        </Link>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-2">Session not found</p>
+          <p className="text-sm text-muted-foreground font-mono">{sessionId}</p>
+          <Link
+            to={notFoundBackTo}
+            params={notFoundBackParams}
+            className="mt-4 inline-flex items-center gap-1.5 text-primary hover:text-primary/80"
+          >
+            <ArrowLeft className="size-4" />
+            Back to sessions
+          </Link>
+        </div>
       </div>
     );
   }
@@ -157,63 +163,60 @@ export function SessionDetailView({
   const canStartReview = !!resolvedProjectId && !!branch;
 
   return (
-    <div className="-mx-4 sm:-mx-6 lg:mx-0 -mb-4 sm:-mb-6 lg:mb-0 h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem-4rem)] flex flex-col lg:flex-row gap-0 lg:gap-2">
-      {/* Negative margins above counteract DashboardLayout's p-4 sm:p-6 lg:p-8 for edge-to-edge mobile */}
-      {/* Main column */}
-      <div className="flex-1 flex flex-col gap-0 lg:gap-2 min-w-0">
-        <div className="px-3 sm:px-4 lg:px-0 pt-2 lg:pt-0">
-          <SessionHeader
-            session={session}
-            connected={connected}
-            autoScroll={autoScroll}
-            onToggleAutoScroll={toggleAutoScroll}
-            onClearLogs={clearLogs}
-            onKillSession={killSession}
-            isKilling={isKilling}
-            onCompleteSession={completeSession}
-            isCompleting={isCompleting}
-            onRename={renameSession}
-            isRenaming={isRenaming}
-            backTo={headerBackTo}
-            backParams={headerBackParams}
-            onDeleteSession={handleDelete}
-            isDeleting={isDeleting}
-            branch={branch}
-            projectName={projectQuery.data?.name}
-            compact={isDesktop}
-            kebabMenu={!isDesktop}
-            onStartReview={
-              canStartReview ? () => setReviewDialogOpen(true) : undefined
-            }
-          />
-        </div>
+    <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+      {/* Left column: context header + banners + log + input */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <SessionContextHeader
+          session={session}
+          connected={connected}
+          autoScroll={autoScroll}
+          onToggleAutoScroll={toggleAutoScroll}
+          onClearLogs={clearLogs}
+          backTo={headerBackTo}
+          backParams={headerBackParams}
+          onRename={renameSession}
+          isRenaming={isRenaming}
+          panelOpen={isDesktop ? panelOpen : undefined}
+          onTogglePanel={
+            isDesktop ? () => setPanelOpen((prev) => !prev) : undefined
+          }
+          onOpenMobileDrawer={
+            !isDesktop ? () => setMobileDrawerOpen(true) : undefined
+          }
+        />
 
         {/* Mobile/tablet: inline banners and task panel */}
         {!isDesktop && (
-          <div className="flex flex-col gap-1.5 px-3 sm:px-4">
+          <div className="flex flex-col shrink-0">
             {session.isActive === false && (
-              <ReconnectBanner
-                onReconnect={reconnect}
-                isReconnecting={isReconnecting}
-              />
+              <div className="px-3 py-2 border-b border-border">
+                <ReconnectBanner
+                  onReconnect={reconnect}
+                  isReconnecting={isReconnecting}
+                />
+              </div>
             )}
 
             {pendingApproval && (
-              <ApprovalBanner
-                approval={pendingApproval}
-                onApprove={approve}
-                onDeny={deny}
-                isApproving={isApproving}
-                isDenying={isDenying}
-              />
+              <div className="px-3 py-2 border-b border-border">
+                <ApprovalBanner
+                  approval={pendingApproval}
+                  onApprove={approve}
+                  onDeny={deny}
+                  isApproving={isApproving}
+                  isDenying={isDenying}
+                />
+              </div>
             )}
 
             {latestPlan && (
-              <TaskPanel
-                entries={latestPlan.entries}
-                isCollapsed={taskPanelCollapsed}
-                onToggleCollapse={toggleTaskPanel}
-              />
+              <div className="px-3 py-2 border-b border-border">
+                <TaskPanel
+                  entries={latestPlan.entries}
+                  isCollapsed={taskPanelCollapsed}
+                  onToggleCollapse={toggleTaskPanel}
+                />
+              </div>
             )}
           </div>
         )}
@@ -243,11 +246,10 @@ export function SessionDetailView({
         )}
       </div>
 
-      {/* Right panel — desktop only */}
-      {isDesktop && (
+      {/* Right column */}
+      {isDesktop ? (
         <SessionRightPanel
           isOpen={panelOpen}
-          onToggle={() => setPanelOpen((prev) => !prev)}
           session={session}
           connected={connected}
           branch={branch}
@@ -269,10 +271,39 @@ export function SessionDetailView({
             onReconnect: reconnect,
             isReconnecting,
           }}
-          logControls={{
-            autoScroll,
-            onToggleAutoScroll: toggleAutoScroll,
-            onClearLogs: clearLogs,
+          tasks={{
+            latestPlan,
+            taskPanelCollapsed,
+            onToggleTaskPanel: toggleTaskPanel,
+          }}
+          onStartReview={
+            canStartReview ? () => setReviewDialogOpen(true) : undefined
+          }
+        />
+      ) : (
+        <SessionMobileDrawer
+          open={mobileDrawerOpen}
+          onOpenChange={setMobileDrawerOpen}
+          session={session}
+          connected={connected}
+          branch={branch}
+          projectName={projectQuery.data?.name}
+          approval={{
+            pendingApproval,
+            onApprove: approve,
+            onDeny: deny,
+            isApproving,
+            isDenying,
+          }}
+          actions={{
+            onKillSession: killSession,
+            isKilling,
+            onCompleteSession: completeSession,
+            isCompleting,
+            onDeleteSession: handleDelete,
+            isDeleting,
+            onReconnect: reconnect,
+            isReconnecting,
           }}
           tasks={{
             latestPlan,

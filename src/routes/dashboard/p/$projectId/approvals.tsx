@@ -8,7 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
-import { ApprovalCard } from "@/components/dashboard";
+import { ApprovalCard, PageContainer } from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
 
@@ -63,65 +63,69 @@ function ProjectApprovalsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Approvals
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            Permission requests from this project's agents
-          </p>
-        </div>
+    <PageContainer>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Approvals
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
+              Permission requests from this project's agents
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          {connected ? (
-            <span className="text-xs text-live flex items-center gap-1.5 shadow-live-glow">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-live" />
+          <div className="flex items-center gap-3 shrink-0">
+            {connected ? (
+              <span className="text-xs text-live flex items-center gap-1.5 shadow-live-glow">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-live" />
+                </span>
+                Live
               </span>
-              Live
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Loader2 className="size-3 animate-spin" />
-              Connecting...
-            </span>
-          )}
-          {approvals.length > 0 && (
-            <div className="px-3 py-1 rounded-full bg-action-warning/20 text-action-warning text-sm font-medium flex items-center gap-1.5">
-              <AlertTriangle className="size-3.5 animate-pulse" />
-              {approvals.length} pending
-            </div>
-          )}
+            ) : (
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Loader2 className="size-3 animate-spin" />
+                Connecting...
+              </span>
+            )}
+            {approvals.length > 0 && (
+              <div className="px-3 py-1 rounded-full bg-action-warning/20 text-action-warning text-sm font-medium flex items-center gap-1.5">
+                <AlertTriangle className="size-3.5 animate-pulse" />
+                {approvals.length} pending
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Approvals List */}
-      {approvals.length === 0 ? (
-        <div className="p-12 rounded-xl border border-dashed border-border text-center">
-          <ShieldCheck className="size-12 text-muted-foreground/50 mx-auto mb-4" />
-          <p className="text-lg text-muted-foreground">No pending approvals</p>
-          <p className="text-sm text-muted-foreground/70 mt-1">
-            Permission requests from agents will appear here in real-time
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {approvals.map((approval) => (
-            <ApprovalCard
-              key={approval.id}
-              approval={approval}
-              projectId={projectId}
-              onApprove={handleApprove}
-              onDeny={handleDeny}
-              isLoading={approveMutation.isPending || denyMutation.isPending}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+        {/* Approvals List */}
+        {approvals.length === 0 ? (
+          <div className="p-12 rounded-xl border border-dashed border-border text-center">
+            <ShieldCheck className="size-12 text-muted-foreground/50 mx-auto mb-4" />
+            <p className="text-lg text-muted-foreground">
+              No pending approvals
+            </p>
+            <p className="text-sm text-muted-foreground/70 mt-1">
+              Permission requests from agents will appear here in real-time
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {approvals.map((approval) => (
+              <ApprovalCard
+                key={approval.id}
+                approval={approval}
+                projectId={projectId}
+                onApprove={handleApprove}
+                onDeny={handleDeny}
+                isLoading={approveMutation.isPending || denyMutation.isPending}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </PageContainer>
   );
 }

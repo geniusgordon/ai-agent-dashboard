@@ -91,7 +91,7 @@ export function ApprovalBanner({
   const detail = rawDetail && !title.includes(rawDetail) ? rawDetail : null;
 
   return (
-    <div className="p-2.5 sm:p-4 rounded-lg lg:rounded-xl border border-border bg-card/50 shadow-sm border-l-2 border-l-status-waiting animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="p-2.5 sm:p-4 border border-border bg-background border-l-2 border-l-status-waiting animate-in fade-in slide-in-from-top-2 duration-200">
       {/* Title row */}
       <div className="flex items-start gap-2 mb-2">
         <AlertTriangle className="size-4 text-action-warning shrink-0 mt-0.5" />

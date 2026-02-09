@@ -67,7 +67,7 @@ export function TaskPanel({
   const summary = summarizePlanEntries(entries);
 
   return (
-    <div className="rounded-lg lg:rounded-xl border border-border bg-background/50 shadow-sm overflow-hidden">
+    <div className="border-b border-border overflow-hidden">
       {/* Header — always visible, clickable to toggle */}
       <button
         type="button"

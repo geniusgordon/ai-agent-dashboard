@@ -121,3 +121,9 @@ Managed via T3 Env in `src/env.ts`. Server vars are unprefixed, client vars requ
 - **Project persistence**: Projects, worktrees, and agent assignments stored in SQLite at `.agent-store/projects.db` with FK cascades.
 - **Worktree workflow**: Projects group agent sessions around a git repo. Each worktree gets its own branch, agents are assigned to worktrees, and assignments auto-cleanup on session kill/delete.
 - **Agent prompt size**: Truncate large inputs (diffs, logs, file contents) before sending to agents — unbounded content can exceed context windows or cause OOM.
+
+## Git Workflow
+
+- **Addressing code review**: Always use a new commit (do not amend). This makes it easy for reviewers to see exactly what changed since the last review round.
+- **Before merging**: Run `git merge-tree $(git merge-base main HEAD) main HEAD` to check for conflicts. Resolve any conflicts before merging.
+- **Merge conflicts**: Always fix merge conflicts on the feature branch before merging into `main`.
