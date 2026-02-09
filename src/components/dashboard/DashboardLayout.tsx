@@ -36,7 +36,9 @@ export function DashboardLayout() {
               {/* Portal target — child routes render header content here via createPortal */}
               <div
                 ref={headerSlotValue.setContainer}
-                className="flex-1 min-w-0"
+                className={
+                  headerSlotValue.slotActive ? "flex-1 min-w-0" : undefined
+                }
               />
               {!headerSlotValue.slotActive && (
                 <span className="font-semibold text-sm tracking-tight">
