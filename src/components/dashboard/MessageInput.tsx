@@ -98,13 +98,17 @@ export function MessageInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Persist draft on every change
+  // Persist draft whenever input or images change
   useEffect(() => {
     saveDraft(sessionId, { text: input, images });
-  });
+  }, [sessionId, input, images]);
 
-  // Restore draft when switching sessions (sessionId changes)
+  // Restore draft when switching sessions (sessionId changes but component stays mounted)
+  const prevSessionIdRef = useRef(sessionId);
   useEffect(() => {
+    if (prevSessionIdRef.current === sessionId) return;
+    prevSessionIdRef.current = sessionId;
+
     const draft = getDraft(sessionId);
     setInput(draft?.text ?? "");
     setImages(draft?.images ?? []);
