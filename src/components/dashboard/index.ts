@@ -1,5 +1,6 @@
 export { AgentBadge } from "./AgentBadge";
 export { ApprovalBanner } from "./ApprovalBanner";
+export { ApprovalCard, type EnrichedApproval } from "./ApprovalCard";
 export { BranchBadge } from "./BranchBadge";
 export { BranchList } from "./BranchList";
 export { ClientCard } from "./ClientCard";

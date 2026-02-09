@@ -47,8 +47,12 @@ export function WorktreeCard({
     <Link
       to="/dashboard/p/$projectId/worktrees/$worktreeId"
       params={{ projectId, worktreeId: worktree.id }}
-      className={`block p-4 rounded-xl border bg-card/50 shadow-sm transition-colors duration-200 hover:bg-card hover:border-primary/20 group ${
-        hasMultipleAgents ? "border-action-warning/40" : "border-border"
+      className={`block p-5 rounded-xl border border-border bg-card/50 shadow-sm transition-all duration-200 hover:bg-card hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5 cursor-pointer group border-l-2 ${
+        hasMultipleAgents
+          ? "border-l-action-warning"
+          : assignments.length > 0
+            ? "border-l-git"
+            : "border-l-border"
       }`}
     >
       {/* Header */}
@@ -73,10 +77,10 @@ export function WorktreeCard({
               onDelete?.();
             }}
             disabled={isDeleting}
-            className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer disabled:opacity-50"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             title="Delete worktree"
           >
-            <Trash2 className="size-3.5" />
+            <Trash2 className="size-4" />
           </button>
         )}
       </div>

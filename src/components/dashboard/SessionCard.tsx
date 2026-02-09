@@ -112,52 +112,41 @@ export function SessionCard({ session, projectId }: SessionCardProps) {
           </div>
         </div>
 
-        {/* Time & Delete */}
+        {/* Time, Delete & Nav */}
         <div className="text-right shrink-0 flex flex-col items-end gap-2">
-          <p className="text-xs text-muted-foreground">{timeAgo}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground">{timeAgo}</p>
+            <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
 
           {/* Delete button - show on hover or when confirming */}
-          <button
-            type="button"
-            onClick={handleDeleteClick}
-            disabled={deleteMutation.isPending}
-            className={`
-              p-1.5 rounded-md transition-all
-              ${
-                confirmDelete
-                  ? "bg-destructive/10 text-destructive opacity-100"
-                  : "text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={handleDeleteClick}
+              disabled={deleteMutation.isPending}
+              className={`
+                p-1.5 rounded-md transition-all
+                ${
+                  confirmDelete
+                    ? "bg-destructive/10 text-destructive opacity-100"
+                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed
+              `}
+              title={
+                confirmDelete ? "Click again to confirm" : "Delete session"
               }
-              disabled:opacity-50 disabled:cursor-not-allowed
-            `}
-            title={confirmDelete ? "Click again to confirm" : "Delete session"}
-          >
-            <Trash2 className="size-4" />
-          </button>
+            >
+              <Trash2 className="size-4" />
+            </button>
+            {confirmDelete && (
+              <span className="text-[11px] text-destructive whitespace-nowrap">
+                Confirm delete
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Hover indicator */}
-      <div
-        className="
-        mt-3 pt-3 border-t border-border
-        flex items-center justify-between
-      "
-      >
-        {confirmDelete && (
-          <span className="text-xs text-destructive">
-            Click again to delete
-          </span>
-        )}
-        <span
-          className={`
-          text-xs text-muted-foreground flex items-center gap-1 ml-auto
-          ${confirmDelete ? "" : "opacity-0 group-hover:opacity-100"} transition-opacity
-        `}
-        >
-          View logs
-          <ChevronRight className="size-4" />
-        </span>
       </div>
     </Link>
   );
