@@ -74,7 +74,7 @@ export function SessionContextHeader({
 
   return (
     <TooltipProvider>
-      <div className="sticky top-0 z-20 flex items-center gap-2 h-10 px-3 border-b border-border bg-background/95 backdrop-blur-sm shrink-0">
+      <div className="flex flex-1 items-center gap-2 min-w-0">
         {/* Left: back + identity */}
         <Button variant="ghost" size="icon-sm" asChild className="shrink-0">
           <Link to={backTo} params={backParams}>
