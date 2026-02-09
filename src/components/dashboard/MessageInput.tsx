@@ -476,8 +476,8 @@ export function MessageInput({
                 disabled={isCancelling}
                 className="
                   px-3 lg:px-5 py-2 lg:py-2.5 rounded-lg font-semibold text-sm
-                  bg-destructive text-destructive-foreground
-                  hover:bg-destructive/90 hover:-translate-y-px
+                  bg-action-danger text-white
+                  hover:bg-action-danger-hover hover:-translate-y-px
                   active:translate-y-0
                   transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
