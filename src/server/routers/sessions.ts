@@ -328,7 +328,8 @@ export const sessionsRouter = createTRPCRouter({
   readPlanFile: publicProcedure
     .input(z.object({ filePath: z.string() }))
     .query(async ({ input }) => {
-      const home = process.env.HOME ?? "";
+      const home = process.env.HOME;
+      if (!home) throw new Error("HOME environment variable is not set");
       const allowedDir = resolve(home, ".claude", "plans");
       const resolved = resolve(input.filePath);
 
