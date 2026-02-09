@@ -149,10 +149,11 @@ export function SessionMobileDrawer({
               entries={tasks.latestPlan.entries}
               isCollapsed={tasks.taskPanelCollapsed}
               onToggleCollapse={tasks.onToggleTaskPanel}
+              planFilePath={tasks.planFilePath}
             />
           )}
 
-          {tasks.planFilePath && (
+          {!tasks.latestPlan && tasks.planFilePath && (
             <PlanDocumentViewer filePath={tasks.planFilePath} />
           )}
 

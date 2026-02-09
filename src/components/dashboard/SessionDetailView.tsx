@@ -235,11 +235,12 @@ export function SessionDetailView({
                     entries={latestPlan.entries}
                     isCollapsed={taskPanelCollapsed}
                     onToggleCollapse={toggleTaskPanel}
+                    planFilePath={planFilePath}
                   />
                 </div>
               )}
 
-              {planFilePath && (
+              {!latestPlan && planFilePath && (
                 <div className="px-3 py-2 border-b border-border">
                   <PlanDocumentViewer filePath={planFilePath} />
                 </div>
