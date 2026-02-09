@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -10,11 +10,13 @@ import {
   ReconnectBanner,
   SessionContextHeader,
   SessionLog,
+  SessionLogSkeleton,
   SessionMobileDrawer,
   SessionRightPanel,
   StartReviewDialog,
   TaskPanel,
 } from "@/components/dashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useIsDesktop } from "@/hooks/use-mobile";
 import { useHeaderSlot } from "@/hooks/useHeaderSlot";
 import { useSessionDetail } from "@/hooks/useSessionDetail";
@@ -163,11 +165,33 @@ export function SessionDetailView({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="size-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading session...</p>
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+        {/* Left column skeleton: log + input */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <SessionLogSkeleton />
+          {/* Input bar skeleton */}
+          <div className="border-t border-border px-3 py-3">
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
         </div>
+
+        {/* Right panel skeleton (desktop only) */}
+        {isDesktop && (
+          <div className="w-80 border-l border-border p-4 space-y-4 shrink-0">
+            <Skeleton className="h-5 w-24" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+            <Skeleton className="h-px w-full" />
+            <Skeleton className="h-5 w-20" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full rounded-lg" />
+              <Skeleton className="h-8 w-full rounded-lg" />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
