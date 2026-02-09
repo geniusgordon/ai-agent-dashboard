@@ -9,7 +9,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import {
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/cjs/styles/prism";
+
+import { useTheme } from "@/hooks/useTheme";
 
 import {
   computeLineDiff,
@@ -232,6 +237,10 @@ function TerminalErrorEntry({ event }: { event: AgentEvent }) {
 // ---------------------------------------------------------------------------
 
 function DiffBlock({ block }: { block: DiffContentBlock }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const syntaxTheme = isDark ? oneDark : oneLight;
+
   const diffText = computeLineDiff(block.oldText ?? "", block.newText);
   const lines = diffText.split("\n");
   const isLong = lines.length > OUTPUT_COLLAPSE_THRESHOLD;
@@ -242,7 +251,9 @@ function DiffBlock({ block }: { block: DiffContentBlock }) {
   return (
     <div className="rounded-md border border-border/40 bg-secondary/30 overflow-hidden">
       {/* File path header */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-border/30">
+      <div
+        className={`flex items-center justify-between px-3 py-1.5 border-b border-border/30 ${isDark ? "bg-white/5" : "bg-black/[0.03]"}`}
+      >
         <span
           className="text-[11px] font-mono text-muted-foreground/70 truncate"
           title={block.path}
@@ -260,7 +271,7 @@ function DiffBlock({ block }: { block: DiffContentBlock }) {
           onClick={() => setIsExpanded(true)}
         >
           <SyntaxHighlighter
-            style={oneDark}
+            style={syntaxTheme}
             language="diff"
             PreTag="div"
             customStyle={{
@@ -281,7 +292,7 @@ function DiffBlock({ block }: { block: DiffContentBlock }) {
       ) : (
         <div>
           <SyntaxHighlighter
-            style={oneDark}
+            style={syntaxTheme}
             language="diff"
             PreTag="div"
             customStyle={{
