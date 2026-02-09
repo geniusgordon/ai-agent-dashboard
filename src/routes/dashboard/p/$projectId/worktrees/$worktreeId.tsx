@@ -292,6 +292,7 @@ function WorktreeDetailPage() {
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleConfirmDelete}
           isDeleting={deleteWorktreeMutation.isPending}
+          assignedAgentCount={assignments.length}
         />
       </div>
     </PageContainer>

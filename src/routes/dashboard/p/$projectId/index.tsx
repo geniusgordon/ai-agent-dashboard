@@ -67,6 +67,14 @@ function ProjectOverviewPage() {
   );
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
+  // Query assignments for the worktree being deleted (for the warning)
+  const deleteTargetAssignmentsQuery = useQuery(
+    trpc.worktrees.getAssignments.queryOptions(
+      { worktreeId: worktreeToDelete?.id ?? "" },
+      { enabled: worktreeToDelete !== null },
+    ),
+  );
+
   // Queries
   const projectQuery = useQuery(
     trpc.projects.get.queryOptions({ id: projectId }),
@@ -332,6 +340,7 @@ function ProjectOverviewPage() {
           }}
           onConfirm={handleConfirmDelete}
           isDeleting={deleteWorktreeMutation.isPending}
+          assignedAgentCount={deleteTargetAssignmentsQuery.data?.length ?? 0}
         />
 
         {/* Recent Activity */}

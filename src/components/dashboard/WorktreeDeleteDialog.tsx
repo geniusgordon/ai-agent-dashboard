@@ -5,7 +5,7 @@
  * to also delete the associated git branch.
  */
 
-import { Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import {
@@ -24,6 +24,7 @@ interface WorktreeDeleteDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (deleteBranch: boolean) => void;
   isDeleting: boolean;
+  assignedAgentCount?: number;
 }
 
 export function WorktreeDeleteDialog({
@@ -32,6 +33,7 @@ export function WorktreeDeleteDialog({
   onOpenChange,
   onConfirm,
   isDeleting,
+  assignedAgentCount = 0,
 }: WorktreeDeleteDialogProps) {
   const [deleteBranch, setDeleteBranch] = useState(false);
 
@@ -59,6 +61,17 @@ export function WorktreeDeleteDialog({
         </DialogHeader>
 
         <div className="py-4 space-y-3">
+          {assignedAgentCount > 0 && (
+            <div className="px-3 py-2.5 rounded-lg bg-action-warning/10 border border-action-warning/20 flex items-start gap-2">
+              <AlertTriangle className="size-4 text-action-warning-muted shrink-0 mt-0.5" />
+              <p className="text-sm text-action-warning-muted">
+                {assignedAgentCount === 1
+                  ? "1 agent is currently assigned to this worktree and will be unassigned."
+                  : `${assignedAgentCount} agents are currently assigned to this worktree and will be unassigned.`}
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             Branch: <BranchBadge branch={worktree.branch} size="sm" />
           </div>
