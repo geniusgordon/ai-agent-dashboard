@@ -1,4 +1,4 @@
-import { ChevronRight, User } from "lucide-react";
+import { ChevronRight, RefreshCw, User } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -18,15 +18,65 @@ export interface LogEntryProps {
   event: AgentEvent;
 }
 
+/** Mode-switching tool names that should render as visual transition markers. */
+const MODE_TRANSITION_TOOLS = new Set(["EnterPlanMode", "ExitPlanMode"]);
+
+function getModeTransitionLabel(title: string): string | null {
+  if (title === "EnterPlanMode") return "Entered plan mode";
+  if (title === "ExitPlanMode") return "Exited plan mode";
+  return null;
+}
+
 /**
  * Thin dispatcher — routes tool-update events to ToolUpdateEntry,
+ * mode-transition tool-calls to ModeTransitionMarker,
  * everything else to LogEntryContent. No hooks here.
  */
 export function LogEntry({ event }: LogEntryProps) {
   if (event.type === "tool-update") {
     return <ToolUpdateEntry event={event} />;
   }
+  if (event.type === "tool-call") {
+    const payload = event.payload as Record<string, unknown>;
+    const title = payload.title as string | undefined;
+    if (title && MODE_TRANSITION_TOOLS.has(title)) {
+      return (
+        <ModeTransitionMarker
+          event={event}
+          label={getModeTransitionLabel(title) ?? title}
+        />
+      );
+    }
+  }
   return <LogEntryContent event={event} />;
+}
+
+// ---------------------------------------------------------------------------
+// ModeTransitionMarker — centered divider for EnterPlanMode / ExitPlanMode
+// ---------------------------------------------------------------------------
+
+function ModeTransitionMarker({
+  event,
+  label,
+}: {
+  event: AgentEvent;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 lg:py-2 px-2 lg:px-3 text-muted-foreground/60">
+      <span className="shrink-0 hidden sm:block w-[5.5rem] text-[11px] tabular-nums select-none text-muted-foreground/70">
+        {formatTime(event.timestamp)}
+      </span>
+      <div className="flex-1 flex items-center gap-2">
+        <div className="flex-1 border-t border-border" />
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap">
+          <RefreshCw className="size-3" />
+          {label}
+        </span>
+        <div className="flex-1 border-t border-border" />
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------

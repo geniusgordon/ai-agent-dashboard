@@ -267,7 +267,9 @@ export function MessageInput({
             {showModeSelector && (
               <Select
                 value={currentModeId}
-                onValueChange={onSetMode}
+                onValueChange={(value) => {
+                  if (value) onSetMode(value);
+                }}
                 disabled={isSettingMode}
               >
                 <SelectTrigger
@@ -331,7 +333,9 @@ export function MessageInput({
               <div className="hidden sm:block self-center">
                 <Select
                   value={currentModeId}
-                  onValueChange={onSetMode}
+                  onValueChange={(value) => {
+                    if (value) onSetMode(value);
+                  }}
                   disabled={isSettingMode}
                 >
                   <SelectTrigger
