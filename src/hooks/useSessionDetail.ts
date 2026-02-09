@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageAttachment } from "@/components/dashboard";
 import { useTRPC } from "@/integrations/trpc/react";
-import { extractContent } from "@/lib/agents/event-utils";
+import { extractContent, extractPlanFilePath } from "@/lib/agents/event-utils";
 import type {
   AgentEvent,
   ApprovalRequest,
@@ -34,6 +34,8 @@ export function useSessionDetail(sessionId: string) {
   const initialScrollDone = useRef(false);
   const lastEventTimeRef = useRef(0);
   const scrollScheduledRef = useRef(false);
+  /** Track toolCallIds for plan file writes so we can invalidate on completion */
+  const planWriteToolCallIds = useRef(new Set<string>());
 
   // Reset local state when switching sessions
   const prevSessionIdRef = useRef(sessionId);
@@ -46,6 +48,7 @@ export function useSessionDetail(sessionId: string) {
       autoScrollRef.current = true;
       setShowScrollButton(false);
       initialScrollDone.current = false;
+      planWriteToolCallIds.current.clear();
     }
   }, [sessionId]);
 
@@ -234,6 +237,30 @@ export function useSessionDetail(sessionId: string) {
 
     lastEventTimeRef.current = Date.now();
     scheduleScroll();
+
+    // Track plan file writes so we can refetch plan content on completion
+    if (event.type === "tool-call") {
+      const tcPayload = event.payload as Record<string, unknown>;
+      if (
+        typeof tcPayload.title === "string" &&
+        /\.claude\/plans\/.*\.md$/.test(tcPayload.title)
+      ) {
+        planWriteToolCallIds.current.add(tcPayload.toolCallId as string);
+      }
+    }
+    if (event.type === "tool-update") {
+      const tuPayload = event.payload as Record<string, unknown>;
+      const toolCallId = tuPayload.toolCallId as string;
+      if (
+        tuPayload.status === "completed" &&
+        planWriteToolCallIds.current.has(toolCallId)
+      ) {
+        planWriteToolCallIds.current.delete(toolCallId);
+        queryClient.invalidateQueries({
+          queryKey: [["sessions", "readPlanFile"]],
+        });
+      }
+    }
 
     if (event.type === "complete" || event.type === "error") {
       setOptimisticApproval(null);
@@ -470,6 +497,9 @@ export function useSessionDetail(sessionId: string) {
     }
   }
 
+  // Derived: plan document file path (from tool-call events)
+  const planFilePath = extractPlanFilePath(events);
+
   const toggleTaskPanel = () => setTaskPanelCollapsed((prev) => !prev);
 
   // ---------------------------------------------------------------------------
@@ -486,6 +516,7 @@ export function useSessionDetail(sessionId: string) {
     showScrollButton,
     supportsImages,
     latestPlan,
+    planFilePath,
     taskPanelCollapsed,
     logsEndRef,
     logContainerRef: logContainerCallbackRef,

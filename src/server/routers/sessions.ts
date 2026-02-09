@@ -2,6 +2,8 @@
  * Sessions Router - tRPC endpoints for agent session management
  */
 
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { z } from "zod";
 import {
   createTRPCRouter,
@@ -317,6 +319,33 @@ export const sessionsRouter = createTRPCRouter({
         cwd = cwd.replace("~", process.env.HOME ?? "");
       }
       return getBranchInfo(cwd);
+    }),
+
+  /**
+   * Read a Claude plan document file from disk.
+   * Path is validated to be under ~/.claude/plans/ to prevent arbitrary reads.
+   */
+  readPlanFile: publicProcedure
+    .input(z.object({ filePath: z.string() }))
+    .query(async ({ input }) => {
+      const home = process.env.HOME;
+      if (!home) throw new Error("HOME environment variable is not set");
+      const allowedDir = resolve(home, ".claude", "plans");
+      const resolved = resolve(input.filePath);
+
+      if (!resolved.startsWith(`${allowedDir}/`) || !resolved.endsWith(".md")) {
+        throw new Error("Invalid plan file path");
+      }
+
+      try {
+        const content = await readFile(resolved, "utf-8");
+        return { content, filePath: resolved };
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+          return { content: null, filePath: resolved };
+        }
+        throw err;
+      }
     }),
 
   getGitInfo: publicProcedure

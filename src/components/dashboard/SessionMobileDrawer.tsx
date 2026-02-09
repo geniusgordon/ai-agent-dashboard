@@ -13,6 +13,7 @@ import { ApprovalBanner } from "@/components/dashboard/ApprovalBanner";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
+import { PlanDocumentViewer } from "@/components/dashboard/PlanDocumentViewer";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { TaskPanel } from "@/components/dashboard/TaskPanel";
@@ -56,6 +57,7 @@ export interface SessionMobileDrawerProps {
   };
   tasks: {
     latestPlan: PlanPayload | null;
+    planFilePath: string | null;
     taskPanelCollapsed: boolean;
     onToggleTaskPanel: () => void;
   };
@@ -148,6 +150,10 @@ export function SessionMobileDrawer({
               isCollapsed={tasks.taskPanelCollapsed}
               onToggleCollapse={tasks.onToggleTaskPanel}
             />
+          )}
+
+          {tasks.planFilePath && (
+            <PlanDocumentViewer filePath={tasks.planFilePath} />
           )}
 
           <PanelSection icon={GitMerge} label="Git" defaultOpen>
