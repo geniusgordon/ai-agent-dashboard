@@ -60,6 +60,14 @@ export interface AgentSession {
   worktreeId?: string;
   /** Branch name from the assigned worktree */
   worktreeBranch?: string;
+  /** Latest context window usage info */
+  usageInfo?: UsageUpdatePayload;
+  /** Available slash commands advertised by the agent */
+  availableCommands?: Array<{
+    name: string;
+    description: string;
+    hasInput: boolean;
+  }>;
 }
 
 export interface AgentClient {
@@ -116,6 +124,8 @@ export type AgentEventType =
   | "tool-update" // tool_call_update
   | "plan" // plan
   | "mode-change" // agent changed its mode
+  | "usage-update" // usage_update (context window)
+  | "commands-update" // available_commands_update
   | "complete" // prompt response received
   | "error";
 
@@ -222,6 +232,16 @@ export interface ModeChangePayload {
   currentModeId: string;
 }
 
+export interface UsageUpdatePayload {
+  used: number;
+  size: number;
+  cost?: { amount: number; currency: string } | null;
+}
+
+export interface CommandsUpdatePayload {
+  commands: Array<{ name: string; description: string; hasInput: boolean }>;
+}
+
 export interface CompletePayload {
   stopReason: string;
 }
@@ -281,6 +301,9 @@ export interface IAgentManager {
   createSession(options: CreateSessionOptions): Promise<AgentSession>;
   getSession(sessionId: string): AgentSession | undefined;
   listSessions(clientId?: string): AgentSession[];
+
+  // Cancel
+  cancelSession(sessionId: string): Promise<void>;
 
   // Communication
   sendMessage(

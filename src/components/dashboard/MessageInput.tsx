@@ -1,4 +1,4 @@
-import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import { ImagePlus, Loader2, Send, StopCircle, X } from "lucide-react";
 import {
   type ClipboardEvent,
   type DragEvent,
@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { CommandPalette } from "@/components/dashboard/CommandPalette";
+import { ContextMeter } from "@/components/dashboard/ContextMeter";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -20,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { SessionMode } from "@/lib/agents/types";
+import type { SessionMode, UsageUpdatePayload } from "@/lib/agents/types";
 
 export interface ImageAttachment {
   id: string;
@@ -44,6 +46,18 @@ export interface MessageInputProps {
   onSetMode?: (modeId: string) => void;
   /** Whether a mode change is in progress */
   isSettingMode?: boolean;
+  /** Callback to cancel the running prompt */
+  onCancel?: () => void;
+  /** Whether a cancel is in progress */
+  isCancelling?: boolean;
+  /** Context window usage info */
+  usageInfo?: UsageUpdatePayload;
+  /** Available slash commands from the agent */
+  availableCommands?: Array<{
+    name: string;
+    description: string;
+    hasInput: boolean;
+  }>;
 }
 
 const ACCEPTED_IMAGE_TYPES = [
@@ -64,18 +78,37 @@ export function MessageInput({
   currentModeId,
   onSetMode,
   isSettingMode,
+  onCancel,
+  isCancelling,
+  usageInfo,
+  availableCommands,
 }: MessageInputProps) {
   const [input, setInput] = useState("");
   const [images, setImages] = useState<ImageAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [commandSelectedIndex, setCommandSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Command palette: show when input starts with "/" and commands are available
+  const showCommandPalette =
+    availableCommands &&
+    availableCommands.length > 0 &&
+    input.startsWith("/") &&
+    !input.includes(" ");
+  const commandFilter = showCommandPalette ? input.slice(1) : "";
 
   const showModeSelector =
     availableModes && availableModes.length > 0 && onSetMode;
   const imagePickerTitle = supportsImages
     ? "Attach image"
     : "This agent does not support image input";
+
+  const selectCommand = (name: string) => {
+    setInput(`/${name} `);
+    setCommandSelectedIndex(0);
+    textareaRef.current?.focus();
+  };
 
   const submit = () => {
     const trimmed = input.trim();
@@ -97,6 +130,7 @@ export function MessageInput({
   // Auto-resize textarea to fit content
   const handleInput = (value: string) => {
     setInput(value);
+    setCommandSelectedIndex(0);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
@@ -104,7 +138,39 @@ export function MessageInput({
   };
 
   // Enter submits, Shift+Enter inserts newline (Slack/ChatGPT convention)
+  // When command palette is visible, arrow keys navigate and Enter selects
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showCommandPalette) {
+      const filtered = availableCommands!.filter((cmd) =>
+        cmd.name.toLowerCase().startsWith(commandFilter.toLowerCase()),
+      );
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setCommandSelectedIndex((prev) =>
+          prev < filtered.length - 1 ? prev + 1 : 0,
+        );
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setCommandSelectedIndex((prev) =>
+          prev > 0 ? prev - 1 : filtered.length - 1,
+        );
+        return;
+      }
+      if (e.key === "Enter" && filtered.length > 0) {
+        e.preventDefault();
+        selectCommand(filtered[commandSelectedIndex]?.name ?? filtered[0].name);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setInput("");
+        setCommandSelectedIndex(0);
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submit();
@@ -206,6 +272,11 @@ export function MessageInput({
             ${isDragging ? "border-t-primary bg-primary/5" : ""}
           `}
         >
+          {/* Context window meter */}
+          {usageInfo && usageInfo.size > 0 && (
+            <ContextMeter usage={usageInfo} />
+          )}
+
           {/* Processing indicator */}
           {isAgentBusy && (
             <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-status-running">
@@ -306,7 +377,17 @@ export function MessageInput({
           )}
 
           {/* Input row */}
-          <div className="flex gap-2 items-end">
+          <div className="relative flex gap-2 items-end">
+            {/* Command palette (positioned above input) */}
+            {showCommandPalette && (
+              <CommandPalette
+                commands={availableCommands!}
+                filter={commandFilter}
+                onSelect={selectCommand}
+                selectedIndex={commandSelectedIndex}
+                onSelectedIndexChange={setCommandSelectedIndex}
+              />
+            )}
             {/* Image upload button — hidden on mobile, shown inline on sm+ */}
             <div className="hidden sm:block">
               <Tooltip>
@@ -378,22 +459,48 @@ export function MessageInput({
               resize-none
             "
             />
-            <button
-              type="submit"
-              disabled={!canSubmit || disabled}
-              className="
-              px-3 lg:px-5 py-2 lg:py-2.5 rounded-lg font-semibold text-sm
-              bg-action-success text-white
-              hover:bg-action-success-hover hover:-translate-y-px
-              active:translate-y-0
-              transition-all duration-200
-              disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
-              cursor-pointer shrink-0 inline-flex items-center gap-2
-            "
-            >
-              <Send className="size-4" />
-              <span className="hidden sm:inline">Send</span>
-            </button>
+            {isAgentBusy && onCancel ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isCancelling}
+                className="
+                  px-3 lg:px-5 py-2 lg:py-2.5 rounded-lg font-semibold text-sm
+                  bg-destructive text-destructive-foreground
+                  hover:bg-destructive/90 hover:-translate-y-px
+                  active:translate-y-0
+                  transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                  cursor-pointer shrink-0 inline-flex items-center gap-2
+                "
+              >
+                {isCancelling ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <StopCircle className="size-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isCancelling ? "Stopping…" : "Stop"}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!canSubmit || disabled}
+                className="
+                  px-3 lg:px-5 py-2 lg:py-2.5 rounded-lg font-semibold text-sm
+                  bg-action-success text-white
+                  hover:bg-action-success-hover hover:-translate-y-px
+                  active:translate-y-0
+                  transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                  cursor-pointer shrink-0 inline-flex items-center gap-2
+                "
+              >
+                <Send className="size-4" />
+                <span className="hidden sm:inline">Send</span>
+              </button>
+            )}
           </div>
         </div>
       </form>

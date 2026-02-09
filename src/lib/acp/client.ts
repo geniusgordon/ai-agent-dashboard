@@ -330,6 +330,18 @@ export class ACPClient extends EventEmitter {
   }
 
   /**
+   * Cancel a running prompt without killing the session.
+   * Sends a `session/cancel` notification — the in-flight `prompt()` call
+   * will resolve with `stopReason: "cancelled"`.
+   */
+  async cancel(sessionId: string): Promise<void> {
+    if (!this.connection) {
+      throw new Error("Client not started. Call start() first.");
+    }
+    return this.connection.cancel({ sessionId });
+  }
+
+  /**
    * Get session by ID
    */
   getSession(sessionId: string): Session | undefined {
