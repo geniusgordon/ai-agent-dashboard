@@ -95,13 +95,18 @@ function CommandsUpdateEntry({ event }: { event: AgentEvent }) {
   const { commands } = event.payload as CommandsUpdatePayload;
   const count = commands.length;
 
+  const label =
+    count === 0
+      ? "No slash commands available"
+      : `${count} slash command${count !== 1 ? "s" : ""} available`;
+
   return (
     <div className="py-1.5 lg:py-2 px-2 lg:px-3">
       <button
         type="button"
-        className="w-full flex items-center gap-2 text-muted-foreground/60 cursor-pointer group"
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-expanded={isExpanded}
+        className={`w-full flex items-center gap-2 text-muted-foreground/60 ${count > 0 ? "cursor-pointer group" : "cursor-default"}`}
+        onClick={count > 0 ? () => setIsExpanded(!isExpanded) : undefined}
+        aria-expanded={count > 0 ? isExpanded : undefined}
       >
         <span className="shrink-0 hidden sm:block w-[5.5rem] text-[11px] tabular-nums select-none text-muted-foreground/70">
           {formatTime(event.timestamp)}
@@ -110,10 +115,12 @@ function CommandsUpdateEntry({ event }: { event: AgentEvent }) {
           <div className="flex-1 border-t border-border" />
           <span className="inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap group-hover:text-muted-foreground transition-colors">
             <Terminal className="size-3" />
-            {count} slash command{count !== 1 ? "s" : ""} available
-            <ChevronRight
-              className={`size-3 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
-            />
+            {label}
+            {count > 0 && (
+              <ChevronRight
+                className={`size-3 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+              />
+            )}
           </span>
           <div className="flex-1 border-t border-border" />
         </div>
