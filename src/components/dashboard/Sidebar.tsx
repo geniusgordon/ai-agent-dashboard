@@ -228,13 +228,11 @@ export function Sidebar() {
             onNavigate={handleNavClick}
           />
         ) : (
-          activeSessions.length > 0 && (
-            <GlobalActiveAgents
-              sessions={activeSessions}
-              activeSessionId={activeSessionId}
-              onNavigate={handleNavClick}
-            />
-          )
+          <GlobalActiveAgents
+            sessions={activeSessions}
+            activeSessionId={activeSessionId}
+            onNavigate={handleNavClick}
+          />
         )}
       </SidebarContent>
 
@@ -415,8 +413,6 @@ function ProjectAgents({
   // Only show worktrees that have active agents
   const activeWorktrees = worktrees.filter((w) => sessionMap.has(w.id));
 
-  if (activeWorktrees.length === 0) return null;
-
   return (
     <>
       <SidebarSeparator />
@@ -424,16 +420,24 @@ function ProjectAgents({
         <SidebarGroupLabel>Active Agents</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {activeWorktrees.map((worktree) => (
-              <WorktreeAgentGroup
-                key={worktree.id}
-                projectId={projectId}
-                worktree={worktree}
-                sessions={sessionMap.get(worktree.id) ?? []}
-                activeSessionId={activeSessionId}
-                onNavigate={onNavigate}
-              />
-            ))}
+            {activeWorktrees.length === 0 ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton size="sm" disabled className="text-muted-foreground">
+                  <span>No active agents</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : (
+              activeWorktrees.map((worktree) => (
+                <WorktreeAgentGroup
+                  key={worktree.id}
+                  projectId={projectId}
+                  worktree={worktree}
+                  sessions={sessionMap.get(worktree.id) ?? []}
+                  activeSessionId={activeSessionId}
+                  onNavigate={onNavigate}
+                />
+              ))
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -509,14 +513,22 @@ function GlobalActiveAgents({
         <SidebarGroupLabel>Active Sessions</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {sessions.map((session) => (
-              <ActiveSessionItem
-                key={session.id}
-                session={session}
-                isActive={session.id === activeSessionId}
-                onNavigate={onNavigate}
-              />
-            ))}
+            {sessions.length === 0 ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton size="sm" disabled className="text-muted-foreground">
+                  <span>No active agents</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : (
+              sessions.map((session) => (
+                <ActiveSessionItem
+                  key={session.id}
+                  session={session}
+                  isActive={session.id === activeSessionId}
+                  onNavigate={onNavigate}
+                />
+              ))
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
