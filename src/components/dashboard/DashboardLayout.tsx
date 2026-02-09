@@ -12,6 +12,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 import {
   HeaderSlotContext,
   useHeaderSlotProvider,
@@ -53,6 +54,7 @@ export function DashboardLayout() {
           </SidebarInset>
         </SidebarProvider>
       </HeaderSlotContext.Provider>
+      <Toaster />
     </ThemeContext.Provider>
   );
 }
