@@ -18,6 +18,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
@@ -41,6 +48,7 @@ export function StartReviewDialog({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [agentType, setAgentType] = useState<AgentType>("claude-code");
+  const [baseBranch, setBaseBranch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const branchesQuery = useQuery(
@@ -50,8 +58,9 @@ export function StartReviewDialog({
     ),
   );
 
-  const defaultBranch =
-    branchesQuery.data?.find((b) => b.isDefault)?.name ?? "main";
+  const branches = branchesQuery.data ?? [];
+  const defaultBranch = branches.find((b) => b.isDefault)?.name ?? "main";
+  const effectiveBase = baseBranch || defaultBranch;
 
   const startBatchMutation = useMutation(
     trpc.codeReviews.startBatch.mutationOptions(),
@@ -59,6 +68,7 @@ export function StartReviewDialog({
 
   const reset = () => {
     setAgentType("claude-code");
+    setBaseBranch("");
     setError(null);
   };
 
@@ -67,7 +77,7 @@ export function StartReviewDialog({
     try {
       const result = await startBatchMutation.mutateAsync({
         projectId,
-        baseBranch: defaultBranch,
+        baseBranch: effectiveBase,
         branchNames: [branch],
         agentType,
       });
@@ -113,14 +123,42 @@ export function StartReviewDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Branch summary */}
-          <div className="p-3 rounded-lg bg-card border border-border">
-            <p className="text-sm text-muted-foreground mb-1.5">
-              Reviewing against{" "}
-              <span className="font-mono text-foreground">{defaultBranch}</span>
-            </p>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-git/10 text-git-muted font-mono">
-              <GitBranch className="size-3" />
+          {/* Base branch selector */}
+          <div>
+            <span className="block text-sm font-medium text-foreground mb-1.5">
+              Base Branch
+            </span>
+            <Select
+              value={effectiveBase}
+              onValueChange={(val) => setBaseBranch(val)}
+              disabled={branchesQuery.isLoading}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {branches
+                  .filter((b) => b.name !== branch)
+                  .map((b) => (
+                    <SelectItem key={b.name} value={b.name}>
+                      {b.name}
+                      {b.isDefault ? " (default)" : ""}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Comparison summary: base ← feature */}
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-card border border-border text-sm font-mono">
+            <span className="text-muted-foreground truncate">
+              {effectiveBase}
+            </span>
+            <span className="text-muted-foreground/60 shrink-0">
+              {"\u2190"}
+            </span>
+            <span className="inline-flex items-center gap-1 text-git-muted truncate">
+              <GitBranch className="size-3 shrink-0" />
               {branch}
             </span>
           </div>
