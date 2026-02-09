@@ -40,7 +40,7 @@ function ProgressBar({ entries }: { entries: PlanEntry[] }) {
   const inProgressPct = (inProgress / total) * 100;
 
   return (
-    <div className="h-1.5 flex-1 max-w-32 rounded-full bg-muted overflow-hidden">
+    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
       <div className="h-full flex">
         <div
           className="bg-event-complete transition-all duration-300"
@@ -72,38 +72,34 @@ export function TaskPanel({
         if (open === isCollapsed) onToggleCollapse();
       }}
       headerExtra={
-        <>
-          <span className="text-xs text-muted-foreground">{summary}</span>
-          <div className="flex-1" />
-          <ProgressBar entries={entries} />
-        </>
+        <span className="text-xs text-muted-foreground">{summary}</span>
       }
     >
-      <div className="px-1 space-y-0">
-        {entries.map((entry, i) => (
-          <div
-            key={`${entry.content}-${i}`}
-            className={`flex items-start gap-2 py-1 text-[13px] leading-relaxed ${
-              entry.status === "completed"
-                ? "text-muted-foreground line-through opacity-60"
-                : entry.status === "in_progress"
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-            }`}
-          >
-            <div className="mt-0.5">
-              <StatusIcon status={entry.status} />
-            </div>
-            <span className="min-w-0">{entry.content}</span>
-          </div>
-        ))}
-      </div>
+      <div className="px-1 space-y-2">
+        <ProgressBar entries={entries} />
 
-      {planFilePath && (
-        <div className="px-1 pt-1">
-          <PlanDocumentViewer filePath={planFilePath} />
+        {planFilePath && <PlanDocumentViewer filePath={planFilePath} />}
+
+        <div className="space-y-0">
+          {entries.map((entry, i) => (
+            <div
+              key={`${entry.content}-${i}`}
+              className={`flex items-start gap-2 py-1 text-[13px] leading-relaxed ${
+                entry.status === "completed"
+                  ? "text-muted-foreground line-through opacity-60"
+                  : entry.status === "in_progress"
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+              }`}
+            >
+              <div className="mt-0.5">
+                <StatusIcon status={entry.status} />
+              </div>
+              <span className="min-w-0">{entry.content}</span>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </PanelSection>
   );
 }
