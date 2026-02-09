@@ -7,7 +7,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ChevronRight, Play, Trash2, Users } from "lucide-react";
+import { AlertTriangle, Play, Trash2, Users } from "lucide-react";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { Worktree } from "@/lib/projects/types";
 import { BranchBadge } from "./BranchBadge";
@@ -47,7 +47,7 @@ export function WorktreeCard({
     <Link
       to="/dashboard/p/$projectId/worktrees/$worktreeId"
       params={{ projectId, worktreeId: worktree.id }}
-      className={`block p-5 rounded-xl border border-border bg-card/50 transition-all duration-200 hover:bg-card hover:border-primary/20 cursor-pointer group border-l-2 ${
+      className={`block p-5 rounded-xl border border-border bg-card/50 transition-all duration-200 hover:bg-card hover:border-primary/20 cursor-pointer border-l-2 ${
         hasMultipleAgents
           ? "border-l-action-warning"
           : assignments.length > 0
@@ -111,22 +111,19 @@ export function WorktreeCard({
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {onSpawnAgent && (
-            <button
-              type="button"
-              onClick={(e) => {
-                stopNav(e);
-                onSpawnAgent();
-              }}
-              className="px-2.5 py-1 rounded-md text-xs font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1"
-            >
-              <Play className="size-3" />
-              <span className="hidden sm:inline">Spawn</span>
-            </button>
-          )}
-          <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
+        {onSpawnAgent && (
+          <button
+            type="button"
+            onClick={(e) => {
+              stopNav(e);
+              onSpawnAgent();
+            }}
+            className="px-2.5 py-1 rounded-md text-xs font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0"
+          >
+            <Play className="size-3" />
+            <span className="hidden sm:inline">Spawn</span>
+          </button>
+        )}
       </div>
     </Link>
   );
