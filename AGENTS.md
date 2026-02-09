@@ -98,7 +98,7 @@ SSE endpoint at `/api/events` (defined in `src/routes/api.events.ts`) streams `A
 ### UI Components
 
 - `src/components/ui/` — shadcn/ui components (new-york style, zinc base color). Add new ones with: `pnpm dlx shadcn@latest add <component>`
-- `src/components/dashboard/` — Dashboard-specific components (`DashboardLayout`, `SessionCard`, `ClientCard`, `AgentBadge`, `StatusBadge`, `ErrorDisplay`, `ProjectCard`, `WorktreeCard`, `WorktreeCreateDialog`, `WorktreeAgentMap`, `ProjectSpawnFlow`, `BranchBadge`)
+- `src/components/dashboard/` — Dashboard-specific components (`DashboardLayout`, `SessionCard`, `AgentBadge`, `StatusBadge`, `ErrorDisplay`, `ProjectCard`, `WorktreeCard`, `WorktreeCreateDialog`, `WorktreeAgentMap`, `ProjectSpawnFlow`, `BranchBadge`)
 - Theme: dark/light mode via `useTheme` hook (`src/hooks/useTheme.ts`), persisted to localStorage
 
 ### Environment Variables
