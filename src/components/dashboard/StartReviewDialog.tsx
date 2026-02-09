@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { GitBranch, GitMerge } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -91,13 +92,19 @@ export function StartReviewDialog({
       onOpenChange(false);
       reset();
 
-      // Navigate to the created review session
       const sessionId = result.sessionIds[0];
-      navigate({
-        to: sessionId
-          ? "/dashboard/p/$projectId/sessions/$sessionId"
-          : "/dashboard/p/$projectId",
-        params: sessionId ? { projectId, sessionId } : { projectId },
+      toast.success("Code review started", {
+        description: `Reviewing ${branch} against ${effectiveBase}`,
+        action: sessionId
+          ? {
+              label: "View session",
+              onClick: () =>
+                navigate({
+                  to: "/dashboard/p/$projectId/sessions/$sessionId",
+                  params: { projectId, sessionId },
+                }),
+            }
+          : undefined,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start review");
