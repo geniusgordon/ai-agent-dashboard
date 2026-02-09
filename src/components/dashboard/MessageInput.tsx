@@ -3,6 +3,7 @@ import {
   type ClipboardEvent,
   type DragEvent,
   type KeyboardEvent,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -23,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { SessionMode, UsageUpdatePayload } from "@/lib/agents/types";
+import { clearDraft, getDraft, saveDraft } from "@/lib/draft-store";
 
 export interface ImageAttachment {
   id: string;
@@ -33,6 +35,8 @@ export interface ImageAttachment {
 }
 
 export interface MessageInputProps {
+  /** Session ID used to persist unsent drafts across navigation */
+  sessionId: string;
   onSend: (message: string, images?: ImageAttachment[]) => void;
   disabled: boolean;
   isAgentBusy?: boolean;
@@ -69,6 +73,7 @@ const ACCEPTED_IMAGE_TYPES = [
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function MessageInput({
+  sessionId,
   onSend,
   disabled,
   isAgentBusy = false,
@@ -83,13 +88,38 @@ export function MessageInput({
   usageInfo,
   availableCommands,
 }: MessageInputProps) {
-  const [input, setInput] = useState("");
-  const [images, setImages] = useState<ImageAttachment[]>([]);
+  const [input, setInput] = useState(() => getDraft(sessionId)?.text ?? "");
+  const [images, setImages] = useState<ImageAttachment[]>(
+    () => getDraft(sessionId)?.images ?? [],
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [commandSelectedIndex, setCommandSelectedIndex] = useState(0);
   const [commandPaletteDismissed, setCommandPaletteDismissed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist draft whenever input or images change
+  useEffect(() => {
+    saveDraft(sessionId, { text: input, images });
+  }, [sessionId, input, images]);
+
+  // Restore draft when switching sessions (sessionId changes but component stays mounted)
+  const prevSessionIdRef = useRef(sessionId);
+  useEffect(() => {
+    if (prevSessionIdRef.current === sessionId) return;
+    prevSessionIdRef.current = sessionId;
+
+    const draft = getDraft(sessionId);
+    setInput(draft?.text ?? "");
+    setImages(draft?.images ?? []);
+    // Reset textarea height for restored content
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      if (draft?.text) {
+        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+      }
+    }
+  }, [sessionId]);
 
   // Command palette: show when input starts with "/" and commands are available
   const showCommandPalette =
@@ -123,6 +153,7 @@ export function MessageInput({
     onSend(trimmed, images.length > 0 ? images : undefined);
     setInput("");
     setImages([]);
+    clearDraft(sessionId);
     // Reset height after clearing
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
