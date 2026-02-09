@@ -114,7 +114,6 @@ src/
     └── dashboard/                  # App components
         ├── DashboardLayout.tsx
         ├── Sidebar.tsx
-        ├── ClientCard.tsx          # Agent client with branch badge
         ├── SessionCard.tsx         # Session summary with branch
         ├── SessionHeader.tsx
         ├── SessionLog.tsx          # Real-time log viewer
