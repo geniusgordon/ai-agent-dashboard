@@ -20,7 +20,7 @@ export { ProjectSpawnFlow } from "./ProjectSpawnFlow";
 export { ReconnectBanner } from "./ReconnectBanner";
 export { SessionCard } from "./SessionCard";
 export { SessionContextHeader } from "./SessionContextHeader";
-export { SessionLog } from "./SessionLog";
+export { SessionLog, type SessionLogScrollHandle } from "./SessionLog";
 export { SessionLogSkeleton } from "./SessionLogSkeleton";
 export { SessionMobileDrawer } from "./SessionMobileDrawer";
 export { SessionRightPanel } from "./SessionRightPanel";
