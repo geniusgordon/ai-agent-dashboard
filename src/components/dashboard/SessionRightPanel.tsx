@@ -85,10 +85,9 @@ export function SessionRightPanel({
   tasks,
   onStartReview,
 }: SessionRightPanelProps) {
-  const isActiveSession =
-    session.status !== "completed" &&
-    session.status !== "killed" &&
-    session.isActive !== false;
+  const isTerminal =
+    session.status === "completed" || session.status === "killed";
+  const isActiveSession = !isTerminal && session.isActive !== false;
 
   return (
     <aside
@@ -199,10 +198,11 @@ export function SessionRightPanel({
         {/* ── Sticky action footer ─────────────────────── */}
         <div className="px-4 py-3 border-t border-border shrink-0 space-y-2">
           {/* Session lifecycle */}
-          {(isActiveSession || session.isActive === false) && (
+          {(!isTerminal || session.isActive === false) && (
             <div className="flex flex-wrap gap-1.5">
-              {isActiveSession && actions.onCompleteSession && (
+              {!isTerminal && actions.onCompleteSession && (
                 <Button
+                  className="flex-1"
                   variant="success"
                   disabled={
                     actions.isCompleting || session.status === "running"
@@ -220,6 +220,7 @@ export function SessionRightPanel({
 
               {isActiveSession && (
                 <Button
+                  className="flex-1"
                   variant="destructive"
                   disabled={actions.isKilling}
                   onClick={() => {
@@ -239,6 +240,7 @@ export function SessionRightPanel({
 
               {session.isActive === false && actions.onDeleteSession && (
                 <Button
+                  className="flex-1"
                   variant="destructive"
                   disabled={actions.isDeleting}
                   onClick={() => {
