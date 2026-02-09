@@ -6,6 +6,21 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
+type PanelSectionBase = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  defaultOpen?: boolean;
+  headerExtra?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+type PanelSectionProps =
+  | (PanelSectionBase & { open?: undefined; onOpenChange?: undefined })
+  | (PanelSectionBase & {
+      open: boolean;
+      onOpenChange: (open: boolean) => void;
+    });
+
 export function PanelSection({
   icon: Icon,
   label,
@@ -14,15 +29,7 @@ export function PanelSection({
   onOpenChange: controlledOnOpenChange,
   headerExtra,
   children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  defaultOpen?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  headerExtra?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+}: PanelSectionProps) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
