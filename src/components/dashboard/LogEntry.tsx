@@ -120,25 +120,18 @@ function CommandsUpdateEntry({ event }: { event: AgentEvent }) {
       </button>
 
       {isExpanded && (
-        <div className="mt-2 ml-0 sm:ml-[6.5rem] rounded-md border border-border bg-muted/30 overflow-hidden">
-          <table className="w-full text-xs">
-            <tbody>
-              {commands.map((cmd) => (
-                <tr
-                  key={cmd.name}
-                  className="border-b border-border/50 last:border-b-0"
-                >
-                  <td className="px-3 py-1.5 font-mono font-medium text-foreground/80 whitespace-nowrap align-top">
-                    /{cmd.name}
-                  </td>
-                  <td className="px-3 py-1.5 text-muted-foreground">
-                    {cmd.description}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="mt-2 ml-0 sm:ml-[6.5rem] rounded-md border border-border bg-muted/30 divide-y divide-border/50 text-xs">
+          {commands.map((cmd) => (
+            <li key={cmd.name} className="px-3 py-1.5">
+              <span className="font-mono font-medium text-foreground/80">
+                /{cmd.name}
+              </span>
+              <span className="ml-2 text-muted-foreground">
+                {cmd.description}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
