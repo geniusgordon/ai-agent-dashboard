@@ -13,6 +13,7 @@ export { MarkdownContent } from "./MarkdownContent";
 export { type ImageAttachment, MessageInput } from "./MessageInput";
 export { PageContainer } from "./PageContainer";
 export { PanelSection } from "./PanelSection";
+export { PlanDocumentViewer } from "./PlanDocumentViewer";
 export { ProjectCard } from "./ProjectCard";
 export { ProjectSpawnFlow } from "./ProjectSpawnFlow";
 export { ReconnectBanner } from "./ReconnectBanner";

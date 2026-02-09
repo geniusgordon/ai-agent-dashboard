@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import {
   ApprovalBanner,
   MessageInput,
+  PlanDocumentViewer,
   ReconnectBanner,
   SessionContextHeader,
   SessionLog,
@@ -85,6 +86,7 @@ export function SessionDetailView({
     showScrollButton,
     supportsImages,
     latestPlan,
+    planFilePath,
     taskPanelCollapsed,
     logsEndRef,
     logContainerRef,
@@ -236,6 +238,12 @@ export function SessionDetailView({
                   />
                 </div>
               )}
+
+              {planFilePath && (
+                <div className="px-3 py-2 border-b border-border">
+                  <PlanDocumentViewer filePath={planFilePath} />
+                </div>
+              )}
             </div>
           )}
 
@@ -293,6 +301,7 @@ export function SessionDetailView({
             }}
             tasks={{
               latestPlan,
+              planFilePath,
               taskPanelCollapsed,
               onToggleTaskPanel: toggleTaskPanel,
             }}
@@ -327,6 +336,7 @@ export function SessionDetailView({
             }}
             tasks={{
               latestPlan,
+              planFilePath,
               taskPanelCollapsed,
               onToggleTaskPanel: toggleTaskPanel,
             }}
