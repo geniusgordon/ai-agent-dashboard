@@ -170,16 +170,20 @@ export function useSessionDetail(sessionId: string) {
     if (scrollScheduledRef.current) return;
 
     scrollScheduledRef.current = true;
+    // Double-rAF: the first rAF fires before React paints the new state,
+    // the second fires after the DOM has been updated with the new event.
     requestAnimationFrame(() => {
-      scrollScheduledRef.current = false;
-      if (!autoScrollRef.current || !logsEndRef.current) return;
+      requestAnimationFrame(() => {
+        scrollScheduledRef.current = false;
+        if (!autoScrollRef.current || !logsEndRef.current) return;
 
-      // Use instant scroll during rapid streaming to prevent jitter
-      const now = Date.now();
-      const timeSinceLastEvent = now - lastEventTimeRef.current;
-      const behavior = timeSinceLastEvent < 150 ? "instant" : "smooth";
+        // Use instant scroll during rapid streaming to prevent jitter
+        const now = Date.now();
+        const timeSinceLastEvent = now - lastEventTimeRef.current;
+        const behavior = timeSinceLastEvent < 150 ? "instant" : "smooth";
 
-      logsEndRef.current.scrollIntoView({ behavior });
+        logsEndRef.current.scrollIntoView({ behavior });
+      });
     });
   };
 
@@ -442,12 +446,10 @@ export function useSessionDetail(sessionId: string) {
     }));
     sendMessageMutation.mutate({ sessionId, message, contentBlocks });
 
-    // Re-engage auto-scroll and jump to bottom so the user sees the response
+    // Re-engage auto-scroll so the incoming SSE echo of this message
+    // (and the subsequent agent response) will auto-scroll via scheduleScroll.
     autoScrollRef.current = true;
     setAutoScroll(true);
-    requestAnimationFrame(() => {
-      logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    });
   };
 
   const approve = (approvalId: string, optionId: string) =>
