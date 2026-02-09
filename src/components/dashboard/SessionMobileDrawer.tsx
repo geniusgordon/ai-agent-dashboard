@@ -78,10 +78,9 @@ export function SessionMobileDrawer({
   tasks,
   onStartReview,
 }: SessionMobileDrawerProps) {
-  const isActiveSession =
-    session.status !== "completed" &&
-    session.status !== "killed" &&
-    session.isActive !== false;
+  const isTerminal =
+    session.status === "completed" || session.status === "killed";
+  const isActiveSession = !isTerminal && session.isActive !== false;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -172,10 +171,11 @@ export function SessionMobileDrawer({
 
         {/* Action footer — always visible */}
         <DrawerFooter className="border-t border-border pb-[env(safe-area-inset-bottom)]">
-          {(isActiveSession || session.isActive === false) && (
+          {(!isTerminal || session.isActive === false) && (
             <div className="flex flex-wrap gap-1.5">
-              {isActiveSession && actions.onCompleteSession && (
+              {!isTerminal && actions.onCompleteSession && (
                 <Button
+                  className="flex-1"
                   variant="success"
                   disabled={
                     actions.isCompleting || session.status === "running"
@@ -193,6 +193,7 @@ export function SessionMobileDrawer({
 
               {isActiveSession && (
                 <Button
+                  className="flex-1"
                   variant="destructive"
                   disabled={actions.isKilling}
                   onClick={() => {
@@ -212,6 +213,7 @@ export function SessionMobileDrawer({
 
               {session.isActive === false && actions.onDeleteSession && (
                 <Button
+                  className="flex-1"
                   variant="destructive"
                   disabled={actions.isDeleting}
                   onClick={() => {
