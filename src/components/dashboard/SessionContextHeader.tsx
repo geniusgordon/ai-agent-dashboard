@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowDownToLine,
   ArrowLeft,
+  EllipsisVertical,
   Loader2,
   PanelRightClose,
   PanelRightOpen,
@@ -13,6 +14,13 @@ import { useEffect, useRef, useState } from "react";
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Tooltip,
@@ -28,6 +36,7 @@ export interface SessionContextHeaderProps {
   autoScroll: boolean;
   onToggleAutoScroll: () => void;
   onClearLogs: () => void;
+  /** Fallback back-link when session has no worktree context */
   backTo: string;
   backParams?: Record<string, string>;
   onRename: (name: string) => void;
@@ -37,6 +46,29 @@ export interface SessionContextHeaderProps {
   onTogglePanel?: () => void;
   /** Mobile: open the bottom drawer */
   onOpenMobileDrawer?: () => void;
+}
+
+/**
+ * Compute the back-link destination.
+ *
+ * If the session is assigned to a worktree within a project, go back to the
+ * worktree detail page. Otherwise fall back to the route-provided `backTo`.
+ */
+function resolveBackLink(
+  session: AgentSession,
+  fallbackTo: string,
+  fallbackParams?: Record<string, string>,
+) {
+  if (session.projectId && session.worktreeId) {
+    return {
+      to: "/dashboard/p/$projectId/worktrees/$worktreeId" as const,
+      params: {
+        projectId: session.projectId,
+        worktreeId: session.worktreeId,
+      },
+    };
+  }
+  return { to: fallbackTo, params: fallbackParams };
 }
 
 export function SessionContextHeader({
@@ -72,12 +104,14 @@ export function SessionContextHeader({
   const submitEdit = () => onRename(editName);
   const cancelEdit = () => setIsEditing(false);
 
+  const back = resolveBackLink(session, backTo, backParams);
+
   return (
     <TooltipProvider>
       <div className="flex flex-1 items-center gap-2 min-w-0">
         {/* Left: back + identity */}
         <Button variant="ghost" size="icon-sm" asChild className="shrink-0">
-          <Link to={backTo} params={backParams}>
+          <Link to={back.to} params={back.params}>
             <ArrowLeft className="size-4" />
           </Link>
         </Button>
@@ -124,88 +158,113 @@ export function SessionContextHeader({
           </button>
         )}
 
-        <StatusBadge status={session.status} />
+        {/* Status + connection — hidden on very small screens to save space */}
+        <div className="hidden sm:contents">
+          <StatusBadge status={session.status} />
 
-        {/* Connection indicator */}
-        {connected ? (
-          <span className="text-xs font-medium text-live flex items-center gap-1.5 shadow-live-glow shrink-0">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-live" />
+          {/* Connection indicator */}
+          {connected ? (
+            <span className="text-xs font-medium text-live flex items-center gap-1.5 shadow-live-glow shrink-0">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-live" />
+              </span>
+              Live
             </span>
-            Live
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground flex items-center gap-1.5 shrink-0">
-            <Loader2 className="size-3 animate-spin" />
-          </span>
-        )}
+          ) : (
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5 shrink-0">
+              <Loader2 className="size-3 animate-spin" />
+            </span>
+          )}
+        </div>
 
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right: log controls + panel toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={autoScroll ? "success" : "ghost"}
-              size="icon-xs"
-              onClick={onToggleAutoScroll}
-            >
-              {autoScroll ? (
-                <ArrowDownToLine className="size-3.5" />
-              ) : (
-                <Pause className="size-3.5" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            Auto-scroll {autoScroll ? "ON" : "OFF"}
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-xs" onClick={onClearLogs}>
-              <Trash2 className="size-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Clear logs</TooltipContent>
-        </Tooltip>
-
-        {/* Mobile: open drawer */}
-        {onOpenMobileDrawer && (
+        {/* ── Desktop / wide: inline action buttons (hidden on mobile) ── */}
+        <div className="hidden md:flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant={autoScroll ? "success" : "ghost"}
                 size="icon-xs"
-                onClick={onOpenMobileDrawer}
+                onClick={onToggleAutoScroll}
               >
-                <PanelRightOpen className="size-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Session details</TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* Desktop: toggle right panel */}
-        {onTogglePanel && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-xs" onClick={onTogglePanel}>
-                {panelOpen ? (
-                  <PanelRightClose className="size-3.5" />
+                {autoScroll ? (
+                  <ArrowDownToLine className="size-3.5" />
                 ) : (
-                  <PanelRightOpen className="size-3.5" />
+                  <Pause className="size-3.5" />
                 )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              {panelOpen ? "Collapse panel" : "Expand panel"}
+              Auto-scroll {autoScroll ? "ON" : "OFF"}
             </TooltipContent>
           </Tooltip>
-        )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-xs" onClick={onClearLogs}>
+                <Trash2 className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Clear logs</TooltipContent>
+          </Tooltip>
+
+          {/* Desktop: toggle right panel */}
+          {onTogglePanel && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-xs" onClick={onTogglePanel}>
+                  {panelOpen ? (
+                    <PanelRightClose className="size-3.5" />
+                  ) : (
+                    <PanelRightOpen className="size-3.5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {panelOpen ? "Collapse panel" : "Expand panel"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* ── Mobile: overflow dot menu (hidden on md+) ── */}
+        <div className="flex md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-xs">
+                <EllipsisVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onToggleAutoScroll}>
+                {autoScroll ? (
+                  <ArrowDownToLine className="size-4" />
+                ) : (
+                  <Pause className="size-4" />
+                )}
+                Auto-scroll {autoScroll ? "ON" : "OFF"}
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={onClearLogs}>
+                <Trash2 className="size-4" />
+                Clear logs
+              </DropdownMenuItem>
+
+              {onOpenMobileDrawer && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onOpenMobileDrawer}>
+                    <PanelRightOpen className="size-4" />
+                    Session details
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </TooltipProvider>
   );
