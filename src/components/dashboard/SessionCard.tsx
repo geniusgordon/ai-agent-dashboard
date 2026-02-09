@@ -85,10 +85,10 @@ export function SessionCard({ session, projectId }: SessionCardProps) {
         }
       `}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
             <AgentBadge type={session.agentType} size="sm" />
             <StatusBadge status={session.status} />
             {isInactive && (
