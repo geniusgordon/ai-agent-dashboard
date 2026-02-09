@@ -177,7 +177,6 @@ export function SessionMobileDrawer({
               {isActiveSession && actions.onCompleteSession && (
                 <Button
                   variant="success"
-                  size="xs"
                   disabled={
                     actions.isCompleting || session.status === "running"
                   }
@@ -195,7 +194,6 @@ export function SessionMobileDrawer({
               {isActiveSession && (
                 <Button
                   variant="destructive"
-                  size="xs"
                   disabled={actions.isKilling}
                   onClick={() => {
                     if (confirm("Kill this session?")) {
@@ -215,7 +213,6 @@ export function SessionMobileDrawer({
               {session.isActive === false && actions.onDeleteSession && (
                 <Button
                   variant="destructive"
-                  size="xs"
                   disabled={actions.isDeleting}
                   onClick={() => {
                     if (
@@ -241,7 +238,6 @@ export function SessionMobileDrawer({
           {onStartReview && branch && (
             <Button
               variant="outline"
-              size="xs"
               onClick={onStartReview}
               className="w-full justify-center"
             >

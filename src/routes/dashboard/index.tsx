@@ -13,6 +13,7 @@ import {
   PageContainer,
   ProjectCard,
 } from "../../components/dashboard";
+import { Button } from "../../components/ui/button";
 import { useAgentEvents } from "../../hooks/useAgentEvents";
 import { useNotifications } from "../../hooks/useNotifications";
 import { useTRPC } from "../../integrations/trpc/react";
@@ -114,21 +115,16 @@ function DashboardHome() {
           </div>
           <div className="flex items-center gap-3">
             {permission !== "granted" && (
-              <button
-                type="button"
-                onClick={requestPermission}
-                className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-              >
+              <Button variant="ghost" size="sm" onClick={requestPermission}>
                 Enable Notifications
-              </button>
+              </Button>
             )}
-            <Link
-              to="/dashboard/projects/new"
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center gap-2"
-            >
-              <Plus className="size-4" />
-              New Project
-            </Link>
+            <Button asChild>
+              <Link to="/dashboard/projects/new">
+                <Plus className="size-4" />
+                New Project
+              </Link>
+            </Button>
           </div>
         </div>
 
