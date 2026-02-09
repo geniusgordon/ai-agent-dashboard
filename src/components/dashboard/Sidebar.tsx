@@ -422,7 +422,11 @@ function ProjectAgents({
           <SidebarMenu>
             {activeWorktrees.length === 0 ? (
               <SidebarMenuItem>
-                <SidebarMenuButton size="sm" disabled className="text-muted-foreground">
+                <SidebarMenuButton
+                  size="sm"
+                  disabled
+                  className="text-muted-foreground"
+                >
                   <span>No active agents</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -515,7 +519,11 @@ function GlobalActiveAgents({
           <SidebarMenu>
             {sessions.length === 0 ? (
               <SidebarMenuItem>
-                <SidebarMenuButton size="sm" disabled className="text-muted-foreground">
+                <SidebarMenuButton
+                  size="sm"
+                  disabled
+                  className="text-muted-foreground"
+                >
                   <span>No active agents</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>

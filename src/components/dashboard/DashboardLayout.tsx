@@ -15,7 +15,7 @@ import {
 import {
   HeaderSlotContext,
   useHeaderSlotProvider,
-} from "../../hooks/useHeaderSlot";
+} from "@/hooks/useHeaderSlot";
 import { ThemeContext, useThemeProvider } from "../../hooks/useTheme";
 import { Sidebar } from "./Sidebar";
 
@@ -33,7 +33,12 @@ export function DashboardLayout() {
             <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/95 backdrop-blur-sm px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 h-4" />
-              {headerSlotValue.slot ?? (
+              {/* Portal target — child routes render header content here via createPortal */}
+              <div
+                ref={headerSlotValue.setContainer}
+                className="flex-1 min-w-0"
+              />
+              {!headerSlotValue.slotActive && (
                 <span className="font-semibold text-sm tracking-tight">
                   Agent Dashboard
                 </span>

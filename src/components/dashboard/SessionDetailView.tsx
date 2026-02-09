@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ApprovalBanner,
   MessageInput,
@@ -66,7 +67,7 @@ export function SessionDetailView({
   onAfterDelete,
 }: SessionDetailViewProps) {
   const trpc = useTRPC();
-  const { setSlot, clearSlot } = useHeaderSlot();
+  const { container: headerSlotContainer, setSlotActive } = useHeaderSlot();
   const isDesktop = useIsDesktop();
   const [panelOpen, setPanelOpen] = useLocalStorageState(
     "session-right-panel",
@@ -122,35 +123,37 @@ export function SessionDetailView({
     enabled: hasProject,
   });
 
-  // Inject session header into the global header bar via slot.
-  // React Compiler auto-tracks reactive deps, so no manual dep array needed.
+  // Tell the layout whether the slot is claimed (hides default heading).
+  // setSlotActive(true) when already true is a no-op — no re-render cycle.
   useEffect(() => {
-    if (session) {
-      setSlot(
-        <SessionContextHeader
-          session={session}
-          connected={connected}
-          autoScroll={autoScroll}
-          onToggleAutoScroll={toggleAutoScroll}
-          onClearLogs={clearLogs}
-          backTo={headerBackTo}
-          backParams={headerBackParams}
-          onRename={renameSession}
-          isRenaming={isRenaming}
-          panelOpen={isDesktop ? panelOpen : undefined}
-          onTogglePanel={
-            isDesktop ? () => setPanelOpen((prev) => !prev) : undefined
-          }
-          onOpenMobileDrawer={
-            !isDesktop ? () => setMobileDrawerOpen(true) : undefined
-          }
-        />,
-      );
-    } else {
-      clearSlot();
-    }
-    return () => clearSlot();
+    setSlotActive(!!session);
   });
+
+  // Render session header into the global header bar via portal.
+  const headerPortal =
+    session && headerSlotContainer
+      ? createPortal(
+          <SessionContextHeader
+            session={session}
+            connected={connected}
+            autoScroll={autoScroll}
+            onToggleAutoScroll={toggleAutoScroll}
+            onClearLogs={clearLogs}
+            backTo={headerBackTo}
+            backParams={headerBackParams}
+            onRename={renameSession}
+            isRenaming={isRenaming}
+            panelOpen={isDesktop ? panelOpen : undefined}
+            onTogglePanel={
+              isDesktop ? () => setPanelOpen((prev) => !prev) : undefined
+            }
+            onOpenMobileDrawer={
+              !isDesktop ? () => setMobileDrawerOpen(true) : undefined
+            }
+          />,
+          headerSlotContainer,
+        )
+      : null;
 
   if (isLoading) {
     return (
@@ -195,149 +198,154 @@ export function SessionDetailView({
   const canStartReview = !!resolvedProjectId && !!branch;
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-      {/* Left column: banners + log + input */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        {/* Mobile/tablet: inline banners and task panel */}
-        {!isDesktop && (
-          <div className="flex flex-col shrink-0">
-            {session.isActive === false && (
-              <div className="px-3 py-2 border-b border-border">
-                <ReconnectBanner
-                  onReconnect={reconnect}
-                  isReconnecting={isReconnecting}
-                />
-              </div>
-            )}
+    <>
+      {headerPortal}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+        {/* Left column: banners + log + input */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          {/* Mobile/tablet: inline banners and task panel */}
+          {!isDesktop && (
+            <div className="flex flex-col shrink-0">
+              {session.isActive === false && (
+                <div className="px-3 py-2 border-b border-border">
+                  <ReconnectBanner
+                    onReconnect={reconnect}
+                    isReconnecting={isReconnecting}
+                  />
+                </div>
+              )}
 
-            {pendingApproval && (
-              <div className="px-3 py-2 border-b border-border">
-                <ApprovalBanner
-                  approval={pendingApproval}
-                  onApprove={approve}
-                  onDeny={deny}
-                  isApproving={isApproving}
-                  isDenying={isDenying}
-                />
-              </div>
-            )}
+              {pendingApproval && (
+                <div className="px-3 py-2 border-b border-border">
+                  <ApprovalBanner
+                    approval={pendingApproval}
+                    onApprove={approve}
+                    onDeny={deny}
+                    isApproving={isApproving}
+                    isDenying={isDenying}
+                  />
+                </div>
+              )}
 
-            {latestPlan && (
-              <div className="px-3 py-2 border-b border-border">
-                <TaskPanel
-                  entries={latestPlan.entries}
-                  isCollapsed={taskPanelCollapsed}
-                  onToggleCollapse={toggleTaskPanel}
-                />
-              </div>
-            )}
-          </div>
+              {latestPlan && (
+                <div className="px-3 py-2 border-b border-border">
+                  <TaskPanel
+                    entries={latestPlan.entries}
+                    isCollapsed={taskPanelCollapsed}
+                    onToggleCollapse={toggleTaskPanel}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <SessionLog
+            events={events}
+            logsEndRef={logsEndRef}
+            containerRef={logContainerRef}
+            showScrollButton={showScrollButton}
+            onScrollToBottom={manualScrollToBottom}
+          />
+
+          {showInput && (
+            <MessageInput
+              onSend={sendMessage}
+              disabled={!!pendingApproval}
+              isAgentBusy={isAgentBusy}
+              placeholder={
+                pendingApproval
+                  ? "Waiting for approval..."
+                  : "Send a message..."
+              }
+              supportsImages={supportsImages}
+              availableModes={session.availableModes}
+              currentModeId={session.currentModeId}
+              onSetMode={setMode}
+              isSettingMode={isSettingMode}
+            />
+          )}
+        </div>
+
+        {/* Right column */}
+        {isDesktop ? (
+          <SessionRightPanel
+            isOpen={panelOpen}
+            session={session}
+            connected={connected}
+            branch={branch}
+            projectName={projectQuery.data?.name}
+            approval={{
+              pendingApproval,
+              onApprove: approve,
+              onDeny: deny,
+              isApproving,
+              isDenying,
+            }}
+            actions={{
+              onKillSession: killSession,
+              isKilling,
+              onCompleteSession: completeSession,
+              isCompleting,
+              onDeleteSession: handleDelete,
+              isDeleting,
+              onReconnect: reconnect,
+              isReconnecting,
+            }}
+            tasks={{
+              latestPlan,
+              taskPanelCollapsed,
+              onToggleTaskPanel: toggleTaskPanel,
+            }}
+            onStartReview={
+              canStartReview ? () => setReviewDialogOpen(true) : undefined
+            }
+          />
+        ) : (
+          <SessionMobileDrawer
+            open={mobileDrawerOpen}
+            onOpenChange={setMobileDrawerOpen}
+            session={session}
+            connected={connected}
+            branch={branch}
+            projectName={projectQuery.data?.name}
+            approval={{
+              pendingApproval,
+              onApprove: approve,
+              onDeny: deny,
+              isApproving,
+              isDenying,
+            }}
+            actions={{
+              onKillSession: killSession,
+              isKilling,
+              onCompleteSession: completeSession,
+              isCompleting,
+              onDeleteSession: handleDelete,
+              isDeleting,
+              onReconnect: reconnect,
+              isReconnecting,
+            }}
+            tasks={{
+              latestPlan,
+              taskPanelCollapsed,
+              onToggleTaskPanel: toggleTaskPanel,
+            }}
+            onStartReview={
+              canStartReview ? () => setReviewDialogOpen(true) : undefined
+            }
+          />
         )}
 
-        <SessionLog
-          events={events}
-          logsEndRef={logsEndRef}
-          containerRef={logContainerRef}
-          showScrollButton={showScrollButton}
-          onScrollToBottom={manualScrollToBottom}
-        />
-
-        {showInput && (
-          <MessageInput
-            onSend={sendMessage}
-            disabled={!!pendingApproval}
-            isAgentBusy={isAgentBusy}
-            placeholder={
-              pendingApproval ? "Waiting for approval..." : "Send a message..."
-            }
-            supportsImages={supportsImages}
-            availableModes={session.availableModes}
-            currentModeId={session.currentModeId}
-            onSetMode={setMode}
-            isSettingMode={isSettingMode}
+        {/* Code review dialog */}
+        {canStartReview && (
+          <StartReviewDialog
+            projectId={resolvedProjectId}
+            branch={branch}
+            open={reviewDialogOpen}
+            onOpenChange={setReviewDialogOpen}
           />
         )}
       </div>
-
-      {/* Right column */}
-      {isDesktop ? (
-        <SessionRightPanel
-          isOpen={panelOpen}
-          session={session}
-          connected={connected}
-          branch={branch}
-          projectName={projectQuery.data?.name}
-          approval={{
-            pendingApproval,
-            onApprove: approve,
-            onDeny: deny,
-            isApproving,
-            isDenying,
-          }}
-          actions={{
-            onKillSession: killSession,
-            isKilling,
-            onCompleteSession: completeSession,
-            isCompleting,
-            onDeleteSession: handleDelete,
-            isDeleting,
-            onReconnect: reconnect,
-            isReconnecting,
-          }}
-          tasks={{
-            latestPlan,
-            taskPanelCollapsed,
-            onToggleTaskPanel: toggleTaskPanel,
-          }}
-          onStartReview={
-            canStartReview ? () => setReviewDialogOpen(true) : undefined
-          }
-        />
-      ) : (
-        <SessionMobileDrawer
-          open={mobileDrawerOpen}
-          onOpenChange={setMobileDrawerOpen}
-          session={session}
-          connected={connected}
-          branch={branch}
-          projectName={projectQuery.data?.name}
-          approval={{
-            pendingApproval,
-            onApprove: approve,
-            onDeny: deny,
-            isApproving,
-            isDenying,
-          }}
-          actions={{
-            onKillSession: killSession,
-            isKilling,
-            onCompleteSession: completeSession,
-            isCompleting,
-            onDeleteSession: handleDelete,
-            isDeleting,
-            onReconnect: reconnect,
-            isReconnecting,
-          }}
-          tasks={{
-            latestPlan,
-            taskPanelCollapsed,
-            onToggleTaskPanel: toggleTaskPanel,
-          }}
-          onStartReview={
-            canStartReview ? () => setReviewDialogOpen(true) : undefined
-          }
-        />
-      )}
-
-      {/* Code review dialog */}
-      {canStartReview && (
-        <StartReviewDialog
-          projectId={resolvedProjectId}
-          branch={branch}
-          open={reviewDialogOpen}
-          onOpenChange={setReviewDialogOpen}
-        />
-      )}
-    </div>
+    </>
   );
 }
