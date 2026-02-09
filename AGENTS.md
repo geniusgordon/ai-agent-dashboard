@@ -121,6 +121,7 @@ Managed via T3 Env in `src/env.ts`. Server vars are unprefixed, client vars requ
 - **Project persistence**: Projects, worktrees, and agent assignments stored in SQLite at `.agent-store/projects.db` with FK cascades.
 - **Worktree workflow**: Projects group agent sessions around a git repo. Each worktree gets its own branch, agents are assigned to worktrees, and assignments auto-cleanup on session kill/delete.
 - **Agent prompt size**: Truncate large inputs (diffs, logs, file contents) before sending to agents — unbounded content can exceed context windows or cause OOM.
+- **Header slot (portal pattern)**: Child routes inject content into the global header via `createPortal` into a DOM container exposed by `useHeaderSlot()` (`src/hooks/useHeaderSlot.ts`). A `slotActive` boolean toggles the default heading. **Never pass JSX through context state** (`setSlot(<Component />)`) — JSX objects are never `===` equal, so `useState` can never bail out, causing an infinite re-render loop between parent and child. Use `createPortal` + a stable boolean instead. See `SessionDetailView.tsx` for the pattern.
 
 ## Git Workflow
 
