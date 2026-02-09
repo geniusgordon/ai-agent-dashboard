@@ -262,6 +262,7 @@ export function SessionDetailView({
 
           {showInput && (
             <MessageInput
+              sessionId={sessionId}
               onSend={sendMessage}
               disabled={!!pendingApproval}
               isAgentBusy={isAgentBusy}
