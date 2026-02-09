@@ -54,7 +54,7 @@ export interface SessionContextHeaderProps {
  * If the session is assigned to a worktree within a project, go back to the
  * worktree detail page. Otherwise fall back to the route-provided `backTo`.
  */
-function useBackLink(
+function resolveBackLink(
   session: AgentSession,
   fallbackTo: string,
   fallbackParams?: Record<string, string>,
@@ -104,7 +104,7 @@ export function SessionContextHeader({
   const submitEdit = () => onRename(editName);
   const cancelEdit = () => setIsEditing(false);
 
-  const back = useBackLink(session, backTo, backParams);
+  const back = resolveBackLink(session, backTo, backParams);
 
   return (
     <TooltipProvider>
@@ -211,22 +211,6 @@ export function SessionContextHeader({
             <TooltipContent side="bottom">Clear logs</TooltipContent>
           </Tooltip>
 
-          {/* Mobile: open drawer */}
-          {onOpenMobileDrawer && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={onOpenMobileDrawer}
-                >
-                  <PanelRightOpen className="size-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Session details</TooltipContent>
-            </Tooltip>
-          )}
-
           {/* Desktop: toggle right panel */}
           {onTogglePanel && (
             <Tooltip>
@@ -269,24 +253,14 @@ export function SessionContextHeader({
                 Clear logs
               </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
-
               {onOpenMobileDrawer && (
-                <DropdownMenuItem onClick={onOpenMobileDrawer}>
-                  <PanelRightOpen className="size-4" />
-                  Session details
-                </DropdownMenuItem>
-              )}
-
-              {onTogglePanel && (
-                <DropdownMenuItem onClick={onTogglePanel}>
-                  {panelOpen ? (
-                    <PanelRightClose className="size-4" />
-                  ) : (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onOpenMobileDrawer}>
                     <PanelRightOpen className="size-4" />
-                  )}
-                  {panelOpen ? "Collapse panel" : "Expand panel"}
-                </DropdownMenuItem>
+                    Session details
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
