@@ -154,7 +154,9 @@ export function StartReviewDialog({
             <span className="text-muted-foreground truncate">
               {effectiveBase}
             </span>
-            <span className="text-muted-foreground/60 shrink-0">&larr;</span>
+            <span className="text-muted-foreground/60 shrink-0">
+              {"\u2190"}
+            </span>
             <span className="inline-flex items-center gap-1 text-git-muted truncate">
               <GitBranch className="size-3 shrink-0" />
               {branch}
