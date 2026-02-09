@@ -6,6 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageAttachment } from "@/components/dashboard";
+import type { SessionLogScrollHandle } from "@/components/dashboard/SessionLog";
 import { useTRPC } from "@/integrations/trpc/react";
 import { extractContent, extractPlanFilePath } from "@/lib/agents/event-utils";
 import type {
@@ -22,7 +23,7 @@ const NEAR_BOTTOM_THRESHOLD = 100;
 export function useSessionDetail(sessionId: string) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<SessionLogScrollHandle>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const autoScrollRef = useRef(true);
@@ -112,7 +113,7 @@ export function useSessionDetail(sessionId: string) {
     if (!initialScrollDone.current) {
       initialScrollDone.current = true;
       requestAnimationFrame(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: "instant" });
+        scrollRef.current?.scrollToBottom("auto");
       });
     }
   }, [eventsQuery.data, eventsQuery.dataUpdatedAt, events.length]);
@@ -168,7 +169,7 @@ export function useSessionDetail(sessionId: string) {
   // ---------------------------------------------------------------------------
 
   const scheduleScroll = () => {
-    if (!autoScrollRef.current || !logsEndRef.current) return;
+    if (!autoScrollRef.current || !scrollRef.current) return;
     if (scrollScheduledRef.current) return;
 
     scrollScheduledRef.current = true;
@@ -177,22 +178,20 @@ export function useSessionDetail(sessionId: string) {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         scrollScheduledRef.current = false;
-        if (!autoScrollRef.current || !logsEndRef.current) return;
+        if (!autoScrollRef.current || !scrollRef.current) return;
 
-        // Use instant scroll during rapid streaming to prevent jitter
+        // Use auto (instant) scroll during rapid streaming to prevent jitter
         const now = Date.now();
         const timeSinceLastEvent = now - lastEventTimeRef.current;
-        const behavior = timeSinceLastEvent < 150 ? "instant" : "smooth";
+        const behavior = timeSinceLastEvent < 150 ? "auto" : "smooth";
 
-        logsEndRef.current.scrollIntoView({ behavior });
+        scrollRef.current.scrollToBottom(behavior);
       });
     });
   };
 
   const manualScrollToBottom = () => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    scrollRef.current?.scrollToBottom("smooth");
     // Re-engage auto-scroll
     autoScrollRef.current = true;
     setAutoScroll(true);
@@ -498,7 +497,7 @@ export function useSessionDetail(sessionId: string) {
       // When re-enabling, immediately scroll to bottom
       if (next) {
         requestAnimationFrame(() => {
-          logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          scrollRef.current?.scrollToBottom("smooth");
         });
       }
       return next;
@@ -562,7 +561,7 @@ export function useSessionDetail(sessionId: string) {
     usageInfo,
     availableCommands,
     taskPanelCollapsed,
-    logsEndRef,
+    scrollRef,
     logContainerRef: logContainerCallbackRef,
 
     // Loading states

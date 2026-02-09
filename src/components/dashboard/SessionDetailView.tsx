@@ -92,7 +92,7 @@ export function SessionDetailView({
     usageInfo,
     availableCommands,
     taskPanelCollapsed,
-    logsEndRef,
+    scrollRef,
     logContainerRef,
     isLoading,
     isAgentBusy,
@@ -278,7 +278,7 @@ export function SessionDetailView({
 
           <SessionLog
             events={events}
-            logsEndRef={logsEndRef}
+            scrollRef={scrollRef}
             containerRef={logContainerRef}
             showScrollButton={showScrollButton}
             onScrollToBottom={manualScrollToBottom}
