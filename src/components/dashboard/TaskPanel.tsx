@@ -13,16 +13,16 @@ export interface TaskPanelProps {
   planFilePath?: string | null;
 }
 
+const iconClass = "size-3.5 mt-0.5 shrink-0";
+
 function StatusIcon({ status }: { status: string }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="size-3.5 text-event-complete shrink-0" />;
+      return <CheckCircle2 className={`${iconClass} text-event-complete`} />;
     case "in_progress":
-      return (
-        <Loader2 className="size-3.5 text-primary animate-spin shrink-0" />
-      );
+      return <Loader2 className={`${iconClass} text-primary animate-spin`} />;
     default:
-      return <Circle className="size-3.5 text-muted-foreground/40 shrink-0" />;
+      return <Circle className={`${iconClass} text-muted-foreground/40`} />;
   }
 }
 
@@ -84,7 +84,7 @@ export function TaskPanel({
           {entries.map((entry, i) => (
             <div
               key={`${entry.content}-${i}`}
-              className={`flex items-start gap-2 py-1 text-[13px] leading-relaxed ${
+              className={`flex items-start gap-2 py-1 text-[13px] leading-snug ${
                 entry.status === "completed"
                   ? "text-muted-foreground line-through opacity-60"
                   : entry.status === "in_progress"
@@ -92,9 +92,7 @@ export function TaskPanel({
                     : "text-muted-foreground"
               }`}
             >
-              <div className="mt-0.5">
-                <StatusIcon status={entry.status} />
-              </div>
+              <StatusIcon status={entry.status} />
               <span className="min-w-0">{entry.content}</span>
             </div>
           ))}

@@ -130,16 +130,16 @@ export function SessionRightPanel({
             </span>
           </div>
 
-          {/* Row 3: Project + branch (if available) */}
-          {(projectName || branch) && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {projectName && (
-                <span className="flex items-center gap-1 truncate">
-                  <FolderGit2 className="size-3 shrink-0" />
-                  {projectName}
-                </span>
-              )}
-              {branch && <BranchBadge branch={branch} size="sm" />}
+          {/* Row 3+: Project and branch on their own rows */}
+          {projectName && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
+              <FolderGit2 className="size-3 shrink-0" />
+              {projectName}
+            </div>
+          )}
+          {branch && (
+            <div className="min-w-0">
+              <BranchBadge branch={branch} size="sm" />
             </div>
           )}
         </div>
