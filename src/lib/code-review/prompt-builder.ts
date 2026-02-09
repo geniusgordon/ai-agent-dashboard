@@ -53,14 +53,14 @@ export function buildReviewPrompt(ctx: ReviewContext): string {
     ? "\n\n(Diff truncated — full diff too large to include)"
     : "";
 
-  const shortMergeBase = ctx.mergeBase.slice(0, 10);
+  const shortMergeBase = ctx.mergeBase.slice(0, 8);
 
   const divergenceNote =
     ctx.baseDivergedCount > 0
       ? `\n\n> **Note**: \`${ctx.baseBranch}\` has advanced ${ctx.baseDivergedCount} commit(s) since this fork point. The diff below does NOT reflect those changes. Consider whether the reviewed changes may interact with recent updates to \`${ctx.baseBranch}\`.`
       : "";
 
-  return `Review the changes in branch \`${ctx.branchName}\`.
+  return `Review the changes in branch \`${ctx.branchName}\` against \`${ctx.baseBranch}\`.
 
 ## Diff context
 

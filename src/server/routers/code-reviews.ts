@@ -85,6 +85,9 @@ export const codeReviewsRouter = createTRPCRouter({
 
         const [baseDivergedCount, branchCommits] = await Promise.all([
           getCommitCount(project.repoPath, mergeBase, input.baseBranch),
+          // cwd (worktree path) is intentional — getCommitsSinceBranch uses
+          // `git log baseBranch..HEAD`, so it needs the worktree where the
+          // feature branch is checked out to resolve HEAD correctly.
           getCommitsSinceBranch(cwd, input.baseBranch),
         ]);
 

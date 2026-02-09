@@ -22,6 +22,7 @@ export {
   listWorktrees as listGitWorktrees,
   mergeBranch,
   validateBranchName,
+  validateRef,
 } from "./git-operations.js";
 export { getProjectManager, ProjectManager } from "./project-manager.js";
 
