@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ApprovalBanner,
   MessageInput,
@@ -14,6 +14,7 @@ import {
   TaskPanel,
 } from "@/components/dashboard";
 import { useIsDesktop } from "@/hooks/use-mobile";
+import { useHeaderSlot } from "@/hooks/useHeaderSlot";
 import { useSessionDetail } from "@/hooks/useSessionDetail";
 import { useTRPC } from "@/integrations/trpc/react";
 
@@ -65,6 +66,7 @@ export function SessionDetailView({
   onAfterDelete,
 }: SessionDetailViewProps) {
   const trpc = useTRPC();
+  const { setSlot, clearSlot } = useHeaderSlot();
   const isDesktop = useIsDesktop();
   const [panelOpen, setPanelOpen] = useLocalStorageState(
     "session-right-panel",
@@ -120,6 +122,36 @@ export function SessionDetailView({
     enabled: hasProject,
   });
 
+  // Inject session header into the global header bar via slot.
+  // React Compiler auto-tracks reactive deps, so no manual dep array needed.
+  useEffect(() => {
+    if (session) {
+      setSlot(
+        <SessionContextHeader
+          session={session}
+          connected={connected}
+          autoScroll={autoScroll}
+          onToggleAutoScroll={toggleAutoScroll}
+          onClearLogs={clearLogs}
+          backTo={headerBackTo}
+          backParams={headerBackParams}
+          onRename={renameSession}
+          isRenaming={isRenaming}
+          panelOpen={isDesktop ? panelOpen : undefined}
+          onTogglePanel={
+            isDesktop ? () => setPanelOpen((prev) => !prev) : undefined
+          }
+          onOpenMobileDrawer={
+            !isDesktop ? () => setMobileDrawerOpen(true) : undefined
+          }
+        />,
+      );
+    } else {
+      clearSlot();
+    }
+    return () => clearSlot();
+  });
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -164,27 +196,8 @@ export function SessionDetailView({
 
   return (
     <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-      {/* Left column: context header + banners + log + input */}
+      {/* Left column: banners + log + input */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <SessionContextHeader
-          session={session}
-          connected={connected}
-          autoScroll={autoScroll}
-          onToggleAutoScroll={toggleAutoScroll}
-          onClearLogs={clearLogs}
-          backTo={headerBackTo}
-          backParams={headerBackParams}
-          onRename={renameSession}
-          isRenaming={isRenaming}
-          panelOpen={isDesktop ? panelOpen : undefined}
-          onTogglePanel={
-            isDesktop ? () => setPanelOpen((prev) => !prev) : undefined
-          }
-          onOpenMobileDrawer={
-            !isDesktop ? () => setMobileDrawerOpen(true) : undefined
-          }
-        />
-
         {/* Mobile/tablet: inline banners and task panel */}
         {!isDesktop && (
           <div className="flex flex-col shrink-0">

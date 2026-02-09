@@ -26,7 +26,7 @@ pnpm validate         # typecheck + check:ci + test (full CI pipeline)
 - **Formatter/Linter**: Biome (not ESLint/Prettier). Run `pnpm check` to auto-fix.
 - **Indent**: 2 spaces, double quotes for JS/TS strings.
 - **Imports**: Use `@/` path alias for `src/` (e.g., `import { foo } from "@/lib/foo"`).
-- **React Compiler**: Enabled via `babel-plugin-react-compiler` — avoid manual `useMemo`/`useCallback` for render optimization; the compiler handles it.
+- **React Compiler (React 19)**: Enabled via `babel-plugin-react-compiler` — avoid manual `useMemo`/`useCallback` for render optimization and omit `useEffect`/`useMemo`/`useCallback` dependency arrays; the compiler handles memoization and dependency tracking automatically.
 - **Icons**: Use `lucide-react` — never hand-craft SVG markup. The project already depends on lucide.
 - **Static imports only**: No lazy `import()` for modules already loaded by the server process. Use static imports at the top of the file.
 - **Barrel exports**: New components in `src/components/dashboard/` must be added to `index.ts` or imports from `@/components/dashboard` will fail at build time.
