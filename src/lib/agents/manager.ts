@@ -677,12 +677,15 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     // Drain queued messages so nothing fires after the cancel
     this.drainQueue(sessionId, "Session cancelled");
 
-    // Resolve any pending approval for this session
-    for (const [approvalId, approval] of this.approvals) {
-      if (approval.sessionId === sessionId) {
-        approval.pending.resolve({ outcome: { outcome: "cancelled" } });
-        this.approvals.delete(approvalId);
-      }
+    // Resolve any pending approval for this session.
+    // Shape matches ACP SDK's RequestPermissionResponse — same as denyRequest().
+    const approvalIds = [...this.approvals.entries()]
+      .filter(([, a]) => a.sessionId === sessionId)
+      .map(([id]) => id);
+    for (const approvalId of approvalIds) {
+      const approval = this.approvals.get(approvalId)!;
+      approval.pending.resolve({ outcome: { outcome: "cancelled" } });
+      this.approvals.delete(approvalId);
     }
   }
 

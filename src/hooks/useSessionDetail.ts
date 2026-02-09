@@ -520,27 +520,26 @@ export function useSessionDetail(sessionId: string) {
   // Derived: plan document file path (from tool-call events)
   const planFilePath = extractPlanFilePath(events);
 
-  // Derived: latest context window usage info
+  // Derived: latest usage info + available commands (single reverse pass)
   let usageInfo: UsageUpdatePayload | undefined =
     session?.usageInfo ?? undefined;
+  let availableCommands = session?.availableCommands;
+  let foundUsage = false;
+  let foundCommands = false;
   for (let i = events.length - 1; i >= 0; i--) {
-    if (events[i].type === "usage-update") {
+    if (!foundUsage && events[i].type === "usage-update") {
       const p = events[i].payload as UsageUpdatePayload;
       // Only use session-level usage (has size > 0), not per-turn
       if (p.size > 0) {
         usageInfo = p;
-        break;
+        foundUsage = true;
       }
     }
-  }
-
-  // Derived: available slash commands
-  let availableCommands = session?.availableCommands;
-  for (let i = events.length - 1; i >= 0; i--) {
-    if (events[i].type === "commands-update") {
+    if (!foundCommands && events[i].type === "commands-update") {
       availableCommands = (events[i].payload as CommandsUpdatePayload).commands;
-      break;
+      foundCommands = true;
     }
+    if (foundUsage && foundCommands) break;
   }
 
   const toggleTaskPanel = () => setTaskPanelCollapsed((prev) => !prev);

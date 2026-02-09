@@ -87,16 +87,23 @@ export function MessageInput({
   const [images, setImages] = useState<ImageAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [commandSelectedIndex, setCommandSelectedIndex] = useState(0);
+  const [commandPaletteDismissed, setCommandPaletteDismissed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Command palette: show when input starts with "/" and commands are available
   const showCommandPalette =
+    !commandPaletteDismissed &&
     availableCommands &&
     availableCommands.length > 0 &&
     input.startsWith("/") &&
     !input.includes(" ");
   const commandFilter = showCommandPalette ? input.slice(1) : "";
+  const filteredCommands = showCommandPalette
+    ? availableCommands!.filter((cmd) =>
+        cmd.name.toLowerCase().startsWith(commandFilter.toLowerCase()),
+      )
+    : [];
 
   const showModeSelector =
     availableModes && availableModes.length > 0 && onSetMode;
@@ -131,6 +138,7 @@ export function MessageInput({
   const handleInput = (value: string) => {
     setInput(value);
     setCommandSelectedIndex(0);
+    setCommandPaletteDismissed(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
@@ -141,33 +149,35 @@ export function MessageInput({
   // When command palette is visible, arrow keys navigate and Enter selects
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showCommandPalette) {
-      const filtered = availableCommands!.filter((cmd) =>
-        cmd.name.toLowerCase().startsWith(commandFilter.toLowerCase()),
-      );
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setCommandSelectedIndex((prev) =>
-          prev < filtered.length - 1 ? prev + 1 : 0,
-        );
-        return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setCommandSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : filtered.length - 1,
-        );
-        return;
-      }
-      if (e.key === "Enter" && filtered.length > 0) {
-        e.preventDefault();
-        selectCommand(filtered[commandSelectedIndex]?.name ?? filtered[0].name);
-        return;
-      }
       if (e.key === "Escape") {
         e.preventDefault();
-        setInput("");
+        setCommandPaletteDismissed(true);
         setCommandSelectedIndex(0);
         return;
+      }
+      if (filteredCommands.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setCommandSelectedIndex((prev) =>
+            prev < filteredCommands.length - 1 ? prev + 1 : 0,
+          );
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setCommandSelectedIndex((prev) =>
+            prev > 0 ? prev - 1 : filteredCommands.length - 1,
+          );
+          return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          selectCommand(
+            filteredCommands[commandSelectedIndex]?.name ??
+              filteredCommands[0].name,
+          );
+          return;
+        }
       }
     }
 
@@ -272,8 +282,8 @@ export function MessageInput({
             ${isDragging ? "border-t-primary bg-primary/5" : ""}
           `}
         >
-          {/* Context window meter */}
-          {usageInfo && usageInfo.size > 0 && (
+          {/* Context window meter — hidden when busy to avoid redundancy with right panel */}
+          {usageInfo && usageInfo.size > 0 && !isAgentBusy && (
             <ContextMeter usage={usageInfo} />
           )}
 

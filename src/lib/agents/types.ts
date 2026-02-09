@@ -232,10 +232,17 @@ export interface ModeChangePayload {
   currentModeId: string;
 }
 
+/** Session-level context window usage (from usage_update notification). */
 export interface UsageUpdatePayload {
   used: number;
   size: number;
   cost?: { amount: number; currency: string } | null;
+  /** Per-turn token breakdown (present when emitted from PromptResponse.usage). */
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  cachedReadTokens?: number | null;
+  cachedWriteTokens?: number | null;
 }
 
 export interface CommandsUpdatePayload {
