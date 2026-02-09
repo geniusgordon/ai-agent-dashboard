@@ -77,7 +77,7 @@ export function ApprovalCard({
   return (
     <div className="p-5 rounded-xl border border-border bg-card/50 shadow-sm border-l-2 border-l-status-waiting animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header: session context + status + view link */}
-      <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
           {session && <AgentBadge type={session.agentType} size="sm" />}
           <StatusBadge status="waiting-approval" />
