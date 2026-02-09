@@ -8,7 +8,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bot, FolderGit2, Plus, ShieldAlert } from "lucide-react";
-import { ErrorDisplay, ProjectCard } from "../../components/dashboard";
+import {
+  ErrorDisplay,
+  PageContainer,
+  ProjectCard,
+} from "../../components/dashboard";
 import { useAgentEvents } from "../../hooks/useAgentEvents";
 import { useNotifications } from "../../hooks/useNotifications";
 import { useTRPC } from "../../integrations/trpc/react";
@@ -66,96 +70,108 @@ function DashboardHome() {
   // Loading state
   if (projectsQuery.isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
+      <PageContainer>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      </PageContainer>
     );
   }
 
   // Error state
   if (projectsQuery.isError) {
     return (
-      <ErrorDisplay
-        error={projectsQuery.error}
-        title="Failed to load projects"
-        onRetry={() => projectsQuery.refetch()}
-      />
+      <PageContainer>
+        <ErrorDisplay
+          error={projectsQuery.error}
+          title="Failed to load projects"
+          onRetry={() => projectsQuery.refetch()}
+        />
+      </PageContainer>
     );
   }
 
   // Empty state — onboarding
   if (projects.length === 0) {
-    return <OnboardingView />;
+    return (
+      <PageContainer>
+        <OnboardingView />
+      </PageContainer>
+    );
   }
 
   // Main view — project grid with stats
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-          <p className="text-muted-foreground mt-1">Your AI agent workspaces</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {permission !== "granted" && (
-            <button
-              type="button"
-              onClick={requestPermission}
-              className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+    <PageContainer>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+            <p className="text-muted-foreground mt-1">
+              Your AI agent workspaces
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {permission !== "granted" && (
+              <button
+                type="button"
+                onClick={requestPermission}
+                className="px-3 py-1.5 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+              >
+                Enable Notifications
+              </button>
+            )}
+            <Link
+              to="/dashboard/projects/new"
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center gap-2"
             >
-              Enable Notifications
-            </button>
-          )}
+              <Plus className="size-4" />
+              New Project
+            </Link>
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            icon={<FolderGit2 className="size-5 text-git-muted" />}
+            label="Projects"
+            value={projects.length}
+          />
+          <StatCard
+            icon={<Bot className="size-5 text-action-success-muted" />}
+            label="Active Agents"
+            value={activeAgents}
+          />
+          <StatCard
+            icon={<ShieldAlert className="size-5 text-action-warning-muted" />}
+            label="Pending Approvals"
+            value={pendingApprovals}
+          />
+        </div>
+
+        {/* Project Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects.map((project) => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
+
+          {/* New project card */}
           <Link
             to="/dashboard/projects/new"
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center gap-2"
+            className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border border-dashed border-border hover:border-primary/30 hover:bg-card/50 transition-all cursor-pointer group min-h-[160px]"
           >
-            <Plus className="size-4" />
-            New Project
+            <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <Plus className="size-5 text-primary" />
+            </div>
+            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+              Add a project
+            </span>
           </Link>
         </div>
       </div>
-
-      {/* Stats Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          icon={<FolderGit2 className="size-5 text-git-muted" />}
-          label="Projects"
-          value={projects.length}
-        />
-        <StatCard
-          icon={<Bot className="size-5 text-action-success-muted" />}
-          label="Active Agents"
-          value={activeAgents}
-        />
-        <StatCard
-          icon={<ShieldAlert className="size-5 text-action-warning-muted" />}
-          label="Pending Approvals"
-          value={pendingApprovals}
-        />
-      </div>
-
-      {/* Project Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map((project) => (
-          <ProjectCard key={project.id} project={project} />
-        ))}
-
-        {/* New project card */}
-        <Link
-          to="/dashboard/projects/new"
-          className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border border-dashed border-border hover:border-primary/30 hover:bg-card/50 transition-all cursor-pointer group min-h-[160px]"
-        >
-          <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-            <Plus className="size-5 text-primary" />
-          </div>
-          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-            Add a project
-          </span>
-        </Link>
-      </div>
-    </div>
+    </PageContainer>
   );
 }
 

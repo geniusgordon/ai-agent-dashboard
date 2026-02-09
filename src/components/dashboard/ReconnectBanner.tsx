@@ -10,7 +10,7 @@ export function ReconnectBanner({
   isReconnecting,
 }: ReconnectBannerProps) {
   return (
-    <div className="p-2.5 lg:p-4 rounded-lg lg:rounded-xl border border-action-warning/30 bg-action-warning/10">
+    <div className="p-2.5 lg:p-4 border border-action-warning/30 bg-action-warning/10">
       <div className="flex items-start gap-3">
         <AlertTriangle className="size-5 text-action-warning shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">

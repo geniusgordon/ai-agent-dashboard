@@ -15,7 +15,7 @@ import {
   Search,
 } from "lucide-react";
 import { useState } from "react";
-import { SessionCard } from "@/components/dashboard";
+import { PageContainer, SessionCard } from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentSession } from "@/lib/agents/types";
@@ -115,97 +115,99 @@ function ProjectSessionsPage() {
   ).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Sessions</h1>
-        <p className="text-muted-foreground mt-1">
-          Agent sessions in this project
-        </p>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search sessions..."
-            className="pl-9 pr-4 py-2 rounded-lg w-full bg-card border border-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
-          />
+    <PageContainer>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Sessions</h1>
+          <p className="text-muted-foreground mt-1">
+            Agent sessions in this project
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {(
-            [
-              { key: "all", label: "All", count: sessions.length },
-              { key: "running", label: "Running", count: runningCount },
-              { key: "completed", label: "Completed", count: completedCount },
-            ] as const
-          ).map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                filter === f.key
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              }`}
-            >
-              {f.label} ({f.count})
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Session Groups */}
-      {filteredSessions.length === 0 ? (
-        <div className="p-12 rounded-xl border border-dashed border-border text-center">
-          {search || filter !== "all" ? (
-            <>
-              <Search className="size-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">No sessions match</p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
-                Try a different search term or filter.
-              </p>
-            </>
-          ) : (
-            <>
-              <MessageSquare className="size-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                No sessions in this project
-              </p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
-                Spawn an agent from the{" "}
-                <Link
-                  to="/dashboard/p/$projectId"
-                  params={{ projectId }}
-                  className="text-primary hover:underline"
-                >
-                  Overview
-                </Link>
-                .
-              </p>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {groups.map((group) => (
-            <WorktreeSessionGroup
-              key={group.id}
-              group={group}
-              projectId={projectId}
-              isCollapsed={collapsedWorktrees.has(group.id)}
-              onToggle={() => toggleWorktree(group.id)}
+        {/* Search & Filters */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search sessions..."
+              className="pl-9 pr-4 py-2 rounded-lg w-full bg-card border border-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
             />
-          ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(
+              [
+                { key: "all", label: "All", count: sessions.length },
+                { key: "running", label: "Running", count: runningCount },
+                { key: "completed", label: "Completed", count: completedCount },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  filter === f.key
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                {f.label} ({f.count})
+              </button>
+            ))}
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* Session Groups */}
+        {filteredSessions.length === 0 ? (
+          <div className="p-12 rounded-xl border border-dashed border-border text-center">
+            {search || filter !== "all" ? (
+              <>
+                <Search className="size-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-muted-foreground">No sessions match</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  Try a different search term or filter.
+                </p>
+              </>
+            ) : (
+              <>
+                <MessageSquare className="size-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                  No sessions in this project
+                </p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  Spawn an agent from the{" "}
+                  <Link
+                    to="/dashboard/p/$projectId"
+                    params={{ projectId }}
+                    className="text-primary hover:underline"
+                  >
+                    Overview
+                  </Link>
+                  .
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {groups.map((group) => (
+              <WorktreeSessionGroup
+                key={group.id}
+                group={group}
+                projectId={projectId}
+                isCollapsed={collapsedWorktrees.has(group.id)}
+                onToggle={() => toggleWorktree(group.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </PageContainer>
   );
 }
 

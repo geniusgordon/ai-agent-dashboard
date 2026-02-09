@@ -23,6 +23,7 @@ import { useState } from "react";
 import {
   BranchBadge,
   ErrorDisplay,
+  PageContainer,
   SessionCard,
   SpawnAgentDialog,
   WorktreeDeleteDialog,
@@ -133,35 +134,41 @@ function WorktreeDetailPage() {
 
   if (worktreeQuery.isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Loading worktree...</div>
-      </div>
+      <PageContainer>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Loading worktree...</div>
+        </div>
+      </PageContainer>
     );
   }
 
   if (worktreeQuery.isError) {
     return (
-      <ErrorDisplay
-        error={worktreeQuery.error}
-        title="Failed to load worktree"
-        onRetry={() => worktreeQuery.refetch()}
-      />
+      <PageContainer>
+        <ErrorDisplay
+          error={worktreeQuery.error}
+          title="Failed to load worktree"
+          onRetry={() => worktreeQuery.refetch()}
+        />
+      </PageContainer>
     );
   }
 
   if (!worktreeQuery.data) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
-        <p className="text-muted-foreground">Worktree not found</p>
-        <Link
-          to="/dashboard/p/$projectId"
-          params={{ projectId }}
-          className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-        >
-          <ArrowLeft className="size-3" />
-          Back to project
-        </Link>
-      </div>
+      <PageContainer>
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <p className="text-muted-foreground">Worktree not found</p>
+          <Link
+            to="/dashboard/p/$projectId"
+            params={{ projectId }}
+            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+          >
+            <ArrowLeft className="size-3" />
+            Back to project
+          </Link>
+        </div>
+      </PageContainer>
     );
   }
 
@@ -177,115 +184,117 @@ function WorktreeDetailPage() {
   const assignedSessions = sessions.filter((s) => assignedSessionIds.has(s.id));
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <Link
-          to="/dashboard/p/$projectId"
-          params={{ projectId }}
-          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-4 transition-colors"
-        >
-          <ArrowLeft className="size-3" />
-          {projectQuery.data?.name ?? "Project"}
-        </Link>
+    <PageContainer>
+      <div className="space-y-8">
+        {/* Header */}
+        <div>
+          <Link
+            to="/dashboard/p/$projectId"
+            params={{ projectId }}
+            className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-4 transition-colors"
+          >
+            <ArrowLeft className="size-3" />
+            {projectQuery.data?.name ?? "Project"}
+          </Link>
 
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-            <div className="p-2.5 sm:p-3 rounded-xl bg-git/10 shrink-0">
-              <FolderGit2 className="size-5 sm:size-6 text-git-muted" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
-                  {worktree.name}
-                </h1>
-                {worktree.isMainWorktree && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
-                    main
-                  </span>
-                )}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+              <div className="p-2.5 sm:p-3 rounded-xl bg-git/10 shrink-0">
+                <FolderGit2 className="size-5 sm:size-6 text-git-muted" />
               </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
+                    {worktree.name}
+                  </h1>
+                  {worktree.isMainWorktree && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
+                      main
+                    </span>
+                  )}
+                </div>
 
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
-                <BranchBadge branch={worktree.branch} size="md" />
-                <GitStatusPill status={status} />
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
+                  <BranchBadge branch={worktree.branch} size="md" />
+                  <GitStatusPill status={status} />
+                </div>
+
+                <p className="text-xs sm:text-sm text-muted-foreground font-mono truncate mt-2">
+                  {worktree.path}
+                </p>
               </div>
-
-              <p className="text-xs sm:text-sm text-muted-foreground font-mono truncate mt-2">
-                {worktree.path}
-              </p>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowSpawnDialog(true)}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1.5"
-            >
-              <Play className="size-3.5" />
-              Spawn Agent
-            </button>
-
-            {!worktree.isMainWorktree && (
+            {/* Actions */}
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setShowDeleteDialog(true)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 hover:bg-destructive/20 transition-colors cursor-pointer"
+                onClick={() => setShowSpawnDialog(true)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1.5"
               >
-                Delete
+                <Play className="size-3.5" />
+                Spawn Agent
               </button>
-            )}
+
+              {!worktree.isMainWorktree && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 hover:bg-destructive/20 transition-colors cursor-pointer"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Assigned Agents */}
-      <AgentsSection
-        sessions={assignedSessions}
-        hasMultipleAgents={assignments.length > 1}
-        projectId={projectId}
-        onSpawn={() => setShowSpawnDialog(true)}
-      />
-
-      {/* Branch Commits (since checkout) */}
-      {!worktree.isMainWorktree && (
-        <BranchCommitsSection
-          commits={branchCommits}
-          branch={worktree.branch}
-        />
-      )}
-
-      {/* Full History */}
-      <FullHistorySection
-        commits={commits}
-        defaultExpanded={worktree.isMainWorktree}
-      />
-
-      {/* Spawn Agent Dialog */}
-      {showSpawnDialog && (
-        <SpawnAgentDialog
+        {/* Assigned Agents */}
+        <AgentsSection
+          sessions={assignedSessions}
+          hasMultipleAgents={assignments.length > 1}
           projectId={projectId}
-          worktreeId={worktree.id}
-          worktreePath={worktree.path}
-          worktreeName={worktree.name}
-          open
-          onOpenChange={(open) => {
-            if (!open) setShowSpawnDialog(false);
-          }}
+          onSpawn={() => setShowSpawnDialog(true)}
         />
-      )}
 
-      {/* Delete Dialog */}
-      <WorktreeDeleteDialog
-        worktree={showDeleteDialog ? worktree : null}
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        onConfirm={handleConfirmDelete}
-        isDeleting={deleteWorktreeMutation.isPending}
-      />
-    </div>
+        {/* Branch Commits (since checkout) */}
+        {!worktree.isMainWorktree && (
+          <BranchCommitsSection
+            commits={branchCommits}
+            branch={worktree.branch}
+          />
+        )}
+
+        {/* Full History */}
+        <FullHistorySection
+          commits={commits}
+          defaultExpanded={worktree.isMainWorktree}
+        />
+
+        {/* Spawn Agent Dialog */}
+        {showSpawnDialog && (
+          <SpawnAgentDialog
+            projectId={projectId}
+            worktreeId={worktree.id}
+            worktreePath={worktree.path}
+            worktreeName={worktree.name}
+            open
+            onOpenChange={(open) => {
+              if (!open) setShowSpawnDialog(false);
+            }}
+          />
+        )}
+
+        {/* Delete Dialog */}
+        <WorktreeDeleteDialog
+          worktree={showDeleteDialog ? worktree : null}
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={handleConfirmDelete}
+          isDeleting={deleteWorktreeMutation.isPending}
+        />
+      </div>
+    </PageContainer>
   );
 }
 
