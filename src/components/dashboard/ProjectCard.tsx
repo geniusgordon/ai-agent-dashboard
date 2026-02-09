@@ -31,7 +31,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Link
       to="/dashboard/p/$projectId"
       params={{ projectId: project.id }}
-      className="block p-5 rounded-xl border border-border bg-card/50 shadow-sm hover:shadow-md hover:bg-card hover:border-primary/20 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+      className="block p-5 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/20 transition-all duration-200 cursor-pointer group"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="p-2 rounded-lg bg-git/10">

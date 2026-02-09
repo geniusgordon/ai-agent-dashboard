@@ -47,7 +47,7 @@ export function WorktreeCard({
     <Link
       to="/dashboard/p/$projectId/worktrees/$worktreeId"
       params={{ projectId, worktreeId: worktree.id }}
-      className={`block p-5 rounded-xl border border-border bg-card/50 shadow-sm transition-all duration-200 hover:bg-card hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5 cursor-pointer group border-l-2 ${
+      className={`block p-5 rounded-xl border border-border bg-card/50 transition-all duration-200 hover:bg-card hover:border-primary/20 cursor-pointer group border-l-2 ${
         hasMultipleAgents
           ? "border-l-action-warning"
           : assignments.length > 0

@@ -202,7 +202,7 @@ export function MessageInput({
       >
         <div
           className={`
-            flex flex-col gap-2 p-2 rounded-none lg:rounded-xl border-0 border-t lg:border bg-card lg:shadow-sm transition-colors
+            flex flex-col gap-2 p-2 rounded-none lg:rounded-xl border-0 border-t lg:border bg-card transition-colors
             ${isDragging ? "lg:border-primary bg-primary/5" : "lg:border-border border-t-border"}
           `}
         >

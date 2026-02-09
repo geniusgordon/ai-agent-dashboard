@@ -76,12 +76,12 @@ export function SessionCard({ session, projectId }: SessionCardProps) {
       }
       className={`
         block p-5 rounded-xl border transition-all duration-200 cursor-pointer group
-        border-l-2 shadow-sm
+        border-l-2
         ${statusLeftBorder[session.status] ?? "border-l-muted-foreground"}
         ${
           isInactive
             ? "border-border/30 bg-card/30 opacity-60"
-            : "border-border bg-card/50 hover:bg-card hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5"
+            : "border-border bg-card/50 hover:bg-card hover:border-primary/20"
         }
       `}
     >
