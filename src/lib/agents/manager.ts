@@ -85,6 +85,16 @@ interface ManagedSession {
   projectId?: string;
   worktreeId?: string;
   worktreeBranch?: string;
+  usageInfo?: {
+    used: number;
+    size: number;
+    cost?: { amount: number; currency: string } | null;
+  };
+  availableCommands?: Array<{
+    name: string;
+    description: string;
+    hasInput: boolean;
+  }>;
 }
 
 /**
@@ -646,6 +656,40 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   }
 
   /**
+   * Cancel the running prompt in a session without killing it.
+   * The session returns to idle and can accept new messages.
+   */
+  async cancelSession(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    const managed = this.clients.get(session.clientId);
+    if (!managed) {
+      throw new Error(`Client not found: ${session.clientId}`);
+    }
+
+    // Send cancel notification — the in-flight prompt() will resolve
+    // with stopReason: "cancelled", which processQueue() handles normally.
+    await managed.acpClient.cancel(sessionId);
+
+    // Drain queued messages so nothing fires after the cancel
+    this.drainQueue(sessionId, "Session cancelled");
+
+    // Resolve any pending approval for this session.
+    // Shape matches ACP SDK's RequestPermissionResponse — same as denyRequest().
+    const approvalIds = [...this.approvals.entries()]
+      .filter(([, a]) => a.sessionId === sessionId)
+      .map(([id]) => id);
+    for (const approvalId of approvalIds) {
+      const approval = this.approvals.get(approvalId)!;
+      approval.pending.resolve({ outcome: { outcome: "cancelled" } });
+      this.approvals.delete(approvalId);
+    }
+  }
+
+  /**
    * Kill an entire client (and all its sessions)
    */
   killClient(clientId: string): void {
@@ -797,6 +841,25 @@ export class AgentManager extends EventEmitter implements IAgentManager {
 
           current.status = "idle";
           current.updatedAt = new Date();
+
+          // Emit per-turn usage from PromptResponse if available
+          if (result.usage) {
+            this.emitEvent({
+              type: "usage-update",
+              clientId: current.clientId,
+              sessionId,
+              timestamp: new Date(),
+              payload: {
+                used: result.usage.totalTokens,
+                size: 0, // per-turn usage doesn't include window size
+                inputTokens: result.usage.inputTokens,
+                outputTokens: result.usage.outputTokens,
+                totalTokens: result.usage.totalTokens,
+                cachedReadTokens: result.usage.cachedReadTokens,
+                cachedWriteTokens: result.usage.cachedWriteTokens,
+              },
+            });
+          }
 
           this.emitEvent({
             type: "complete",
@@ -1234,6 +1297,46 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           payload: { entries: update.entries },
         };
 
+      case "usage_update": {
+        const session = this.sessions.get(sessionId);
+        const usageInfo = {
+          used: update.used,
+          size: update.size,
+          cost: update.cost ?? null,
+        };
+        if (session) {
+          session.usageInfo = usageInfo;
+        }
+        return {
+          type: "usage-update" as const,
+          clientId,
+          sessionId,
+          timestamp,
+          payload: usageInfo,
+        };
+      }
+
+      case "available_commands_update": {
+        const session = this.sessions.get(sessionId);
+        const commands = (update.availableCommands ?? []).map(
+          (cmd: { name: string; description: string; input?: unknown }) => ({
+            name: cmd.name,
+            description: cmd.description,
+            hasInput: cmd.input != null,
+          }),
+        );
+        if (session) {
+          session.availableCommands = commands;
+        }
+        return {
+          type: "commands-update" as const,
+          clientId,
+          sessionId,
+          timestamp,
+          payload: { commands },
+        };
+      }
+
       default:
         return null;
     }
@@ -1307,6 +1410,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       projectId: managed.projectId,
       worktreeId: managed.worktreeId,
       worktreeBranch: managed.worktreeBranch,
+      usageInfo: managed.usageInfo,
+      availableCommands: managed.availableCommands,
     };
   }
 

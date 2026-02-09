@@ -198,6 +198,17 @@ export const sessionsRouter = createTRPCRouter({
     }),
 
   /**
+   * Cancel a running prompt (session stays alive, returns to idle)
+   */
+  cancelSession: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      await manager.cancelSession(input.sessionId);
+      return { success: true };
+    }),
+
+  /**
    * Mark a session as completed
    */
   completeSession: publicProcedure

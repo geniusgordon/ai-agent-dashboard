@@ -11,7 +11,9 @@ import { extractContent, extractPlanFilePath } from "@/lib/agents/event-utils";
 import type {
   AgentEvent,
   ApprovalRequest,
+  CommandsUpdatePayload,
   PlanPayload,
+  UsageUpdatePayload,
 } from "@/lib/agents/types";
 import { useAgentEvents } from "./useAgentEvents";
 
@@ -424,6 +426,20 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  const cancelSessionMutation = useMutation(
+    trpc.sessions.cancelSession.mutationOptions({
+      onSuccess: () => {
+        setOptimisticApproval(null);
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.approvals.list.queryKey(),
+        });
+      },
+    }),
+  );
+
   const deleteMutation = useMutation(
     trpc.sessions.deleteSession.mutationOptions({
       onSuccess: () => {
@@ -456,6 +472,8 @@ export function useSessionDetail(sessionId: string) {
     approveMutation.mutate({ approvalId, optionId });
 
   const deny = (approvalId: string) => denyMutation.mutate({ approvalId });
+
+  const cancelSession = () => cancelSessionMutation.mutate({ sessionId });
 
   const killSession = () => killSessionMutation.mutate({ sessionId });
 
@@ -502,6 +520,28 @@ export function useSessionDetail(sessionId: string) {
   // Derived: plan document file path (from tool-call events)
   const planFilePath = extractPlanFilePath(events);
 
+  // Derived: latest usage info + available commands (single reverse pass)
+  let usageInfo: UsageUpdatePayload | undefined =
+    session?.usageInfo ?? undefined;
+  let availableCommands = session?.availableCommands;
+  let foundUsage = false;
+  let foundCommands = false;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (!foundUsage && events[i].type === "usage-update") {
+      const p = events[i].payload as UsageUpdatePayload;
+      // Only use session-level usage (has size > 0), not per-turn
+      if (p.size > 0) {
+        usageInfo = p;
+        foundUsage = true;
+      }
+    }
+    if (!foundCommands && events[i].type === "commands-update") {
+      availableCommands = (events[i].payload as CommandsUpdatePayload).commands;
+      foundCommands = true;
+    }
+    if (foundUsage && foundCommands) break;
+  }
+
   const toggleTaskPanel = () => setTaskPanelCollapsed((prev) => !prev);
 
   // ---------------------------------------------------------------------------
@@ -519,6 +559,8 @@ export function useSessionDetail(sessionId: string) {
     supportsImages,
     latestPlan,
     planFilePath,
+    usageInfo,
+    availableCommands,
     taskPanelCollapsed,
     logsEndRef,
     logContainerRef: logContainerCallbackRef,
@@ -526,6 +568,7 @@ export function useSessionDetail(sessionId: string) {
     // Loading states
     isLoading: sessionQuery.isLoading,
     isAgentBusy: session?.status === "running",
+    isCancelling: cancelSessionMutation.isPending,
     isKilling: killSessionMutation.isPending,
     isCompleting: completeSessionMutation.isPending,
     isRenaming: renameSessionMutation.isPending,
@@ -539,6 +582,7 @@ export function useSessionDetail(sessionId: string) {
     sendMessage,
     approve,
     deny,
+    cancelSession,
     killSession,
     completeSession,
     renameSession,

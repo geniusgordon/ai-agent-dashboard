@@ -87,11 +87,14 @@ export function SessionDetailView({
     supportsImages,
     latestPlan,
     planFilePath,
+    usageInfo,
+    availableCommands,
     taskPanelCollapsed,
     logsEndRef,
     logContainerRef,
     isLoading,
     isAgentBusy,
+    isCancelling,
     isKilling,
     isCompleting,
     isRenaming,
@@ -103,6 +106,7 @@ export function SessionDetailView({
     sendMessage,
     approve,
     deny,
+    cancelSession,
     killSession,
     completeSession,
     renameSession,
@@ -271,6 +275,10 @@ export function SessionDetailView({
               currentModeId={session.currentModeId}
               onSetMode={setMode}
               isSettingMode={isSettingMode}
+              onCancel={cancelSession}
+              isCancelling={isCancelling}
+              usageInfo={usageInfo}
+              availableCommands={availableCommands}
             />
           )}
         </div>
@@ -306,6 +314,7 @@ export function SessionDetailView({
               taskPanelCollapsed,
               onToggleTaskPanel: toggleTaskPanel,
             }}
+            usageInfo={usageInfo}
             onStartReview={
               canStartReview ? () => setReviewDialogOpen(true) : undefined
             }

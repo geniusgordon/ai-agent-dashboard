@@ -11,6 +11,7 @@ import {
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { ApprovalBanner } from "@/components/dashboard/ApprovalBanner";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
+import { ContextMeter } from "@/components/dashboard/ContextMeter";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
 import { PlanDocumentViewer } from "@/components/dashboard/PlanDocumentViewer";
@@ -22,6 +23,7 @@ import type {
   AgentSession,
   ApprovalRequest,
   PlanPayload,
+  UsageUpdatePayload,
 } from "@/lib/agents/types";
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,7 @@ export interface SessionRightPanelProps {
   approval: SessionApprovalState;
   actions: SessionActions;
   tasks: TaskState;
+  usageInfo?: UsageUpdatePayload;
   onStartReview?: () => void;
 }
 
@@ -85,6 +88,7 @@ export function SessionRightPanel({
   approval,
   actions,
   tasks,
+  usageInfo,
   onStartReview,
 }: SessionRightPanelProps) {
   const isTerminal =
@@ -188,6 +192,9 @@ export function SessionRightPanel({
 
             <PanelSection icon={Info} label="Session Info">
               <div className="space-y-1.5 text-xs text-muted-foreground px-1 pb-1">
+                {usageInfo && usageInfo.size > 0 && (
+                  <ContextMeter usage={usageInfo} compact />
+                )}
                 <div className="flex items-center gap-1.5">
                   <Clock className="size-3 shrink-0" />
                   <span>

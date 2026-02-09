@@ -5,6 +5,8 @@ export { BranchBadge } from "./BranchBadge";
 export { BranchList } from "./BranchList";
 export { ClientCard } from "./ClientCard";
 export { CodeReviewDialog } from "./CodeReviewDialog";
+export { CommandPalette } from "./CommandPalette";
+export { ContextMeter } from "./ContextMeter";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay } from "./ErrorDisplay";
 export { GitInfoPanel } from "./GitInfoPanel";
