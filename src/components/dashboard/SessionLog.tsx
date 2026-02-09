@@ -1,6 +1,12 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, MessageSquare } from "lucide-react";
-import { type Ref, type RefObject, useEffect, useRef } from "react";
+import {
+  type Ref,
+  type RefObject,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import type { AgentEvent } from "@/lib/agents/types";
 import { LogEntry } from "./LogEntry";
 
@@ -38,17 +44,25 @@ export function SessionLog({
 }: SessionLogProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Always read the latest count to avoid stale closures in scrollToBottom.
+  const countRef = useRef(events.length);
+  countRef.current = events.length;
+
   // Combine the external callback ref (from useSessionDetail's scroll tracking)
   // with our local ref (for the virtualizer's getScrollElement).
-  const combinedRef = (node: HTMLDivElement | null) => {
-    scrollContainerRef.current = node;
-    if (typeof containerRef === "function") {
-      containerRef(node);
-    } else if (containerRef && typeof containerRef === "object") {
-      (containerRef as React.MutableRefObject<HTMLDivElement | null>).current =
-        node;
-    }
-  };
+  // Explicit useCallback: callback refs passed to `ref=` are an edge case
+  // where React Compiler memoization isn't guaranteed.
+  const combinedRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      scrollContainerRef.current = node;
+      if (typeof containerRef === "function") {
+        containerRef(node);
+      } else if (containerRef && typeof containerRef === "object") {
+        (containerRef as { current: HTMLDivElement | null }).current = node;
+      }
+    },
+    [containerRef],
+  );
 
   const virtualizer = useVirtualizer({
     count: events.length,
@@ -58,26 +72,19 @@ export function SessionLog({
     overscan: 10,
   });
 
-  // Expose scrollToBottom to the parent hook via scrollRef
-  useEffect(() => {
-    if (!scrollRef) return;
-    (
-      scrollRef as React.MutableRefObject<SessionLogScrollHandle | null>
-    ).current = {
-      scrollToBottom: (behavior?: "auto" | "smooth") => {
-        if (events.length === 0) return;
-        virtualizer.scrollToIndex(events.length - 1, {
-          align: "end",
-          behavior: behavior ?? "auto",
-        });
-      },
-    };
-    return () => {
-      (
-        scrollRef as React.MutableRefObject<SessionLogScrollHandle | null>
-      ).current = null;
-    };
-  }, [scrollRef, events.length, virtualizer]);
+  // Expose scrollToBottom to the parent hook via scrollRef.
+  // Uses countRef to always read the latest event count, avoiding the stale
+  // closure where events arrive between render and effect execution.
+  useImperativeHandle(scrollRef, () => ({
+    scrollToBottom: (behavior?: "auto" | "smooth") => {
+      const count = countRef.current;
+      if (count === 0) return;
+      virtualizer.scrollToIndex(count - 1, {
+        align: "end",
+        behavior: behavior ?? "auto",
+      });
+    },
+  }));
 
   const virtualItems = virtualizer.getVirtualItems();
 
