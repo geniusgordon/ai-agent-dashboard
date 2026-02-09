@@ -1,4 +1,4 @@
-import { ChevronRight, RefreshCw, User } from "lucide-react";
+import { ChevronRight, RefreshCw, Terminal, User } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -9,7 +9,11 @@ import {
   formatTime,
   summarizePlanEntries,
 } from "@/lib/agents/event-utils";
-import type { AgentEvent, PlanPayload } from "@/lib/agents/types";
+import type {
+  AgentEvent,
+  CommandsUpdatePayload,
+  PlanPayload,
+} from "@/lib/agents/types";
 import { CopyIconButton } from "./CopyButton";
 import { MarkdownContent } from "./MarkdownContent";
 import { ToolUpdateEntry } from "./ToolUpdateEntry";
@@ -35,6 +39,9 @@ function getModeTransitionLabel(title: string): string | null {
 export function LogEntry({ event }: LogEntryProps) {
   if (event.type === "tool-update") {
     return <ToolUpdateEntry event={event} />;
+  }
+  if (event.type === "commands-update") {
+    return <CommandsUpdateEntry event={event} />;
   }
   if (event.type === "tool-call") {
     const payload = event.payload as Record<string, unknown>;
@@ -75,6 +82,64 @@ function ModeTransitionMarker({
         </span>
         <div className="flex-1 border-t border-border" />
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CommandsUpdateEntry — collapsible list of available slash commands
+// ---------------------------------------------------------------------------
+
+function CommandsUpdateEntry({ event }: { event: AgentEvent }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { commands } = event.payload as CommandsUpdatePayload;
+  const count = commands.length;
+
+  return (
+    <div className="py-1.5 lg:py-2 px-2 lg:px-3">
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 text-muted-foreground/60 cursor-pointer group"
+        onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+      >
+        <span className="shrink-0 hidden sm:block w-[5.5rem] text-[11px] tabular-nums select-none text-muted-foreground/70">
+          {formatTime(event.timestamp)}
+        </span>
+        <div className="flex-1 flex items-center gap-2">
+          <div className="flex-1 border-t border-border" />
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap group-hover:text-muted-foreground transition-colors">
+            <Terminal className="size-3" />
+            {count} slash command{count !== 1 ? "s" : ""} available
+            <ChevronRight
+              className={`size-3 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+            />
+          </span>
+          <div className="flex-1 border-t border-border" />
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="mt-2 ml-0 sm:ml-[6.5rem] rounded-md border border-border bg-muted/30 overflow-hidden">
+          <table className="w-full text-xs">
+            <tbody>
+              {commands.map((cmd) => (
+                <tr
+                  key={cmd.name}
+                  className="border-b border-border/50 last:border-b-0"
+                >
+                  <td className="px-3 py-1.5 font-mono font-medium text-foreground/80 whitespace-nowrap align-top">
+                    /{cmd.name}
+                  </td>
+                  <td className="px-3 py-1.5 text-muted-foreground">
+                    {cmd.description}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

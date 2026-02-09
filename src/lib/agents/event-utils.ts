@@ -9,6 +9,7 @@ import {
   Inbox,
   MessageSquare,
   RefreshCw,
+  Terminal,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -210,6 +211,11 @@ export const eventConfig: Record<string, EventStyleConfig> = {
     icon: XCircle,
     color: "text-event-error",
     borderColor: "border-l-event-error/50",
+  },
+  "commands-update": {
+    icon: Terminal,
+    color: "text-muted-foreground",
+    borderColor: "border-l-border",
   },
 };
 
