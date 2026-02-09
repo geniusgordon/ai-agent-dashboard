@@ -22,6 +22,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         error: <OctagonXIcon className="size-4" />,
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
+      mobileOffset={{ bottom: "env(safe-area-inset-bottom, 0px)" }}
       style={
         {
           "--normal-bg": "var(--popover)",
