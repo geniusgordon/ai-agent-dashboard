@@ -503,6 +503,14 @@ function isNoiseUpdate(payload: Record<string, unknown>): boolean {
   // Empty string content
   if (content === "") return true;
 
+  // Mode-transition boilerplate from EnterPlanMode / ExitPlanMode tool results.
+  // The corresponding tool-call already renders as a ModeTransitionMarker,
+  // so the confirmation text is redundant.
+  if (Array.isArray(content)) {
+    const text = extractTextFromContentBlocks(content);
+    if (text.startsWith("Entered plan mode")) return true;
+  }
+
   return false;
 }
 
