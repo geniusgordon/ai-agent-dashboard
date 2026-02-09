@@ -122,33 +122,35 @@ export function SessionDetailView({
     enabled: hasProject,
   });
 
-  // Inject session header into the global header bar via slot
+  // Inject session header into the global header bar via slot.
+  // React Compiler auto-tracks reactive deps, so no manual dep array needed.
   useEffect(() => {
+    if (session) {
+      setSlot(
+        <SessionContextHeader
+          session={session}
+          connected={connected}
+          autoScroll={autoScroll}
+          onToggleAutoScroll={toggleAutoScroll}
+          onClearLogs={clearLogs}
+          backTo={headerBackTo}
+          backParams={headerBackParams}
+          onRename={renameSession}
+          isRenaming={isRenaming}
+          panelOpen={isDesktop ? panelOpen : undefined}
+          onTogglePanel={
+            isDesktop ? () => setPanelOpen((prev) => !prev) : undefined
+          }
+          onOpenMobileDrawer={
+            !isDesktop ? () => setMobileDrawerOpen(true) : undefined
+          }
+        />,
+      );
+    } else {
+      clearSlot();
+    }
     return () => clearSlot();
-  }, [clearSlot]);
-
-  if (session) {
-    setSlot(
-      <SessionContextHeader
-        session={session}
-        connected={connected}
-        autoScroll={autoScroll}
-        onToggleAutoScroll={toggleAutoScroll}
-        onClearLogs={clearLogs}
-        backTo={headerBackTo}
-        backParams={headerBackParams}
-        onRename={renameSession}
-        isRenaming={isRenaming}
-        panelOpen={isDesktop ? panelOpen : undefined}
-        onTogglePanel={
-          isDesktop ? () => setPanelOpen((prev) => !prev) : undefined
-        }
-        onOpenMobileDrawer={
-          !isDesktop ? () => setMobileDrawerOpen(true) : undefined
-        }
-      />,
-    );
-  }
+  });
 
   if (isLoading) {
     return (
