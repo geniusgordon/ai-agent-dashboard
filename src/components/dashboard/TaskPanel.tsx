@@ -1,11 +1,6 @@
-import {
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  ClipboardList,
-  Loader2,
-} from "lucide-react";
+import { CheckCircle2, Circle, ClipboardList, Loader2 } from "lucide-react";
+import { PanelSection } from "@/components/dashboard/PanelSection";
+import { PlanDocumentViewer } from "@/components/dashboard/PlanDocumentViewer";
 import { summarizePlanEntries } from "@/lib/agents/event-utils";
 import type { PlanPayload } from "@/lib/agents/types";
 
@@ -15,6 +10,7 @@ export interface TaskPanelProps {
   entries: PlanEntry[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  planFilePath?: string | null;
 }
 
 function StatusIcon({ status }: { status: string }) {
@@ -63,55 +59,51 @@ export function TaskPanel({
   entries,
   isCollapsed,
   onToggleCollapse,
+  planFilePath,
 }: TaskPanelProps) {
   const summary = summarizePlanEntries(entries);
 
   return (
-    <div className="border-b border-border overflow-hidden">
-      {/* Header — always visible, clickable to toggle */}
-      <button
-        type="button"
-        onClick={onToggleCollapse}
-        className="w-full flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 hover:bg-accent/50 transition-colors cursor-pointer"
-      >
-        {isCollapsed ? (
-          <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
-        )}
-        <ClipboardList className="size-3.5 text-event-plan shrink-0" />
-        <span className="text-xs font-semibold tracking-wide uppercase text-event-plan">
-          Tasks
-        </span>
-        <span className="text-xs text-muted-foreground">{summary}</span>
-        <div className="flex-1" />
-        <ProgressBar entries={entries} />
-      </button>
-
-      {/* Expanded task list */}
-      {!isCollapsed && (
-        <div className="border-t border-border overflow-y-auto">
-          <div className="px-3 lg:px-4 py-1 lg:py-1.5 space-y-0">
-            {entries.map((entry, i) => (
-              <div
-                key={`${entry.content}-${i}`}
-                className={`flex items-start gap-2 py-1 text-[13px] leading-relaxed ${
-                  entry.status === "completed"
-                    ? "text-muted-foreground line-through opacity-60"
-                    : entry.status === "in_progress"
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                }`}
-              >
-                <div className="mt-0.5">
-                  <StatusIcon status={entry.status} />
-                </div>
-                <span className="min-w-0">{entry.content}</span>
-              </div>
-            ))}
+    <PanelSection
+      icon={ClipboardList}
+      label="Tasks"
+      open={!isCollapsed}
+      onOpenChange={(open) => {
+        if (open === isCollapsed) onToggleCollapse();
+      }}
+      headerExtra={
+        <>
+          <span className="text-xs text-muted-foreground">{summary}</span>
+          <div className="flex-1" />
+          <ProgressBar entries={entries} />
+        </>
+      }
+    >
+      <div className="px-1 space-y-0">
+        {entries.map((entry, i) => (
+          <div
+            key={`${entry.content}-${i}`}
+            className={`flex items-start gap-2 py-1 text-[13px] leading-relaxed ${
+              entry.status === "completed"
+                ? "text-muted-foreground line-through opacity-60"
+                : entry.status === "in_progress"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+            }`}
+          >
+            <div className="mt-0.5">
+              <StatusIcon status={entry.status} />
+            </div>
+            <span className="min-w-0">{entry.content}</span>
           </div>
+        ))}
+      </div>
+
+      {planFilePath && (
+        <div className="px-1 pt-1">
+          <PlanDocumentViewer filePath={planFilePath} />
         </div>
       )}
-    </div>
+    </PanelSection>
   );
 }
