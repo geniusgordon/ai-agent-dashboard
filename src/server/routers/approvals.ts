@@ -24,27 +24,8 @@ export const approvalsRouter = createTRPCRouter({
       const manager = getAgentManager();
       const approvals = manager.getPendingApprovals();
 
-      const filtered = input?.projectId
-        ? (() => {
-            const projectManager = getProjectManager();
-            const assignments = projectManager.getAssignmentsForProject(
-              input.projectId,
-            );
-            const assignedSessionIds = new Set(
-              assignments.map((a) => a.sessionId),
-            );
-            return approvals.filter((a) => {
-              const session = manager.getSession(a.sessionId);
-              return (
-                session?.projectId === input.projectId ||
-                assignedSessionIds.has(a.sessionId)
-              );
-            });
-          })()
-        : approvals;
-
-      // Enrich each approval with session context
-      return filtered.map((a) => {
+      // Enrich first, then filter — single getSession lookup per approval
+      const enriched = approvals.map((a) => {
         const session = manager.getSession(a.sessionId);
         return {
           ...a,
@@ -54,10 +35,24 @@ export const approvalsRouter = createTRPCRouter({
                 name: session.name ?? null,
                 worktreeBranch: session.worktreeBranch ?? null,
                 cwd: session.cwd,
+                projectId: session.projectId ?? null,
               }
             : null,
         };
       });
+
+      if (!input?.projectId) return enriched;
+
+      const projectManager = getProjectManager();
+      const assignments = projectManager.getAssignmentsForProject(
+        input.projectId,
+      );
+      const assignedSessionIds = new Set(assignments.map((a) => a.sessionId));
+      return enriched.filter(
+        (a) =>
+          a.session?.projectId === input.projectId ||
+          assignedSessionIds.has(a.sessionId),
+      );
     }),
 
   /**

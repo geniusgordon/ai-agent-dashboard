@@ -7,13 +7,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { inferProcedureOutput } from "@trpc/server";
 import { AlertTriangle, FolderOpen, Loader2, ShieldCheck } from "lucide-react";
 import { AgentBadge, BranchBadge } from "@/components/dashboard";
 import { extractDetail } from "@/components/dashboard/ApprovalBanner";
 import { Button } from "@/components/ui/button";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
-import type { AgentType, ApprovalRequest } from "@/lib/agents/types";
+import type { TRPCRouter } from "@/integrations/trpc/router";
 
 export const Route = createFileRoute("/dashboard/p/$projectId/approvals")({
   component: ProjectApprovalsPage,
@@ -169,15 +170,10 @@ function stripBackticks(title: string): string {
 // Approval Card
 // =============================================================================
 
-/** Single enriched approval item as returned by the tRPC list endpoint. */
-type EnrichedApproval = ApprovalRequest & {
-  session: {
-    agentType: AgentType;
-    name: string | null;
-    worktreeBranch: string | null;
-    cwd: string;
-  } | null;
-};
+/** Single enriched approval item — derived from the tRPC router output. */
+type EnrichedApproval = inferProcedureOutput<
+  TRPCRouter["approvals"]["list"]
+>[number];
 
 function ApprovalCard({
   approval,
@@ -267,10 +263,13 @@ function ApprovalCard({
       <div className="mt-3 ml-6 flex items-center gap-2 sm:gap-3 text-[11px] text-muted-foreground/70 flex-wrap">
         {session?.cwd && (
           <>
-            <span className="inline-flex items-center gap-1 font-mono">
+            <span
+              className="inline-flex items-center gap-1 font-mono"
+              title={session.cwd}
+            >
               <FolderOpen className="size-3" />
               <span className="truncate max-w-32 sm:max-w-48">
-                {session.cwd}
+                {session.cwd.split("/").pop() || session.cwd}
               </span>
             </span>
             <span className="text-border">·</span>
