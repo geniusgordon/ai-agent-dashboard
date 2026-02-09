@@ -272,6 +272,10 @@ export function Sidebar() {
 
 function GlobalNav({ onNavigate }: { onNavigate: () => void }) {
   const matchRoute = useMatchRoute();
+  // Subscribe to route changes so active state updates on client-side navigation.
+  // useMatchRoute's internal subscription can be optimized away by React Compiler
+  // since matchRoute is a stable useCallback — useLocation provides an explicit dependency.
+  useLocation();
 
   const isNewProject = !!matchRoute({
     to: "/dashboard/projects/new" as const,
@@ -330,6 +334,8 @@ function ProjectNav({
   onNavigate: () => void;
 }) {
   const matchRoute = useMatchRoute();
+  // Same as GlobalNav — explicit route subscription for React Compiler compatibility.
+  useLocation();
 
   const items = [
     { segment: "" as const, label: "Overview", icon: LayoutDashboard },
@@ -464,9 +470,15 @@ function WorktreeAgentGroup({
 }) {
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton tooltip={worktree.branch} size="sm">
-        <GitBranch className="text-muted-foreground" />
-        <span className="truncate font-medium">{worktree.branch}</span>
+      <SidebarMenuButton asChild tooltip={worktree.branch} size="sm">
+        <Link
+          to="/dashboard/p/$projectId/worktrees/$worktreeId"
+          params={{ projectId, worktreeId: worktree.id }}
+          onClick={onNavigate}
+        >
+          <GitBranch className="text-muted-foreground" />
+          <span className="truncate font-medium">{worktree.branch}</span>
+        </Link>
       </SidebarMenuButton>
       <SidebarMenuSub>
         {sessions.map((session) => {
