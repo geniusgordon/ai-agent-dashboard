@@ -277,9 +277,9 @@ export function SessionDetailView({
                         onToggleCollapse={toggleTaskPanel}
                         planFilePath={planFilePath}
                       />
-                    ) : (
+                    ) : planFilePath ? (
                       <PlanDocumentViewer filePath={planFilePath} />
-                    ))}
+                    ) : null)}
                 </div>
               </div>
             )}
