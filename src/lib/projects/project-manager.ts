@@ -119,7 +119,10 @@ export class ProjectManager {
     const resolvedPath = resolve(opts.repoPath);
     git.validatePath(resolvedPath);
 
-    if (!(await git.isGitRepo(resolvedPath))) {
+    if (
+      !(await git.isGitRepo(resolvedPath)) &&
+      !(await git.isBareRepo(resolvedPath))
+    ) {
       throw new Error(`Not a git repository: ${resolvedPath}`);
     }
 
@@ -488,7 +491,10 @@ export class ProjectManager {
     const resolvedPath = resolve(dirPath);
     git.validatePath(resolvedPath);
 
-    if (!(await git.isGitRepo(resolvedPath))) {
+    if (
+      !(await git.isGitRepo(resolvedPath)) &&
+      !(await git.isBareRepo(resolvedPath))
+    ) {
       throw new Error(`Not a git repository: ${resolvedPath}`);
     }
 
