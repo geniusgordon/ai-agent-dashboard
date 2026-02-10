@@ -11,6 +11,12 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { Readable, Writable } from "node:stream";
 import * as acp from "@agentclientprotocol/sdk";
+import {
+  deriveSessionConfigState,
+  normalizeSessionConfigOptions,
+  type SessionConfigOption,
+  type SessionConfigValueOption,
+} from "../agents/types.js";
 
 // Re-export useful types from the SDK
 export type {
@@ -64,25 +70,6 @@ export interface SessionMode {
   id: string;
   name: string;
   description?: string;
-}
-
-/**
- * Session config option value
- */
-export interface SessionConfigValueOption {
-  value: string;
-  name: string;
-}
-
-/**
- * Session config option info
- */
-export interface SessionConfigOption {
-  id: string;
-  name: string;
-  category: "mode" | "model" | "thought_level" | "_custom";
-  currentValue: string;
-  options: SessionConfigValueOption[];
 }
 
 /**
@@ -307,7 +294,7 @@ export class ACPClient extends EventEmitter {
         name: m.name,
         description: m.description ?? undefined,
       })),
-      currentModeId: result.modes?.currentModeId,
+      currentModeId: result.modes?.currentModeId ?? configState.currentModeId,
       configOptions: configState.configOptions,
       modelOptionId: configState.modelOptionId,
       availableModels: configState.availableModels,
@@ -375,23 +362,28 @@ export class ACPClient extends EventEmitter {
       throw new Error("Client not started. Call start() first.");
     }
 
-    const connection = this.connection as unknown as {
-      setSessionConfigOption?: (args: {
-        sessionId: string;
-        optionId: string;
-        value: string;
-      }) => Promise<void>;
-      setConfigOption?: (args: {
-        sessionId: string;
-        optionId: string;
-        value: string;
-      }) => Promise<void>;
-    };
+    // ACP SDK support for set_config_option varies by version; probe methods
+    // at runtime instead of hard-coding one SDK signature.
+    const connection = this.connection as unknown as Record<string, unknown>;
+    const setSessionConfigOption = connection.setSessionConfigOption;
+    const setConfigOption = connection.setConfigOption;
 
-    if (connection.setSessionConfigOption) {
-      await connection.setSessionConfigOption({ sessionId, optionId, value });
-    } else if (connection.setConfigOption) {
-      await connection.setConfigOption({ sessionId, optionId, value });
+    if (typeof setSessionConfigOption === "function") {
+      await (
+        setSessionConfigOption as (args: {
+          sessionId: string;
+          optionId: string;
+          value: string;
+        }) => Promise<void>
+      )({ sessionId, optionId, value });
+    } else if (typeof setConfigOption === "function") {
+      await (
+        setConfigOption as (args: {
+          sessionId: string;
+          optionId: string;
+          value: string;
+        }) => Promise<void>
+      )({ sessionId, optionId, value });
     } else {
       throw new Error("ACP connection does not support session/set_config_option");
     }
@@ -401,8 +393,9 @@ export class ACPClient extends EventEmitter {
     const updated = session.configOptions.map((opt) =>
       opt.id === optionId ? { ...opt, currentValue: value } : opt,
     );
-    const next = this.deriveConfigState({ configOptions: updated });
+    const next = deriveSessionConfigState(updated);
     session.configOptions = updated;
+    session.currentModeId = next.currentModeId ?? session.currentModeId;
     session.modelOptionId = next.modelOptionId;
     session.availableModels = next.availableModels;
     session.currentModel = next.currentModel;
@@ -471,7 +464,7 @@ export class ACPClient extends EventEmitter {
         name: m.name,
         description: m.description ?? undefined,
       })),
-      currentModeId: result.modes?.currentModeId,
+      currentModeId: result.modes?.currentModeId ?? configState.currentModeId,
       configOptions: configState.configOptions,
       modelOptionId: configState.modelOptionId,
       availableModels: configState.availableModels,
@@ -857,6 +850,7 @@ export class ACPClient extends EventEmitter {
     payload: unknown,
   ): {
     configOptions: SessionConfigOption[];
+    currentModeId?: string;
     modelOptionId?: string;
     availableModels?: SessionConfigValueOption[];
     currentModel?: string;
@@ -865,54 +859,23 @@ export class ACPClient extends EventEmitter {
     currentThoughtLevel?: string;
   } {
     const raw = payload as {
-      configOptions?: Array<{
-        id: string;
-        name: string;
-        category?: string;
-        currentValue?: string;
-        options?: Array<{ value: string; name: string }>;
-      }>;
-      config_options?: Array<{
-        id: string;
-        name: string;
-        category?: string;
-        currentValue?: string;
-        options?: Array<{ value: string; name: string }>;
-      }>;
+      configOptions?: unknown;
+      config_options?: unknown;
     };
-
-    const source = raw.configOptions ?? raw.config_options ?? [];
-    const configOptions: SessionConfigOption[] = source
-      .filter((opt) => opt && typeof opt.id === "string")
-      .map((opt) => ({
-        id: opt.id,
-        name: opt.name,
-        category:
-          opt.category === "mode" ||
-          opt.category === "model" ||
-          opt.category === "thought_level"
-            ? opt.category
-            : "_custom",
-        currentValue: opt.currentValue ?? "",
-        options: (opt.options ?? []).map((item) => ({
-          value: item.value,
-          name: item.name,
-        })),
-      }));
-
-    const model = configOptions.find((opt) => opt.category === "model");
-    const thought = configOptions.find(
-      (opt) => opt.category === "thought_level",
+    const configOptions = normalizeSessionConfigOptions(
+      raw.configOptions ?? raw.config_options,
     );
+    const derived = deriveSessionConfigState(configOptions);
 
     return {
       configOptions,
-      modelOptionId: model?.id,
-      availableModels: model?.options,
-      currentModel: model?.currentValue,
-      thoughtLevelOptionId: thought?.id,
-      availableThoughtLevels: thought?.options,
-      currentThoughtLevel: thought?.currentValue,
+      currentModeId: derived.currentModeId,
+      modelOptionId: derived.modelOptionId,
+      availableModels: derived.availableModels,
+      currentModel: derived.currentModel,
+      thoughtLevelOptionId: derived.thoughtLevelOptionId,
+      availableThoughtLevels: derived.availableThoughtLevels,
+      currentThoughtLevel: derived.currentThoughtLevel,
     };
   }
 }

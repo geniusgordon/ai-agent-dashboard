@@ -202,11 +202,6 @@ export const eventConfig: Record<string, EventStyleConfig> = {
     color: "text-muted-foreground",
     borderColor: "border-l-border",
   },
-  "config-update": {
-    icon: RefreshCw,
-    color: "text-muted-foreground",
-    borderColor: "border-l-border",
-  },
   complete: {
     icon: CheckCircle2,
     color: "text-event-complete",

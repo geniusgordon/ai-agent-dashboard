@@ -135,6 +135,94 @@ export interface SessionConfigOption {
   options: SessionConfigValueOption[];
 }
 
+export interface DerivedSessionConfigState {
+  currentModeId?: string;
+  modelOptionId?: string;
+  availableModels?: SessionConfigValueOption[];
+  currentModel?: string;
+  thoughtLevelOptionId?: string;
+  availableThoughtLevels?: SessionConfigValueOption[];
+  currentThoughtLevel?: string;
+}
+
+type RawSessionConfigOption = {
+  id?: unknown;
+  name?: unknown;
+  category?: unknown;
+  currentValue?: unknown;
+  options?: unknown;
+};
+
+function normalizeConfigCategory(v: unknown): SessionConfigOption["category"] {
+  return v === "mode" || v === "model" || v === "thought_level"
+    ? v
+    : "_custom";
+}
+
+/**
+ * Normalize raw ACP config options (wire JSON) into our canonical shape.
+ */
+export function normalizeSessionConfigOptions(
+  options: unknown,
+): SessionConfigOption[] {
+  if (!Array.isArray(options)) return [];
+
+  return options
+    .filter(
+      (item): item is RawSessionConfigOption =>
+        typeof item === "object" && item !== null,
+    )
+    .filter((item) => typeof item.id === "string")
+    .map((item) => ({
+      id: item.id as string,
+      name: typeof item.name === "string" ? item.name : item.id,
+      category: normalizeConfigCategory(item.category),
+      currentValue:
+        typeof item.currentValue === "string" ? item.currentValue : "",
+      options: Array.isArray(item.options)
+        ? item.options
+            .filter(
+              (opt): opt is { value?: unknown; name?: unknown } =>
+                typeof opt === "object" && opt !== null,
+            )
+            .filter((opt) => typeof opt.value === "string")
+            .map((opt) => ({
+              value: opt.value as string,
+              name:
+                typeof opt.name === "string"
+                  ? opt.name
+                  : (opt.value as string),
+            }))
+        : [],
+    }));
+}
+
+/**
+ * Derive convenience fields from configOptions.
+ */
+export function deriveSessionConfigState(
+  configOptions?: SessionConfigOption[],
+): DerivedSessionConfigState {
+  const mode = configOptions?.find((opt) => opt.category === "mode");
+  const model = configOptions?.find((opt) => opt.category === "model");
+  const thought = configOptions?.find(
+    (opt) => opt.category === "thought_level",
+  );
+  const state: DerivedSessionConfigState = {};
+  if (mode) state.currentModeId = mode.currentValue;
+  if (model) {
+    state.modelOptionId = model.id;
+    state.availableModels = model.options;
+    state.currentModel = model.currentValue;
+  }
+  if (thought) {
+    state.thoughtLevelOptionId = thought.id;
+    state.availableThoughtLevels = thought.options;
+    state.currentThoughtLevel = thought.currentValue;
+  }
+  return state;
+}
+
 export interface CreateSessionOptions {
   clientId: string;
   cwd?: string; // Defaults to client's cwd
@@ -336,6 +424,9 @@ export interface IAgentManager {
   createSession(options: CreateSessionOptions): Promise<AgentSession>;
   getSession(sessionId: string): AgentSession | undefined;
   listSessions(clientId?: string): AgentSession[];
+  setMode(sessionId: string, modeId: string): Promise<void>;
+  setModel(sessionId: string, model: string): Promise<void>;
+  setThoughtLevel(sessionId: string, thoughtLevel: string): Promise<void>;
 
   // Cancel
   cancelSession(sessionId: string): Promise<void>;

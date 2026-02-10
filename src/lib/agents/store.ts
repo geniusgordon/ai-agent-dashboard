@@ -96,6 +96,9 @@ interface SessionRow {
   updated_at: string;
 }
 
+// NOTE: Keep session columns in sync with migrations in src/lib/projects/schema.ts
+// since sessions share the same SQLite database file.
+
 // ---------------------------------------------------------------------------
 // Row conversion
 // ---------------------------------------------------------------------------

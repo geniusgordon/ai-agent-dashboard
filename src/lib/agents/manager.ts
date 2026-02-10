@@ -19,8 +19,6 @@ import type {
   AgentClient,
   AgentEvent,
   AgentSession,
-  SessionConfigOption,
-  SessionConfigValueOption,
   AgentType,
   ApprovalHandler,
   ApprovalOption,
@@ -29,9 +27,15 @@ import type {
   CreateSessionOptions,
   EventHandler,
   IAgentManager,
+  SessionConfigOption,
+  SessionConfigValueOption,
   SessionStatus,
   SpawnClientOptions,
   UnsubscribeFn,
+} from "./types.js";
+import {
+  deriveSessionConfigState,
+  normalizeSessionConfigOptions,
 } from "./types.js";
 
 const HOME_DIR = process.env.HOME ?? "";
@@ -125,28 +129,6 @@ interface ManagedApproval {
   createdAt: Date;
   pending: PendingPermission;
   request: acp.RequestPermissionRequest;
-}
-
-function deriveModelAndThoughtConfig(configOptions?: SessionConfigOption[]): {
-  modelOptionId?: string;
-  availableModels?: SessionConfigValueOption[];
-  currentModel?: string;
-  thoughtLevelOptionId?: string;
-  availableThoughtLevels?: SessionConfigValueOption[];
-  currentThoughtLevel?: string;
-} {
-  const model = configOptions?.find((opt) => opt.category === "model");
-  const thought = configOptions?.find(
-    (opt) => opt.category === "thought_level",
-  );
-  return {
-    modelOptionId: model?.id,
-    availableModels: model?.options,
-    currentModel: model?.currentValue,
-    thoughtLevelOptionId: thought?.id,
-    availableThoughtLevels: thought?.options,
-    currentThoughtLevel: thought?.currentValue,
-  };
 }
 
 /**
@@ -347,12 +329,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       availableModes: acpSession.availableModes,
       currentModeId: acpSession.currentModeId,
       configOptions: acpSession.configOptions,
-      modelOptionId: acpSession.modelOptionId,
-      availableModels: acpSession.availableModels,
-      currentModel: acpSession.currentModel,
-      thoughtLevelOptionId: acpSession.thoughtLevelOptionId,
-      availableThoughtLevels: acpSession.availableThoughtLevels,
-      currentThoughtLevel: acpSession.currentThoughtLevel,
+      ...deriveSessionConfigState(acpSession.configOptions),
     };
 
     this.sessions.set(session.id, session);
@@ -391,7 +368,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
         availableModes: stored.availableModes,
         currentModeId: stored.currentModeId,
         configOptions: stored.configOptions,
-        ...deriveModelAndThoughtConfig(stored.configOptions),
+        ...deriveSessionConfigState(stored.configOptions),
         projectId: stored.projectId,
         worktreeId: stored.worktreeId,
         worktreeBranch: stored.worktreeBranch,
@@ -435,7 +412,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           availableModes: s.availableModes,
           currentModeId: s.currentModeId,
           configOptions: s.configOptions,
-          ...deriveModelAndThoughtConfig(s.configOptions),
+          ...deriveSessionConfigState(s.configOptions),
           projectId: s.projectId,
           worktreeId: s.worktreeId,
           worktreeBranch: s.worktreeBranch,
@@ -541,12 +518,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           availableModes: newSession.availableModes,
           currentModeId: newSession.currentModeId,
           configOptions: newSession.configOptions,
-          modelOptionId: newSession.modelOptionId,
-          availableModels: newSession.availableModels,
-          currentModel: newSession.currentModel,
-          thoughtLevelOptionId: newSession.thoughtLevelOptionId,
-          availableThoughtLevels: newSession.availableThoughtLevels,
-          currentThoughtLevel: newSession.currentThoughtLevel,
+          ...deriveSessionConfigState(newSession.configOptions),
           projectId: stored.projectId,
           worktreeId: stored.worktreeId,
           worktreeBranch: stored.worktreeBranch,
@@ -584,12 +556,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       availableModes: acpSession?.availableModes,
       currentModeId: acpSession?.currentModeId,
       configOptions: acpSession?.configOptions,
-      modelOptionId: acpSession?.modelOptionId,
-      availableModels: acpSession?.availableModels,
-      currentModel: acpSession?.currentModel,
-      thoughtLevelOptionId: acpSession?.thoughtLevelOptionId,
-      availableThoughtLevels: acpSession?.availableThoughtLevels,
-      currentThoughtLevel: acpSession?.currentThoughtLevel,
+      ...deriveSessionConfigState(acpSession?.configOptions),
       projectId: stored.projectId,
       worktreeId: stored.worktreeId,
       worktreeBranch: stored.worktreeBranch,
@@ -988,10 +955,10 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     // Update local session state
     session.currentModeId = modeId;
     if (session.configOptions) {
-      session.configOptions = session.configOptions.map((opt) =>
+      const nextConfig = session.configOptions.map((opt) =>
         opt.category === "mode" ? { ...opt, currentValue: modeId } : opt,
       );
-      store.updateSessionConfigOptions(sessionId, session.configOptions);
+      this.applyConfigOptions(session, nextConfig, true);
     }
     session.updatedAt = new Date();
 
@@ -1037,19 +1004,29 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     await managed.acpClient.setConfigOption(sessionId, optionId, value);
 
     if (!session.configOptions) return;
-    session.configOptions = session.configOptions.map((opt) =>
+    const nextConfig = session.configOptions.map((opt) =>
       opt.id === optionId ? { ...opt, currentValue: value } : opt,
     );
-    const derived = deriveModelAndThoughtConfig(session.configOptions);
-    session.modelOptionId = derived.modelOptionId;
-    session.availableModels = derived.availableModels;
-    session.currentModel = derived.currentModel;
-    session.thoughtLevelOptionId = derived.thoughtLevelOptionId;
-    session.availableThoughtLevels = derived.availableThoughtLevels;
-    session.currentThoughtLevel = derived.currentThoughtLevel;
+    this.applyConfigOptions(session, nextConfig, true);
     session.updatedAt = new Date();
+  }
 
-    store.updateSessionConfigOptions(sessionId, session.configOptions);
+  private applyConfigOptions(
+    session: ManagedSession,
+    configOptions: SessionConfigOption[],
+    persist: boolean,
+  ): void {
+    session.configOptions = configOptions;
+    session.modelOptionId = undefined;
+    session.availableModels = undefined;
+    session.currentModel = undefined;
+    session.thoughtLevelOptionId = undefined;
+    session.availableThoughtLevels = undefined;
+    session.currentThoughtLevel = undefined;
+    Object.assign(session, deriveSessionConfigState(configOptions));
+    if (persist) {
+      store.updateSessionConfigOptions(session.id, configOptions);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1335,44 +1312,20 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     const sessionUpdate = (update as { sessionUpdate?: string }).sessionUpdate;
 
     if (sessionUpdate === "config_options_update") {
-      const configOptions = (
-        (
-          update as {
-            configOptions?: SessionConfigOption[];
-            config_options?: SessionConfigOption[];
-          }
-        ).configOptions ??
-        (
-          update as {
-            configOptions?: SessionConfigOption[];
-            config_options?: SessionConfigOption[];
-          }
-        ).config_options ??
-        []
-      ).map((opt) => ({
-        ...opt,
-        options: (opt.options ?? []).map((item) => ({
-          value: item.value,
-          name: item.name,
-        })),
-      }));
+      const raw = update as {
+        configOptions?: unknown;
+        config_options?: unknown;
+      };
+      const configOptions = normalizeSessionConfigOptions(
+        raw.configOptions ?? raw.config_options,
+      );
 
       const session = this.sessions.get(sessionId);
       if (session) {
-        session.configOptions = configOptions;
+        this.applyConfigOptions(session, configOptions, true);
         const modeOption = configOptions.find((opt) => opt.category === "mode");
-        if (modeOption?.currentValue) {
-          session.currentModeId = modeOption.currentValue;
-        }
-        const derived = deriveModelAndThoughtConfig(configOptions);
-        session.modelOptionId = derived.modelOptionId;
-        session.availableModels = derived.availableModels;
-        session.currentModel = derived.currentModel;
-        session.thoughtLevelOptionId = derived.thoughtLevelOptionId;
-        session.availableThoughtLevels = derived.availableThoughtLevels;
-        session.currentThoughtLevel = derived.currentThoughtLevel;
+        if (modeOption?.currentValue) session.currentModeId = modeOption.currentValue;
         session.updatedAt = new Date();
-        store.updateSessionConfigOptions(sessionId, configOptions);
       }
 
       return {
@@ -1407,12 +1360,12 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           if (session && modeId) {
             session.currentModeId = modeId;
             if (session.configOptions) {
-              session.configOptions = session.configOptions.map((opt) =>
+              const nextConfig = session.configOptions.map((opt) =>
                 opt.category === "mode"
                   ? { ...opt, currentValue: modeId }
                   : opt,
               );
-              store.updateSessionConfigOptions(sessionId, session.configOptions);
+              this.applyConfigOptions(session, nextConfig, true);
             }
             session.updatedAt = new Date();
             store.updateSessionMode(sessionId, modeId);

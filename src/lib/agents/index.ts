@@ -29,8 +29,11 @@ export type {
   EventHandler,
   // Manager interface
   IAgentManager,
+  DerivedSessionConfigState,
   MessagePayload,
   PlanPayload,
+  SessionConfigOption,
+  SessionConfigValueOption,
   SessionStatus,
   // Options
   SpawnClientOptions,
@@ -38,4 +41,8 @@ export type {
   ToolCallPayload,
   ToolUpdatePayload,
   UnsubscribeFn,
+} from "./types.js";
+export {
+  deriveSessionConfigState,
+  normalizeSessionConfigOptions,
 } from "./types.js";

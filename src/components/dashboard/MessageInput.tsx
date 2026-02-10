@@ -92,6 +92,51 @@ const ACCEPTED_IMAGE_TYPES = [
 ];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+interface ConfigSelectProps {
+  value?: string;
+  onValueChange: (value: string) => void;
+  disabled?: boolean;
+  isLoading?: boolean;
+  placeholder: string;
+  options: SessionConfigValueOption[];
+  triggerClassName: string;
+}
+
+function ConfigSelect({
+  value,
+  onValueChange,
+  disabled,
+  isLoading,
+  placeholder,
+  options,
+  triggerClassName,
+}: ConfigSelectProps) {
+  return (
+    <Select
+      value={value}
+      onValueChange={(next) => {
+        if (next) onValueChange(next);
+      }}
+      disabled={disabled}
+    >
+      <SelectTrigger size="sm" className={triggerClassName}>
+        {isLoading ? (
+          <Loader2 className="size-3 animate-spin" />
+        ) : (
+          <SelectValue placeholder={placeholder} />
+        )}
+      </SelectTrigger>
+      <SelectContent position="popper" side="top" align="start">
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 export function MessageInput({
   sessionId,
   onSend,
@@ -410,85 +455,40 @@ export function MessageInput({
               <TooltipContent side="top">{imagePickerTitle}</TooltipContent>
             </Tooltip>
             {showModeSelector && (
-              <Select
+              <ConfigSelect
                 value={currentModeId}
-                onValueChange={(value) => {
-                  if (value) onSetMode(value);
-                }}
+                onValueChange={onSetMode}
                 disabled={isSettingMode}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                >
-                  {isSettingMode ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <SelectValue placeholder="Mode" />
-                  )}
-                </SelectTrigger>
-                <SelectContent position="popper" side="top" align="start">
-                  {availableModes.map((mode) => (
-                    <SelectItem key={mode.id} value={mode.id}>
-                      {mode.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                isLoading={isSettingMode}
+                placeholder="Mode"
+                options={availableModes!.map((mode) => ({
+                  value: mode.id,
+                  name: mode.name,
+                }))}
+                triggerClassName="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+              />
             )}
             {showModelSelector && (
-              <Select
+              <ConfigSelect
                 value={currentModel}
-                onValueChange={(value) => {
-                  if (value) onSetModel(value);
-                }}
+                onValueChange={onSetModel}
                 disabled={isSettingModel}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="h-7 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                >
-                  {isSettingModel ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <SelectValue placeholder="Model" />
-                  )}
-                </SelectTrigger>
-                <SelectContent position="popper" side="top" align="start">
-                  {availableModels!.map((model) => (
-                    <SelectItem key={model.value} value={model.value}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                isLoading={isSettingModel}
+                placeholder="Model"
+                options={availableModels!}
+                triggerClassName="h-7 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+              />
             )}
             {showThoughtLevelSelector && (
-              <Select
+              <ConfigSelect
                 value={currentThoughtLevel}
-                onValueChange={(value) => {
-                  if (value) onSetThoughtLevel(value);
-                }}
+                onValueChange={onSetThoughtLevel}
                 disabled={isSettingThoughtLevel}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                >
-                  {isSettingThoughtLevel ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <SelectValue placeholder="Think" />
-                  )}
-                </SelectTrigger>
-                <SelectContent position="popper" side="top" align="start">
-                  {availableThoughtLevels!.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>
-                      {level.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                isLoading={isSettingThoughtLevel}
+                placeholder="Think"
+                options={availableThoughtLevels!}
+                triggerClassName="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+              />
             )}
           </div>
 
@@ -540,91 +540,46 @@ export function MessageInput({
             {/* Mode selector — hidden on mobile, shown inline on sm+ */}
             {showModeSelector && (
               <div className="hidden sm:block self-center">
-                <Select
+                <ConfigSelect
                   value={currentModeId}
-                  onValueChange={(value) => {
-                    if (value) onSetMode(value);
-                  }}
+                  onValueChange={onSetMode}
                   disabled={isSettingMode}
-                >
-                  <SelectTrigger
-                    size="sm"
-                    className="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                  >
-                    {isSettingMode ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <SelectValue placeholder="Mode" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent position="popper" side="top" align="start">
-                    {availableModes.map((mode) => (
-                      <SelectItem key={mode.id} value={mode.id}>
-                        {mode.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  isLoading={isSettingMode}
+                  placeholder="Mode"
+                  options={availableModes!.map((mode) => ({
+                    value: mode.id,
+                    name: mode.name,
+                  }))}
+                  triggerClassName="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                />
               </div>
             )}
 
             {showModelSelector && (
               <div className="hidden sm:block self-center">
-                <Select
+                <ConfigSelect
                   value={currentModel}
-                  onValueChange={(value) => {
-                    if (value) onSetModel(value);
-                  }}
+                  onValueChange={onSetModel}
                   disabled={isSettingModel}
-                >
-                  <SelectTrigger
-                    size="sm"
-                    className="h-8 w-auto min-w-[6rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                  >
-                    {isSettingModel ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <SelectValue placeholder="Model" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent position="popper" side="top" align="start">
-                    {availableModels!.map((model) => (
-                      <SelectItem key={model.value} value={model.value}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  isLoading={isSettingModel}
+                  placeholder="Model"
+                  options={availableModels!}
+                  triggerClassName="h-8 w-auto min-w-[6rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                />
               </div>
             )}
 
             {showThoughtLevelSelector && (
               <div className="hidden sm:block self-center">
-                <Select
+                <ConfigSelect
                   value={currentThoughtLevel}
-                  onValueChange={(value) => {
-                    if (value) onSetThoughtLevel(value);
-                  }}
+                  onValueChange={onSetThoughtLevel}
                   disabled={isSettingThoughtLevel}
-                >
-                  <SelectTrigger
-                    size="sm"
-                    className="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                  >
-                    {isSettingThoughtLevel ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <SelectValue placeholder="Think" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent position="popper" side="top" align="start">
-                    {availableThoughtLevels!.map((level) => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  isLoading={isSettingThoughtLevel}
+                  placeholder="Think"
+                  options={availableThoughtLevels!}
+                  triggerClassName="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                />
               </div>
             )}
 
