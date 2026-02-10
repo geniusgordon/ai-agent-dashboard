@@ -1,11 +1,17 @@
 /**
  * SQLite Schema & Migrations
  *
- * Hand-rolled versioned migrations for project management tables.
+ * Unified versioned migrations for all tables (projects, worktrees, sessions).
  * DB file lives at `.agent-store/projects.db`.
+ *
+ * Rules:
+ *  - Each version number must be unique across the entire sequence.
+ *  - Append new migrations at the end with the next version number.
+ *  - Never modify an already-released migration.
  */
 
 export const MIGRATIONS: Array<{ version: number; sql: string }> = [
+  // ── Projects & Worktrees ───────────────────────────────────────────
   {
     version: 1,
     sql: `
@@ -50,6 +56,31 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_assignments_project ON agent_worktree_assignments(project_id);
     `,
   },
+
+  // ── Agent Sessions ─────────────────────────────────────────────────
+  {
+    version: 2,
+    sql: `
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL,
+        agent_type TEXT NOT NULL,
+        cwd TEXT,
+        name TEXT,
+        status TEXT NOT NULL DEFAULT 'idle',
+        available_modes TEXT,
+        current_mode_id TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_sessions_client ON sessions(client_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+      CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions(created_at);
+    `,
+  },
+
+  // ── Code Reviews (original) ────────────────────────────────────────
   {
     version: 3,
     sql: `
@@ -81,10 +112,11 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_review_branches_worktree ON code_review_branches(worktree_id);
     `,
   },
+
+  // ── Flatten code reviews (one row per branch) ──────────────────────
   {
     version: 4,
     sql: `
-      -- Flatten: each code review is one branch, batch_id groups reviews created together
       CREATE TABLE IF NOT EXISTS code_reviews_v2 (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -101,7 +133,6 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
-      -- Migrate existing data
       INSERT INTO code_reviews_v2 (id, project_id, batch_id, branch_name, base_branch, agent_type, session_id, client_id, worktree_id, status, error, created_at, updated_at)
         SELECT
           b.id,
@@ -130,14 +161,37 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_code_reviews_worktree ON code_reviews(worktree_id);
     `,
   },
+
+  // ── Drop code reviews ──────────────────────────────────────────────
   {
     version: 5,
     sql: `
       DROP TABLE IF EXISTS code_reviews;
     `,
   },
+
+  // ── Add project/worktree columns to sessions + backfill ────────────
   {
     version: 6,
+    sql: `
+      ALTER TABLE sessions ADD COLUMN project_id TEXT;
+      ALTER TABLE sessions ADD COLUMN worktree_id TEXT;
+      ALTER TABLE sessions ADD COLUMN worktree_branch TEXT;
+
+      CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_worktree ON sessions(worktree_id);
+
+      -- Backfill from existing assignments
+      UPDATE sessions SET
+        project_id = (SELECT project_id FROM agent_worktree_assignments WHERE session_id = sessions.id),
+        worktree_id = (SELECT worktree_id FROM agent_worktree_assignments WHERE session_id = sessions.id),
+        worktree_branch = (SELECT w.branch FROM agent_worktree_assignments a JOIN worktrees w ON a.worktree_id = w.id WHERE a.session_id = sessions.id);
+    `,
+  },
+
+  // ── Add base_branch to worktrees ───────────────────────────────────
+  {
+    version: 7,
     sql: `
       ALTER TABLE worktrees ADD COLUMN base_branch TEXT;
     `,

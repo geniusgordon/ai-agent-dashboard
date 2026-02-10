@@ -8,15 +8,10 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import Database from "better-sqlite3";
-import { MIGRATIONS as AGENT_MIGRATIONS } from "../agents/schema.js";
-import { MIGRATIONS as PROJECT_MIGRATIONS } from "./schema.js";
+import { MIGRATIONS } from "./schema.js";
 
 const STORE_DIR = resolve(process.cwd(), ".agent-store");
 const DB_PATH = resolve(STORE_DIR, "projects.db");
-
-const ALL_MIGRATIONS = [...PROJECT_MIGRATIONS, ...AGENT_MIGRATIONS].sort(
-  (a, b) => a.version - b.version,
-);
 
 let db: Database.Database | null = null;
 
@@ -51,7 +46,7 @@ function runMigrations(database: Database.Database): void {
         .get() as { v: number | null }
     )?.v ?? 0;
 
-  for (const migration of ALL_MIGRATIONS) {
+  for (const migration of MIGRATIONS) {
     if (migration.version > currentVersion) {
       console.log(`[db] Running migration v${migration.version}...`);
       database.transaction(() => {
