@@ -15,6 +15,7 @@ import { useTRPC } from "@/integrations/trpc/react";
 
 export interface GitInfoPanelProps {
   cwd: string;
+  worktreeId?: string;
 }
 
 function CollapsibleSection({
@@ -71,10 +72,10 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDay}d ago`;
 }
 
-export function GitInfoPanel({ cwd }: GitInfoPanelProps) {
+export function GitInfoPanel({ cwd, worktreeId }: GitInfoPanelProps) {
   const trpc = useTRPC();
   const { data, isLoading } = useQuery({
-    ...trpc.sessions.getGitInfo.queryOptions({ cwd }),
+    ...trpc.sessions.getGitInfo.queryOptions({ cwd, worktreeId }),
     staleTime: 15_000,
     refetchInterval: 30_000,
   });

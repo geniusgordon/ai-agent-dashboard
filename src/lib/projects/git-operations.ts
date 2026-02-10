@@ -207,6 +207,9 @@ export async function createWorktree(
   options: { createNewBranch: boolean; baseBranch?: string },
 ): Promise<void> {
   validateBranchName(branchName);
+  if (options.baseBranch) {
+    validateBranchName(options.baseBranch);
+  }
 
   const args = ["worktree", "add"];
 
@@ -376,26 +379,30 @@ export async function getFilesChanged(
   baseBranch: string,
   compareBranch: string,
 ): Promise<ChangedFile[]> {
-  validateBranchName(baseBranch);
-  validateBranchName(compareBranch);
+  try {
+    validateBranchName(baseBranch);
+    validateBranchName(compareBranch);
 
-  const stdout = await getGit(repoPath).diff([
-    "--numstat",
-    `${baseBranch}...${compareBranch}`,
-  ]);
+    const stdout = await getGit(repoPath).diff([
+      "--numstat",
+      `${baseBranch}...${compareBranch}`,
+    ]);
 
-  return stdout
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const [add, del, path] = line.split("\t");
-      return {
-        path,
-        additions: add === "-" ? 0 : Number.parseInt(add, 10),
-        deletions: del === "-" ? 0 : Number.parseInt(del, 10),
-      };
-    });
+    return stdout
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [add, del, path] = line.split("\t");
+        return {
+          path,
+          additions: add === "-" ? 0 : Number.parseInt(add, 10),
+          deletions: del === "-" ? 0 : Number.parseInt(del, 10),
+        };
+      });
+  } catch {
+    return [];
+  }
 }
 
 export interface MergeResult {

@@ -309,6 +309,7 @@ export function SessionDetailView({
             session={session}
             connected={connected}
             branch={branch}
+            worktreeId={session.worktreeId}
             projectName={projectQuery.data?.name}
             approval={{
               pendingApproval,
@@ -345,6 +346,7 @@ export function SessionDetailView({
             session={session}
             connected={connected}
             branch={branch}
+            worktreeId={session.worktreeId}
             projectName={projectQuery.data?.name}
             approval={{
               pendingApproval,

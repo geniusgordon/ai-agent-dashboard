@@ -50,6 +50,7 @@ interface WorktreeRow {
   name: string;
   path: string;
   branch: string;
+  base_branch: string | null;
   is_main_worktree: number;
   created_at: string;
   updated_at: string;
@@ -84,6 +85,7 @@ function rowToWorktree(row: WorktreeRow): Worktree {
     name: row.name,
     path: row.path,
     branch: row.branch,
+    baseBranch: row.base_branch ?? undefined,
     isMainWorktree: row.is_main_worktree === 1,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
@@ -239,14 +241,15 @@ export class ProjectManager {
     const now = new Date().toISOString();
 
     db.prepare(
-      `INSERT INTO worktrees (id, project_id, name, path, branch, is_main_worktree, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+      `INSERT INTO worktrees (id, project_id, name, path, branch, base_branch, is_main_worktree, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     ).run(
       id,
       opts.projectId,
       worktreeName,
       worktreePath,
       opts.branchName,
+      opts.baseBranch ?? null,
       now,
       now,
     );
@@ -347,7 +350,9 @@ export class ProjectManager {
     const fsPathSet = new Set(fsWorktrees.map((w) => w.path));
     const now = new Date().toISOString();
 
-    // Insert worktrees found on filesystem but not in DB
+    // Insert worktrees found on filesystem but not in DB.
+    // base_branch is omitted (defaults to NULL) because git doesn't record
+    // which branch a worktree was originally created from.
     for (const fsWt of fsWorktrees) {
       if (!dbPathSet.has(fsWt.path)) {
         const id = randomUUID();

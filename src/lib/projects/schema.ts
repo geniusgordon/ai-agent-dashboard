@@ -136,4 +136,10 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       DROP TABLE IF EXISTS code_reviews;
     `,
   },
+  {
+    version: 6,
+    sql: `
+      ALTER TABLE worktrees ADD COLUMN base_branch TEXT;
+    `,
+  },
 ];

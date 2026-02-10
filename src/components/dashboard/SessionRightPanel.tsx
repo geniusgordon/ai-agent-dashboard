@@ -61,6 +61,7 @@ export interface SessionRightPanelProps {
   session: AgentSession;
   connected: boolean;
   branch?: string;
+  worktreeId?: string;
   projectName?: string;
   approval: SessionApprovalState;
   actions: SessionActions;
@@ -78,6 +79,7 @@ export function SessionRightPanel({
   session,
   connected,
   branch,
+  worktreeId,
   projectName,
   approval,
   actions,
@@ -181,7 +183,7 @@ export function SessionRightPanel({
             )}
 
             <PanelSection icon={GitMerge} label="Git" defaultOpen>
-              <GitInfoPanel cwd={session.cwd} />
+              <GitInfoPanel cwd={session.cwd} worktreeId={worktreeId} />
             </PanelSection>
 
             <PanelSection icon={Info} label="Session Info">

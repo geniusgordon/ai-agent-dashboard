@@ -37,6 +37,7 @@ export interface Worktree {
   name: string;
   path: string;
   branch: string;
+  baseBranch?: string;
   isMainWorktree: boolean;
   createdAt: Date;
   updatedAt: Date;

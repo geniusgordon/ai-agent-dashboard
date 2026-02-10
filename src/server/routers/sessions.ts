@@ -363,6 +363,7 @@ export const sessionsRouter = createTRPCRouter({
     .input(
       z.object({
         cwd: z.string(),
+        worktreeId: z.string().optional(),
         commitLimit: z.number().min(1).max(20).optional(),
       }),
     )
@@ -378,6 +379,7 @@ export const sessionsRouter = createTRPCRouter({
           isGitRepo: false as const,
           branch: null,
           defaultBranch: null,
+          baseBranch: null,
           recentCommits: [],
           branchCommits: [],
           filesChanged: [],
@@ -388,17 +390,32 @@ export const sessionsRouter = createTRPCRouter({
 
       const branch = await getCurrentBranch(cwd);
       const defaultBranch = await getDefaultBranch(cwd);
-      const isFeatureBranch = branch !== null && branch !== defaultBranch;
+
+      // Use the stored base branch from the worktree if available,
+      // otherwise fall back to the repo's default branch.
+      let baseBranch = defaultBranch;
+      if (input.worktreeId) {
+        const worktree = getProjectManager().getWorktree(input.worktreeId);
+        if (!worktree) {
+          console.warn(
+            `[getGitInfo] worktreeId "${input.worktreeId}" not found`,
+          );
+        } else if (worktree.baseBranch) {
+          baseBranch = worktree.baseBranch;
+        }
+      }
+
+      const isFeatureBranch = branch !== null && branch !== baseBranch;
       const limit = input.commitLimit ?? 10;
 
       const [recentCommits, branchCommits, filesChanged, hasUncommitted] =
         await Promise.all([
           getRecentCommits(cwd, limit),
           isFeatureBranch
-            ? getCommitsSinceBranch(cwd, defaultBranch, limit)
+            ? getCommitsSinceBranch(cwd, baseBranch, limit)
             : Promise.resolve([]),
           isFeatureBranch
-            ? getFilesChanged(cwd, defaultBranch, branch)
+            ? getFilesChanged(cwd, baseBranch, branch)
             : Promise.resolve([]),
           hasUncommittedChanges(cwd),
         ]);
@@ -407,6 +424,7 @@ export const sessionsRouter = createTRPCRouter({
         isGitRepo: true as const,
         branch,
         defaultBranch,
+        baseBranch,
         recentCommits,
         branchCommits,
         filesChanged,

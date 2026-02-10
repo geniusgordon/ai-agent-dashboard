@@ -37,6 +37,7 @@ export interface SessionMobileDrawerProps {
   session: AgentSession;
   connected: boolean;
   branch?: string;
+  worktreeId?: string;
   projectName?: string;
   approval: {
     pendingApproval: ApprovalRequest | null;
@@ -74,6 +75,7 @@ export function SessionMobileDrawer({
   session,
   connected,
   branch,
+  worktreeId,
   projectName,
   approval,
   actions,
@@ -158,7 +160,7 @@ export function SessionMobileDrawer({
           )}
 
           <PanelSection icon={GitMerge} label="Git" defaultOpen>
-            <GitInfoPanel cwd={session.cwd} />
+            <GitInfoPanel cwd={session.cwd} worktreeId={worktreeId} />
           </PanelSection>
 
           <PanelSection icon={Info} label="Session Info">

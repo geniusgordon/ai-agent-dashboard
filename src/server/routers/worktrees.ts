@@ -102,10 +102,11 @@ export const worktreesRouter = createTRPCRouter({
       const project = manager.getProject(worktree.projectId);
       if (!project) throw new Error(`Project not found: ${worktree.projectId}`);
 
-      const defaultBranch = await getDefaultBranch(project.repoPath);
+      const baseBranch =
+        worktree.baseBranch ?? (await getDefaultBranch(project.repoPath));
       return getCommitsSinceBranch(
         worktree.path,
-        defaultBranch,
+        baseBranch,
         input.limit ?? 50,
       );
     }),
