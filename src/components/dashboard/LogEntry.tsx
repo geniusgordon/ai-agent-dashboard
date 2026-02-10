@@ -248,7 +248,7 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
   `;
 
   const timestamp = (
-    <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+    <div className="shrink-0 hidden sm:flex items-start gap-1 w-[5.5rem] pt-0.5">
       <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
         {formatTime(event.timestamp)}
       </span>
