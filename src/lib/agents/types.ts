@@ -175,7 +175,7 @@ export function normalizeSessionConfigOptions(
     .filter((item) => typeof item.id === "string")
     .map((item) => ({
       id: item.id as string,
-      name: typeof item.name === "string" ? item.name : item.id,
+      name: typeof item.name === "string" ? item.name : (item.id as string),
       category: normalizeConfigCategory(item.category),
       currentValue:
         typeof item.currentValue === "string" ? item.currentValue : "",
