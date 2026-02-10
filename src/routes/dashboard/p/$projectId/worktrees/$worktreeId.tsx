@@ -30,6 +30,7 @@ import {
   WorktreeDeleteDialog,
 } from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
+import { useSessionDelete } from "@/hooks/useSessionDelete";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentSession } from "@/lib/agents/types";
 
@@ -65,9 +66,6 @@ function WorktreeDetailPage() {
   const navigate = useNavigate();
   const [showSpawnDialog, setShowSpawnDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<AgentSession | null>(
-    null,
-  );
 
   // ---- Queries ----
 
@@ -130,19 +128,11 @@ function WorktreeDetailPage() {
     }),
   );
 
-  const deleteSessionMutation = useMutation(
-    trpc.sessions.deleteSession.mutationOptions({
-      onSuccess: () => {
-        setSessionToDelete(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listSessions.queryKey({ projectId }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.getAssignments.queryKey({ worktreeId }),
-        });
-      },
-    }),
-  );
+  const sessionDelete = useSessionDelete({
+    additionalInvalidations: [
+      { queryKey: trpc.worktrees.getAssignments.queryKey({ worktreeId }) },
+    ],
+  });
 
   const handleConfirmDelete = (deleteBranch: boolean) => {
     deleteWorktreeMutation.mutate({ id: worktreeId, deleteBranch });
@@ -273,10 +263,8 @@ function WorktreeDetailPage() {
           hasMultipleAgents={assignments.length > 1}
           projectId={projectId}
           onSpawn={() => setShowSpawnDialog(true)}
-          onDeleteSession={setSessionToDelete}
-          deletingSessionId={
-            deleteSessionMutation.isPending ? sessionToDelete?.id : undefined
-          }
+          onDeleteSession={sessionDelete.setSessionToDelete}
+          deletingSessionId={sessionDelete.deletingSessionId}
         />
 
         {/* Branch Commits (since checkout) */}
@@ -319,19 +307,13 @@ function WorktreeDetailPage() {
 
         {/* Delete Session Dialog */}
         <SessionDeleteDialog
-          session={sessionToDelete}
-          open={sessionToDelete !== null}
+          session={sessionDelete.sessionToDelete}
+          open={sessionDelete.sessionToDelete !== null}
           onOpenChange={(open) => {
-            if (!open) setSessionToDelete(null);
+            if (!open) sessionDelete.setSessionToDelete(null);
           }}
-          onConfirm={() => {
-            if (sessionToDelete) {
-              deleteSessionMutation.mutate({
-                sessionId: sessionToDelete.id,
-              });
-            }
-          }}
-          isDeleting={deleteSessionMutation.isPending}
+          onConfirm={sessionDelete.confirmDelete}
+          isDeleting={sessionDelete.isDeleting}
         />
       </div>
     </PageContainer>

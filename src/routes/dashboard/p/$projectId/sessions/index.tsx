@@ -5,7 +5,7 @@
  * Includes status filter, search, and collapsible worktree sections.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ChevronDown,
@@ -21,6 +21,7 @@ import {
   SessionDeleteDialog,
 } from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
+import { useSessionDelete } from "@/hooks/useSessionDelete";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentSession } from "@/lib/agents/types";
 import type { AgentWorktreeAssignment, Worktree } from "@/lib/projects/types";
@@ -40,20 +41,8 @@ function ProjectSessionsPage() {
   const [collapsedWorktrees, setCollapsedWorktrees] = useState<Set<string>>(
     new Set(["__unassigned"]),
   );
-  const [sessionToDelete, setSessionToDelete] = useState<AgentSession | null>(
-    null,
-  );
 
-  const deleteSessionMutation = useMutation(
-    trpc.sessions.deleteSession.mutationOptions({
-      onSuccess: () => {
-        setSessionToDelete(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listSessions.queryKey({ projectId }),
-        });
-      },
-    }),
-  );
+  const sessionDelete = useSessionDelete();
 
   // Queries
   const sessionsQuery = useQuery(
@@ -220,12 +209,8 @@ function ProjectSessionsPage() {
                 projectId={projectId}
                 isCollapsed={collapsedWorktrees.has(group.id)}
                 onToggle={() => toggleWorktree(group.id)}
-                onDeleteSession={setSessionToDelete}
-                deletingSessionId={
-                  deleteSessionMutation.isPending
-                    ? sessionToDelete?.id
-                    : undefined
-                }
+                onDeleteSession={sessionDelete.setSessionToDelete}
+                deletingSessionId={sessionDelete.deletingSessionId}
               />
             ))}
           </div>
@@ -233,19 +218,13 @@ function ProjectSessionsPage() {
       </div>
 
       <SessionDeleteDialog
-        session={sessionToDelete}
-        open={sessionToDelete !== null}
+        session={sessionDelete.sessionToDelete}
+        open={sessionDelete.sessionToDelete !== null}
         onOpenChange={(open) => {
-          if (!open) setSessionToDelete(null);
+          if (!open) sessionDelete.setSessionToDelete(null);
         }}
-        onConfirm={() => {
-          if (sessionToDelete) {
-            deleteSessionMutation.mutate({
-              sessionId: sessionToDelete.id,
-            });
-          }
-        }}
-        isDeleting={deleteSessionMutation.isPending}
+        onConfirm={sessionDelete.confirmDelete}
+        isDeleting={sessionDelete.isDeleting}
       />
     </PageContainer>
   );

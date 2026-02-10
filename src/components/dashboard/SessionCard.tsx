@@ -40,11 +40,6 @@ export function SessionCard({
   const timeAgo = getTimeAgo(session.createdAt);
   const isInactive = session.isActive === false;
 
-  const stopNav = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
   return (
     <Link
       to={
@@ -89,7 +84,8 @@ export function SessionCard({
           <button
             type="button"
             onClick={(e) => {
-              stopNav(e);
+              e.preventDefault();
+              e.stopPropagation();
               onDelete();
             }}
             disabled={isDeleting}
