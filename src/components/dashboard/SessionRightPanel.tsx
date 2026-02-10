@@ -49,12 +49,6 @@ export interface SessionActions {
   isReconnecting: boolean;
 }
 
-export interface LogControls {
-  autoScroll: boolean;
-  onToggleAutoScroll: () => void;
-  onClearLogs: () => void;
-}
-
 export interface TaskState {
   latestPlan: PlanPayload | null;
   planFilePath: string | null;
