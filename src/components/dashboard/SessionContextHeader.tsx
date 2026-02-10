@@ -166,7 +166,7 @@ export function SessionContextHeader({
 
         {/* ── Desktop: toggle right panel ── */}
         {onTogglePanel && (
-          <div className="hidden md:flex items-center">
+          <div className="hidden lg:flex items-center">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon-xs" onClick={onTogglePanel}>
@@ -186,7 +186,7 @@ export function SessionContextHeader({
 
         {/* ── Mobile: direct button to open session details drawer ── */}
         {onOpenMobileDrawer && (
-          <div className="flex md:hidden">
+          <div className="flex lg:hidden">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

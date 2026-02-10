@@ -9,14 +9,11 @@ import {
   Trash2,
 } from "lucide-react";
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
-import { ApprovalBanner } from "@/components/dashboard/ApprovalBanner";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
-import { PlanDocumentViewer } from "@/components/dashboard/PlanDocumentViewer";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
-import { TaskPanel } from "@/components/dashboard/TaskPanel";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -25,11 +22,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import type {
-  AgentSession,
-  ApprovalRequest,
-  PlanPayload,
-} from "@/lib/agents/types";
+import type { AgentSession } from "@/lib/agents/types";
 
 export interface SessionMobileDrawerProps {
   open: boolean;
@@ -39,13 +32,6 @@ export interface SessionMobileDrawerProps {
   branch?: string;
   worktreeId?: string;
   projectName?: string;
-  approval: {
-    pendingApproval: ApprovalRequest | null;
-    onApprove: (approvalId: string, optionId: string) => void;
-    onDeny: (approvalId: string) => void;
-    isApproving: boolean;
-    isDenying: boolean;
-  };
   actions: {
     onKillSession: () => void;
     isKilling: boolean;
@@ -55,12 +41,6 @@ export interface SessionMobileDrawerProps {
     isDeleting: boolean;
     onReconnect: () => void;
     isReconnecting: boolean;
-  };
-  tasks: {
-    latestPlan: PlanPayload | null;
-    planFilePath: string | null;
-    taskPanelCollapsed: boolean;
-    onToggleTaskPanel: () => void;
   };
   onStartReview?: () => void;
 }
@@ -77,9 +57,7 @@ export function SessionMobileDrawer({
   branch,
   worktreeId,
   projectName,
-  approval,
   actions,
-  tasks,
   onStartReview,
 }: SessionMobileDrawerProps) {
   const isTerminal =
@@ -128,16 +106,6 @@ export function SessionMobileDrawer({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-4 space-y-3">
           {/* Urgent banners */}
-          {approval.pendingApproval && (
-            <ApprovalBanner
-              approval={approval.pendingApproval}
-              onApprove={approval.onApprove}
-              onDeny={approval.onDeny}
-              isApproving={approval.isApproving}
-              isDenying={approval.isDenying}
-            />
-          )}
-
           {session.isActive === false && (
             <ReconnectBanner
               onReconnect={actions.onReconnect}
@@ -146,19 +114,6 @@ export function SessionMobileDrawer({
           )}
 
           {/* Collapsible sections */}
-          {tasks.latestPlan && (
-            <TaskPanel
-              entries={tasks.latestPlan.entries}
-              isCollapsed={tasks.taskPanelCollapsed}
-              onToggleCollapse={tasks.onToggleTaskPanel}
-              planFilePath={tasks.planFilePath}
-            />
-          )}
-
-          {!tasks.latestPlan && tasks.planFilePath && (
-            <PlanDocumentViewer filePath={tasks.planFilePath} />
-          )}
-
           <PanelSection icon={GitMerge} label="Git" defaultOpen>
             <GitInfoPanel cwd={session.cwd} worktreeId={worktreeId} />
           </PanelSection>
