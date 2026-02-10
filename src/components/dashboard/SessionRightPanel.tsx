@@ -122,12 +122,10 @@ export function SessionRightPanel({
           {/* Urgent banners */}
           {session.isActive === false && (
             <div className="px-4 pt-3 space-y-3">
-              {session.isActive === false && (
-                <ReconnectBanner
-                  onReconnect={actions.onReconnect}
-                  isReconnecting={actions.isReconnecting}
-                />
-              )}
+              <ReconnectBanner
+                onReconnect={actions.onReconnect}
+                isReconnecting={actions.isReconnecting}
+              />
             </div>
           )}
 

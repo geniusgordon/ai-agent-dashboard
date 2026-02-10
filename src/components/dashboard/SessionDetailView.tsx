@@ -221,7 +221,6 @@ export function SessionDetailView({
 
   const canStartReview = !!resolvedProjectId && !!branch;
   const hasTaskPanel = !!latestPlan || !!planFilePath;
-  const hasFloatingTaskPanel = hasTaskPanel;
 
   return (
     <>
@@ -242,16 +241,12 @@ export function SessionDetailView({
           )}
 
           {/* Mobile/tablet: inline urgent banners */}
-          {!isDesktop && (
-            <div className="flex flex-col shrink-0">
-              {session.isActive === false && (
-                <div className="px-3 py-2 border-b border-border">
-                  <ReconnectBanner
-                    onReconnect={reconnect}
-                    isReconnecting={isReconnecting}
-                  />
-                </div>
-              )}
+          {!isDesktop && session.isActive === false && (
+            <div className="px-3 py-2 border-b border-border shrink-0">
+              <ReconnectBanner
+                onReconnect={reconnect}
+                isReconnecting={isReconnecting}
+              />
             </div>
           )}
 
@@ -264,22 +259,21 @@ export function SessionDetailView({
           />
 
           <div className="relative shrink-0">
-            {hasFloatingTaskPanel && (
+            {hasTaskPanel && (
               <div
                 className={`absolute inset-x-0 z-20 px-3 ${showInput ? "bottom-full pb-2" : "bottom-0 pb-3"}`}
               >
-                <div className="max-h-[min(45vh,24rem)] overflow-y-auto space-y-2 rounded-lg border border-border bg-background/95 p-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
-                  {hasTaskPanel &&
-                    (latestPlan ? (
-                      <TaskPanel
-                        entries={latestPlan.entries}
-                        isCollapsed={taskPanelCollapsed}
-                        onToggleCollapse={toggleTaskPanel}
-                        planFilePath={planFilePath}
-                      />
-                    ) : planFilePath ? (
-                      <PlanDocumentViewer filePath={planFilePath} />
-                    ) : null)}
+                <div className="max-h-[min(38svh,20rem)] overflow-y-auto space-y-2 rounded-lg border border-border bg-background/95 p-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:max-h-[min(42svh,22rem)]">
+                  {latestPlan ? (
+                    <TaskPanel
+                      entries={latestPlan.entries}
+                      isCollapsed={taskPanelCollapsed}
+                      onToggleCollapse={toggleTaskPanel}
+                      planFilePath={planFilePath}
+                    />
+                  ) : planFilePath ? (
+                    <PlanDocumentViewer filePath={planFilePath} />
+                  ) : null}
                 </div>
               </div>
             )}
