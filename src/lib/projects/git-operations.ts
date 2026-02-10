@@ -1,19 +1,50 @@
 /**
  * Git Operations
  *
- * Safe git command wrappers using `execFile` (not `exec`) for shell injection prevention.
- * All inputs are validated before use.
+ * Git command wrappers using `simple-git` for typed results and robust error handling.
+ * All user-provided inputs (branch names, refs, paths) are validated before use.
  */
 
-import { execFile as execFileCb } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
+import simpleGit, {
+  CheckRepoActions,
+  type LogResult,
+  type SimpleGit,
+} from "simple-git";
 import type { BranchInfo, GitWorktreeInfo } from "./types.js";
 
-const execFile = promisify(execFileCb);
+// =============================================================================
+// simple-git instance factory
+// =============================================================================
 
-const TIMEOUT = 15_000;
+const GIT_TIMEOUT = { block: 15_000 };
+
+function getGit(cwd: string): SimpleGit {
+  return simpleGit({
+    baseDir: cwd,
+    maxConcurrentProcesses: 6,
+    trimmed: true,
+    timeout: GIT_TIMEOUT,
+  });
+}
+
+// Custom log format matching our GitCommit type (short hash via %h)
+const COMMIT_FORMAT = {
+  hash: "%h",
+  message: "%s",
+  authorName: "%an",
+  date: "%aI",
+};
+
+function mapLogToCommits(log: LogResult<typeof COMMIT_FORMAT>): GitCommit[] {
+  return log.all.map((e) => ({
+    hash: e.hash,
+    message: e.message,
+    authorName: e.authorName,
+    date: e.date,
+  }));
+}
 
 // =============================================================================
 // Validation
@@ -82,17 +113,9 @@ export function validatePath(dirPath: string): void {
 // Git Operations
 // =============================================================================
 
-async function git(
-  args: string[],
-  cwd: string,
-): Promise<{ stdout: string; stderr: string }> {
-  return execFile("git", args, { cwd, timeout: TIMEOUT });
-}
-
 export async function isGitRepo(dirPath: string): Promise<boolean> {
   try {
-    await git(["rev-parse", "--git-dir"], dirPath);
-    return true;
+    return await getGit(dirPath).checkIsRepo();
   } catch {
     return false;
   }
@@ -100,11 +123,7 @@ export async function isGitRepo(dirPath: string): Promise<boolean> {
 
 export async function isBareRepo(dirPath: string): Promise<boolean> {
   try {
-    const { stdout } = await git(
-      ["rev-parse", "--is-bare-repository"],
-      dirPath,
-    );
-    return stdout.trim() === "true";
+    return await getGit(dirPath).checkIsRepo(CheckRepoActions.BARE);
   } catch {
     return false;
   }
@@ -114,19 +133,14 @@ export async function getRepoRoot(dirPath: string): Promise<string> {
   const bare = await isBareRepo(dirPath);
   if (bare) return resolve(dirPath);
 
-  const { stdout } = await git(["rev-parse", "--show-toplevel"], dirPath);
-  return stdout.trim();
+  return getGit(dirPath).revparse(["--show-toplevel"]);
 }
 
 export async function getCurrentBranch(
   dirPath: string,
 ): Promise<string | null> {
   try {
-    const { stdout } = await git(
-      ["rev-parse", "--abbrev-ref", "HEAD"],
-      dirPath,
-    );
-    const branch = stdout.trim();
+    const branch = await getGit(dirPath).revparse(["--abbrev-ref", "HEAD"]);
     return branch === "HEAD" ? null : branch;
   } catch {
     return null;
@@ -146,7 +160,11 @@ export async function getBranchInfo(dirPath: string): Promise<BranchInfo> {
 export async function listWorktrees(
   repoPath: string,
 ): Promise<GitWorktreeInfo[]> {
-  const { stdout } = await git(["worktree", "list", "--porcelain"], repoPath);
+  const stdout = await getGit(repoPath).raw([
+    "worktree",
+    "list",
+    "--porcelain",
+  ]);
 
   const worktrees: GitWorktreeInfo[] = [];
   let current: Partial<GitWorktreeInfo> = {};
@@ -201,7 +219,7 @@ export async function createWorktree(
     args.push(worktreePath, branchName);
   }
 
-  await git(args, repoPath);
+  await getGit(repoPath).raw(args);
 }
 
 export async function removeWorktree(
@@ -213,42 +231,34 @@ export async function removeWorktree(
   if (force) args.push("--force");
   args.push(worktreePath);
 
-  await git(args, repoPath);
+  await getGit(repoPath).raw(args);
 }
 
 export async function hasUncommittedChanges(
   worktreePath: string,
 ): Promise<boolean> {
   try {
-    const { stdout } = await git(["status", "--porcelain"], worktreePath);
-    return stdout.trim().length > 0;
+    const status = await getGit(worktreePath).status();
+    return !status.isClean();
   } catch {
     return false;
   }
 }
 
 export async function listBranches(repoPath: string): Promise<string[]> {
-  const { stdout } = await git(
-    ["branch", "--list", "--format=%(refname:short)"],
-    repoPath,
-  );
-
-  return stdout
-    .split("\n")
-    .map((b) => b.trim())
-    .filter(Boolean);
+  const summary = await getGit(repoPath).branchLocal();
+  return summary.all;
 }
 
 export async function getDefaultBranch(repoPath: string): Promise<string> {
+  const sg = getGit(repoPath);
+
   // Try remote HEAD first — this correctly resolves the default branch
   // regardless of which branch is currently checked out locally.
   try {
-    const { stdout } = await git(
-      ["symbolic-ref", "refs/remotes/origin/HEAD"],
-      repoPath,
-    );
+    const ref = await sg.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
     // "refs/remotes/origin/main" → "main"
-    return stdout.trim().replace("refs/remotes/origin/", "");
+    return ref.replace("refs/remotes/origin/", "");
   } catch {
     // No origin remote or origin/HEAD not set — fall through
   }
@@ -260,8 +270,8 @@ export async function getDefaultBranch(repoPath: string): Promise<string> {
       if (branches.includes(candidate)) return candidate;
     }
     // Last resort: bare repo HEAD or first branch
-    const { stdout } = await git(["symbolic-ref", "--short", "HEAD"], repoPath);
-    return stdout.trim();
+    const head = await sg.raw(["symbolic-ref", "--short", "HEAD"]);
+    return head;
   } catch {
     return "main";
   }
@@ -274,28 +284,16 @@ export interface GitCommit {
   date: string;
 }
 
-function parseCommitLines(stdout: string): GitCommit[] {
-  return stdout
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const [hash, message, authorName, date] = line.split("\0");
-      return { hash, message, authorName, date };
-    });
-}
-
 export async function getRecentCommits(
   worktreePath: string,
   limit = 10,
 ): Promise<GitCommit[]> {
   try {
-    const { stdout } = await git(
-      ["log", `--max-count=${limit}`, "--format=%h%x00%s%x00%an%x00%aI"],
-      worktreePath,
-    );
-
-    return parseCommitLines(stdout);
+    const log = await getGit(worktreePath).log({
+      maxCount: limit,
+      format: COMMIT_FORMAT,
+    });
+    return mapLogToCommits(log);
   } catch {
     return [];
   }
@@ -312,17 +310,14 @@ export async function getCommitsSinceBranch(
   limit = 50,
 ): Promise<GitCommit[]> {
   try {
-    const { stdout } = await git(
-      [
-        "log",
-        `--max-count=${limit}`,
-        "--format=%h%x00%s%x00%an%x00%aI",
-        `${baseBranch}..HEAD`,
-      ],
-      worktreePath,
-    );
-
-    return parseCommitLines(stdout);
+    const log = await getGit(worktreePath).log({
+      from: baseBranch,
+      to: "HEAD",
+      symmetric: false,
+      maxCount: limit,
+      format: COMMIT_FORMAT,
+    });
+    return mapLogToCommits(log);
   } catch {
     return [];
   }
@@ -346,8 +341,7 @@ export async function getMergeBase(
   validateBranchName(branchA);
   validateBranchName(branchB);
 
-  const { stdout } = await git(["merge-base", branchA, branchB], repoPath);
-  return stdout.trim();
+  return getGit(repoPath).raw(["merge-base", branchA, branchB]);
 }
 
 export async function getCommitCount(
@@ -358,11 +352,12 @@ export async function getCommitCount(
   validateRef(fromRef);
   validateRef(toRef);
 
-  const { stdout } = await git(
-    ["rev-list", "--count", `${fromRef}..${toRef}`],
-    repoPath,
-  );
-  return Number.parseInt(stdout.trim(), 10);
+  const count = await getGit(repoPath).raw([
+    "rev-list",
+    "--count",
+    `${fromRef}..${toRef}`,
+  ]);
+  return Number.parseInt(count, 10);
 }
 
 export async function getDiff(
@@ -373,11 +368,7 @@ export async function getDiff(
   validateBranchName(baseBranch);
   validateBranchName(compareBranch);
 
-  const { stdout } = await git(
-    ["diff", `${baseBranch}...${compareBranch}`],
-    repoPath,
-  );
-  return stdout;
+  return getGit(repoPath).diff([`${baseBranch}...${compareBranch}`]);
 }
 
 export async function getFilesChanged(
@@ -388,10 +379,10 @@ export async function getFilesChanged(
   validateBranchName(baseBranch);
   validateBranchName(compareBranch);
 
-  const { stdout } = await git(
-    ["diff", "--numstat", `${baseBranch}...${compareBranch}`],
-    repoPath,
-  );
+  const stdout = await getGit(repoPath).diff([
+    "--numstat",
+    `${baseBranch}...${compareBranch}`,
+  ]);
 
   return stdout
     .trim()
@@ -419,24 +410,22 @@ export async function mergeBranch(
   options?: { noFf?: boolean; message?: string },
 ): Promise<MergeResult> {
   validateBranchName(branchName);
+  const sg = getGit(worktreePath);
 
-  const args = ["merge"];
+  const args: string[] = [];
   if (options?.noFf) args.push("--no-ff");
   if (options?.message) args.push("-m", options.message);
   args.push(branchName);
 
   try {
-    await git(args, worktreePath);
+    await sg.merge(args);
     // Get the merge commit hash
-    const { stdout } = await git(
-      ["rev-parse", "--short", "HEAD"],
-      worktreePath,
-    );
-    return { success: true, commitHash: stdout.trim() };
+    const commitHash = await sg.revparse(["--short", "HEAD"]);
+    return { success: true, commitHash };
   } catch (error) {
     // Abort the failed merge to leave worktree clean
     try {
-      await git(["merge", "--abort"], worktreePath);
+      await sg.merge(["--abort"]);
     } catch {
       // Already clean or no merge in progress
     }
@@ -463,6 +452,5 @@ export async function deleteBranch(
     );
   }
 
-  const flag = force ? "-D" : "-d";
-  await git(["branch", flag, branchName], repoPath);
+  await getGit(repoPath).deleteLocalBranch(branchName, force);
 }
