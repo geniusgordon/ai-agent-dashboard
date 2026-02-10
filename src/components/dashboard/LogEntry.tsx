@@ -148,7 +148,11 @@ function CommandsUpdateEntry({ event }: { event: AgentEvent }) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getPreview(content: string, displayLines: string[], maxLength = 80): string {
+function getPreview(
+  content: string,
+  displayLines: string[],
+  maxLength = 80,
+): string {
   const trimmed = content.trim();
 
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
@@ -258,9 +262,7 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
 
   const Icon = config.icon;
   const displayContent =
-    isCollapsible && !isExpanded
-      ? getPreview(content, displayLines)
-      : content;
+    isCollapsible && !isExpanded ? getPreview(content, displayLines) : content;
 
   const baseClasses = `
     group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2
