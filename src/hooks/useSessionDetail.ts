@@ -183,9 +183,9 @@ export function useSessionDetail(sessionId: string) {
   // ---------------------------------------------------------------------------
 
   const handleEvent = (event: AgentEvent) => {
-    // Mode-change events are internal signals — trigger a session re-fetch
+    // Mode/config-change events are internal signals — trigger a session re-fetch
     // but don't add them to the visible event log
-    if (event.type === "mode-change") {
+    if (event.type === "mode-change" || event.type === "config-update") {
       queryClient.invalidateQueries({
         queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
       });
@@ -393,6 +393,26 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  const setModelMutation = useMutation(
+    trpc.sessions.setModel.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
+      },
+    }),
+  );
+
+  const setThoughtLevelMutation = useMutation(
+    trpc.sessions.setThoughtLevel.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
+      },
+    }),
+  );
+
   const reconnectMutation = useMutation(
     trpc.sessions.reconnectSession.mutationOptions({
       onSuccess: () => {
@@ -448,6 +468,8 @@ export function useSessionDetail(sessionId: string) {
       completeSessionMutation.reset();
       renameSessionMutation.reset();
       setModeMutation.reset();
+      setModelMutation.reset();
+      setThoughtLevelMutation.reset();
       approveMutation.reset();
       denyMutation.reset();
     }
@@ -459,6 +481,8 @@ export function useSessionDetail(sessionId: string) {
     completeSessionMutation,
     renameSessionMutation,
     setModeMutation,
+    setModelMutation,
+    setThoughtLevelMutation,
     approveMutation,
     denyMutation,
   ]);
@@ -496,6 +520,12 @@ export function useSessionDetail(sessionId: string) {
 
   const setMode = (modeId: string) =>
     setModeMutation.mutate({ sessionId, modeId });
+
+  const setModel = (model: string) =>
+    setModelMutation.mutate({ sessionId, model });
+
+  const setThoughtLevel = (thoughtLevel: string) =>
+    setThoughtLevelMutation.mutate({ sessionId, thoughtLevel });
 
   const reconnect = () => reconnectMutation.mutate({ sessionId });
 
@@ -570,6 +600,8 @@ export function useSessionDetail(sessionId: string) {
     isApproving: approveMutation.isPending,
     isDenying: denyMutation.isPending,
     isSettingMode: setModeMutation.isPending,
+    isSettingModel: setModelMutation.isPending,
+    isSettingThoughtLevel: setThoughtLevelMutation.isPending,
     isReconnecting: reconnectMutation.isPending,
     isDeleting: deleteMutation.isPending,
 
@@ -582,6 +614,8 @@ export function useSessionDetail(sessionId: string) {
     completeSession,
     renameSession,
     setMode,
+    setModel,
+    setThoughtLevel,
     reconnect,
     deleteSession,
     toggleTaskPanel,

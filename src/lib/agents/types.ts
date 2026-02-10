@@ -54,6 +54,20 @@ export interface AgentSession {
   availableModes?: SessionMode[];
   /** Current mode ID */
   currentModeId?: string;
+  /** Raw ACP config options advertised by the agent */
+  configOptions?: SessionConfigOption[];
+  /** ACP option id used for model switching */
+  modelOptionId?: string;
+  /** Available model values */
+  availableModels?: SessionConfigValueOption[];
+  /** Current model value */
+  currentModel?: string;
+  /** ACP option id used for thought-level switching */
+  thoughtLevelOptionId?: string;
+  /** Available thought-level values */
+  availableThoughtLevels?: SessionConfigValueOption[];
+  /** Current thought-level value */
+  currentThoughtLevel?: string;
   /** Project this session belongs to */
   projectId?: string;
   /** Worktree this session was assigned to */
@@ -108,6 +122,19 @@ export interface SessionMode {
   description?: string;
 }
 
+export interface SessionConfigValueOption {
+  value: string;
+  name: string;
+}
+
+export interface SessionConfigOption {
+  id: string;
+  name: string;
+  category: "mode" | "model" | "thought_level" | "_custom";
+  currentValue: string;
+  options: SessionConfigValueOption[];
+}
+
 export interface CreateSessionOptions {
   clientId: string;
   cwd?: string; // Defaults to client's cwd
@@ -124,6 +151,7 @@ export type AgentEventType =
   | "tool-update" // tool_call_update
   | "plan" // plan
   | "mode-change" // agent changed its mode
+  | "config-update" // config options changed (model/thought level/etc.)
   | "usage-update" // usage_update (context window)
   | "commands-update" // available_commands_update
   | "complete" // prompt response received

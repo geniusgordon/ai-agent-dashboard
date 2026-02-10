@@ -52,6 +52,7 @@ vi.mock("./store.js", () => ({
   updateSessionStatus: vi.fn(),
   updateSessionName: vi.fn(),
   updateSessionMode: vi.fn(),
+  updateSessionConfigOptions: vi.fn(),
   deleteSession: vi.fn(),
 }));
 

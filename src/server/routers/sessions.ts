@@ -273,6 +273,28 @@ export const sessionsRouter = createTRPCRouter({
     }),
 
   /**
+   * Set session model via ACP config options.
+   */
+  setModel: publicProcedure
+    .input(z.object({ sessionId: z.string(), model: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      await manager.setModel(input.sessionId, input.model);
+      return { success: true };
+    }),
+
+  /**
+   * Set session thought level via ACP config options.
+   */
+  setThoughtLevel: publicProcedure
+    .input(z.object({ sessionId: z.string(), thoughtLevel: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      await manager.setThoughtLevel(input.sessionId, input.thoughtLevel);
+      return { success: true };
+    }),
+
+  /**
    * Reconnect a disconnected session
    * Spawns a new client and loads the session if supported
    */

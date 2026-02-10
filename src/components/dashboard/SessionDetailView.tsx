@@ -102,6 +102,8 @@ export function SessionDetailView({
     isApproving,
     isDenying,
     isSettingMode,
+    isSettingModel,
+    isSettingThoughtLevel,
     isReconnecting,
     isDeleting,
     sendMessage,
@@ -112,6 +114,8 @@ export function SessionDetailView({
     completeSession,
     renameSession,
     setMode,
+    setModel,
+    setThoughtLevel,
     reconnect,
     deleteSession,
     toggleTaskPanel,
@@ -296,6 +300,14 @@ export function SessionDetailView({
               currentModeId={session.currentModeId}
               onSetMode={setMode}
               isSettingMode={isSettingMode}
+              availableModels={session.availableModels}
+              currentModel={session.currentModel}
+              onSetModel={setModel}
+              isSettingModel={isSettingModel}
+              availableThoughtLevels={session.availableThoughtLevels}
+              currentThoughtLevel={session.currentThoughtLevel}
+              onSetThoughtLevel={setThoughtLevel}
+              isSettingThoughtLevel={isSettingThoughtLevel}
               onCancel={cancelSession}
               isCancelling={isCancelling}
               usageInfo={usageInfo}

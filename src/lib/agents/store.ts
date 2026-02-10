@@ -24,6 +24,7 @@ import type {
   AgentEvent,
   AgentEventType,
   AgentType,
+  SessionConfigOption,
   SessionStatus,
 } from "./types";
 
@@ -67,6 +68,7 @@ export interface StoredSession {
   updatedAt: string;
   availableModes?: Array<{ id: string; name: string; description?: string }>;
   currentModeId?: string;
+  configOptions?: SessionConfigOption[];
   projectId?: string;
   worktreeId?: string;
   worktreeBranch?: string;
@@ -86,6 +88,7 @@ interface SessionRow {
   status: string;
   available_modes: string | null;
   current_mode_id: string | null;
+  config_options: string | null;
   project_id: string | null;
   worktree_id: string | null;
   worktree_branch: string | null;
@@ -109,6 +112,9 @@ function rowToStoredSession(row: SessionRow): StoredSession {
       ? JSON.parse(row.available_modes)
       : undefined,
     currentModeId: row.current_mode_id ?? undefined,
+    configOptions: row.config_options
+      ? (JSON.parse(row.config_options) as SessionConfigOption[])
+      : undefined,
     projectId: row.project_id ?? undefined,
     worktreeId: row.worktree_id ?? undefined,
     worktreeBranch: row.worktree_branch ?? undefined,
@@ -157,8 +163,8 @@ function migrateJsonSessionsIfNeeded(): void {
 
   const insertStmt = db.prepare(`
     INSERT OR IGNORE INTO sessions
-      (id, client_id, agent_type, cwd, name, status, available_modes, current_mode_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, client_id, agent_type, cwd, name, status, available_modes, current_mode_id, config_options, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const migrate = db.transaction(() => {
@@ -176,6 +182,7 @@ function migrateJsonSessionsIfNeeded(): void {
           legacy.status,
           legacy.availableModes ? JSON.stringify(legacy.availableModes) : null,
           legacy.currentModeId ?? null,
+          legacy.configOptions ? JSON.stringify(legacy.configOptions) : null,
           legacy.createdAt,
           legacy.updatedAt,
         );
@@ -219,6 +226,7 @@ export function saveSession(
     updatedAt: Date;
     availableModes?: Array<{ id: string; name: string; description?: string }>;
     currentModeId?: string;
+    configOptions?: SessionConfigOption[];
     projectId?: string;
     worktreeId?: string;
     worktreeBranch?: string;
@@ -230,8 +238,8 @@ export function saveSession(
   const db = getDatabase();
   db.prepare(
     `INSERT OR REPLACE INTO sessions
-      (id, client_id, agent_type, cwd, name, status, available_modes, current_mode_id, project_id, worktree_id, worktree_branch, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, client_id, agent_type, cwd, name, status, available_modes, current_mode_id, config_options, project_id, worktree_id, worktree_branch, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     session.id,
     session.clientId,
@@ -241,6 +249,7 @@ export function saveSession(
     session.status,
     session.availableModes ? JSON.stringify(session.availableModes) : null,
     session.currentModeId ?? null,
+    session.configOptions ? JSON.stringify(session.configOptions) : null,
     session.projectId ?? null,
     session.worktreeId ?? null,
     session.worktreeBranch ?? null,
@@ -353,6 +362,19 @@ export function updateSessionMode(
   db.prepare(
     "UPDATE sessions SET current_mode_id = ?, updated_at = ? WHERE id = ?",
   ).run(currentModeId, new Date().toISOString(), sessionId);
+}
+
+/**
+ * Update session config options.
+ */
+export function updateSessionConfigOptions(
+  sessionId: string,
+  configOptions: SessionConfigOption[],
+): void {
+  const db = getDatabase();
+  db.prepare(
+    "UPDATE sessions SET config_options = ?, updated_at = ? WHERE id = ?",
+  ).run(JSON.stringify(configOptions), new Date().toISOString(), sessionId);
 }
 
 // ---------------------------------------------------------------------------

@@ -196,4 +196,12 @@ export const MIGRATIONS: Array<{ version: number; sql: string }> = [
       ALTER TABLE worktrees ADD COLUMN base_branch TEXT;
     `,
   },
+
+  // ── Add ACP config options to sessions ─────────────────────────────
+  {
+    version: 8,
+    sql: `
+      ALTER TABLE sessions ADD COLUMN config_options TEXT;
+    `,
+  },
 ];

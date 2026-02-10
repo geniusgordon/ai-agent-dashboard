@@ -23,7 +23,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { SessionMode, UsageUpdatePayload } from "@/lib/agents/types";
+import type {
+  SessionConfigValueOption,
+  SessionMode,
+  UsageUpdatePayload,
+} from "@/lib/agents/types";
 import { clearDraft, getDraft, saveDraft } from "@/lib/draft-store";
 
 export interface ImageAttachment {
@@ -50,6 +54,22 @@ export interface MessageInputProps {
   onSetMode?: (modeId: string) => void;
   /** Whether a mode change is in progress */
   isSettingMode?: boolean;
+  /** Available model options */
+  availableModels?: SessionConfigValueOption[];
+  /** Current model */
+  currentModel?: string;
+  /** Callback to change model */
+  onSetModel?: (model: string) => void;
+  /** Whether a model change is in progress */
+  isSettingModel?: boolean;
+  /** Available thought level options */
+  availableThoughtLevels?: SessionConfigValueOption[];
+  /** Current thought level */
+  currentThoughtLevel?: string;
+  /** Callback to change thought level */
+  onSetThoughtLevel?: (thoughtLevel: string) => void;
+  /** Whether a thought-level change is in progress */
+  isSettingThoughtLevel?: boolean;
   /** Callback to cancel the running prompt */
   onCancel?: () => void;
   /** Whether a cancel is in progress */
@@ -83,6 +103,14 @@ export function MessageInput({
   currentModeId,
   onSetMode,
   isSettingMode,
+  availableModels,
+  currentModel,
+  onSetModel,
+  isSettingModel,
+  availableThoughtLevels,
+  currentThoughtLevel,
+  onSetThoughtLevel,
+  isSettingThoughtLevel,
   onCancel,
   isCancelling,
   usageInfo,
@@ -137,6 +165,12 @@ export function MessageInput({
 
   const showModeSelector =
     availableModes && availableModes.length > 0 && onSetMode;
+  const showModelSelector =
+    availableModels && availableModels.length > 0 && onSetModel;
+  const showThoughtLevelSelector =
+    availableThoughtLevels &&
+    availableThoughtLevels.length > 0 &&
+    onSetThoughtLevel;
   const imagePickerTitle = supportsImages
     ? "Attach image"
     : "This agent does not support image input";
@@ -357,7 +391,7 @@ export function MessageInput({
           )}
 
           {/* Toolbar row — shown above textarea on mobile, inline on sm+ */}
-          <div className="flex items-center gap-1.5 px-1 sm:hidden">
+          <div className="flex flex-wrap items-center gap-1.5 px-1 sm:hidden">
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
@@ -397,6 +431,60 @@ export function MessageInput({
                   {availableModes.map((mode) => (
                     <SelectItem key={mode.id} value={mode.id}>
                       {mode.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {showModelSelector && (
+              <Select
+                value={currentModel}
+                onValueChange={(value) => {
+                  if (value) onSetModel(value);
+                }}
+                disabled={isSettingModel}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="h-7 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                >
+                  {isSettingModel ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <SelectValue placeholder="Model" />
+                  )}
+                </SelectTrigger>
+                <SelectContent position="popper" side="top" align="start">
+                  {availableModels!.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {showThoughtLevelSelector && (
+              <Select
+                value={currentThoughtLevel}
+                onValueChange={(value) => {
+                  if (value) onSetThoughtLevel(value);
+                }}
+                disabled={isSettingThoughtLevel}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                >
+                  {isSettingThoughtLevel ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <SelectValue placeholder="Think" />
+                  )}
+                </SelectTrigger>
+                <SelectContent position="popper" side="top" align="start">
+                  {availableThoughtLevels!.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -473,6 +561,66 @@ export function MessageInput({
                     {availableModes.map((mode) => (
                       <SelectItem key={mode.id} value={mode.id}>
                         {mode.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {showModelSelector && (
+              <div className="hidden sm:block self-center">
+                <Select
+                  value={currentModel}
+                  onValueChange={(value) => {
+                    if (value) onSetModel(value);
+                  }}
+                  disabled={isSettingModel}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="h-8 w-auto min-w-[6rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                  >
+                    {isSettingModel ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <SelectValue placeholder="Model" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="top" align="start">
+                    {availableModels!.map((model) => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {showThoughtLevelSelector && (
+              <div className="hidden sm:block self-center">
+                <Select
+                  value={currentThoughtLevel}
+                  onValueChange={(value) => {
+                    if (value) onSetThoughtLevel(value);
+                  }}
+                  disabled={isSettingThoughtLevel}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+                  >
+                    {isSettingThoughtLevel ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <SelectValue placeholder="Think" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="top" align="start">
+                    {availableThoughtLevels!.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
