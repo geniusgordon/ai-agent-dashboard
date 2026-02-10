@@ -2,12 +2,9 @@
  * Session Card Component
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
-import { useState } from "react";
 import { useBranchInfo } from "../../hooks/useBranchInfo";
-import { useTRPC } from "../../integrations/trpc/react";
 import type { AgentSession } from "../../lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
 import { BranchBadge } from "./BranchBadge";
@@ -17,6 +14,8 @@ interface SessionCardProps {
   session: AgentSession;
   /** When set, links to project-scoped session detail route */
   projectId?: string;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
 const statusLeftBorder: Record<string, string> = {
@@ -29,37 +28,21 @@ const statusLeftBorder: Record<string, string> = {
   idle: "border-l-muted-foreground",
 };
 
-export function SessionCard({ session, projectId }: SessionCardProps) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const [confirmDelete, setConfirmDelete] = useState(false);
+export function SessionCard({
+  session,
+  projectId,
+  onDelete,
+  isDeleting,
+}: SessionCardProps) {
   const branchQuery = useBranchInfo(session.cwd);
   const branch = branchQuery.data?.branch;
-
-  const deleteMutation = useMutation(
-    trpc.sessions.deleteSession.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listSessions.queryKey(),
-        });
-      },
-    }),
-  );
 
   const timeAgo = getTimeAgo(session.createdAt);
   const isInactive = session.isActive === false;
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
+  const stopNav = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (confirmDelete) {
-      deleteMutation.mutate({ sessionId: session.id });
-    } else {
-      setConfirmDelete(true);
-      // Reset confirmation after 3 seconds
-      setTimeout(() => setConfirmDelete(false), 3000);
-    }
   };
 
   return (
@@ -102,23 +85,20 @@ export function SessionCard({ session, projectId }: SessionCardProps) {
           <AgentBadge type={session.agentType} size="sm" />
         </div>
 
-        <button
-          type="button"
-          onClick={handleDeleteClick}
-          disabled={deleteMutation.isPending}
-          className={`
-            p-1.5 rounded-md transition-colors cursor-pointer
-            ${
-              confirmDelete
-                ? "bg-destructive/10 text-destructive"
-                : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            }
-            disabled:opacity-50 disabled:cursor-not-allowed
-          `}
-          title={confirmDelete ? "Click again to confirm" : "Delete session"}
-        >
-          <Trash2 className="size-4" />
-        </button>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              stopNav(e);
+              onDelete();
+            }}
+            disabled={isDeleting}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Delete session"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        )}
       </div>
 
       {/* Path */}
@@ -132,12 +112,6 @@ export function SessionCard({ session, projectId }: SessionCardProps) {
           {branch && <BranchBadge branch={branch} size="sm" />}
           <span className="text-xs text-muted-foreground">{timeAgo}</span>
         </div>
-
-        {confirmDelete && (
-          <span className="text-[11px] text-destructive whitespace-nowrap shrink-0">
-            Confirm delete
-          </span>
-        )}
       </div>
     </Link>
   );

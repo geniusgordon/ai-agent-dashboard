@@ -5,7 +5,7 @@
  * Includes status filter, search, and collapsible worktree sections.
  */
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ChevronDown,
@@ -15,7 +15,11 @@ import {
   Search,
 } from "lucide-react";
 import { useState } from "react";
-import { PageContainer, SessionCard } from "@/components/dashboard";
+import {
+  PageContainer,
+  SessionCard,
+  SessionDeleteDialog,
+} from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentSession } from "@/lib/agents/types";
@@ -35,6 +39,20 @@ function ProjectSessionsPage() {
   const [search, setSearch] = useState("");
   const [collapsedWorktrees, setCollapsedWorktrees] = useState<Set<string>>(
     new Set(["__unassigned"]),
+  );
+  const [sessionToDelete, setSessionToDelete] = useState<AgentSession | null>(
+    null,
+  );
+
+  const deleteSessionMutation = useMutation(
+    trpc.sessions.deleteSession.mutationOptions({
+      onSuccess: () => {
+        setSessionToDelete(null);
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.listSessions.queryKey({ projectId }),
+        });
+      },
+    }),
   );
 
   // Queries
@@ -202,11 +220,33 @@ function ProjectSessionsPage() {
                 projectId={projectId}
                 isCollapsed={collapsedWorktrees.has(group.id)}
                 onToggle={() => toggleWorktree(group.id)}
+                onDeleteSession={setSessionToDelete}
+                deletingSessionId={
+                  deleteSessionMutation.isPending
+                    ? sessionToDelete?.id
+                    : undefined
+                }
               />
             ))}
           </div>
         )}
       </div>
+
+      <SessionDeleteDialog
+        session={sessionToDelete}
+        open={sessionToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setSessionToDelete(null);
+        }}
+        onConfirm={() => {
+          if (sessionToDelete) {
+            deleteSessionMutation.mutate({
+              sessionId: sessionToDelete.id,
+            });
+          }
+        }}
+        isDeleting={deleteSessionMutation.isPending}
+      />
     </PageContainer>
   );
 }
@@ -227,11 +267,15 @@ function WorktreeSessionGroup({
   projectId,
   isCollapsed,
   onToggle,
+  onDeleteSession,
+  deletingSessionId,
 }: {
   group: SessionGroup;
   projectId: string;
   isCollapsed: boolean;
   onToggle: () => void;
+  onDeleteSession: (session: AgentSession) => void;
+  deletingSessionId?: string;
 }) {
   const Chevron = isCollapsed ? ChevronRight : ChevronDown;
 
@@ -257,6 +301,8 @@ function WorktreeSessionGroup({
               key={session.id}
               session={session}
               projectId={projectId}
+              onDelete={() => onDeleteSession(session)}
+              isDeleting={deletingSessionId === session.id}
             />
           ))}
         </div>

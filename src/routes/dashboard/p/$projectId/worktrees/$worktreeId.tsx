@@ -25,6 +25,7 @@ import {
   ErrorDisplay,
   PageContainer,
   SessionCard,
+  SessionDeleteDialog,
   SpawnAgentDialog,
   WorktreeDeleteDialog,
 } from "@/components/dashboard";
@@ -64,6 +65,9 @@ function WorktreeDetailPage() {
   const navigate = useNavigate();
   const [showSpawnDialog, setShowSpawnDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<AgentSession | null>(
+    null,
+  );
 
   // ---- Queries ----
 
@@ -121,6 +125,20 @@ function WorktreeDetailPage() {
         navigate({
           to: "/dashboard/p/$projectId",
           params: { projectId },
+        });
+      },
+    }),
+  );
+
+  const deleteSessionMutation = useMutation(
+    trpc.sessions.deleteSession.mutationOptions({
+      onSuccess: () => {
+        setSessionToDelete(null);
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.listSessions.queryKey({ projectId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.worktrees.getAssignments.queryKey({ worktreeId }),
         });
       },
     }),
@@ -255,6 +273,10 @@ function WorktreeDetailPage() {
           hasMultipleAgents={assignments.length > 1}
           projectId={projectId}
           onSpawn={() => setShowSpawnDialog(true)}
+          onDeleteSession={setSessionToDelete}
+          deletingSessionId={
+            deleteSessionMutation.isPending ? sessionToDelete?.id : undefined
+          }
         />
 
         {/* Branch Commits (since checkout) */}
@@ -285,7 +307,7 @@ function WorktreeDetailPage() {
           />
         )}
 
-        {/* Delete Dialog */}
+        {/* Delete Worktree Dialog */}
         <WorktreeDeleteDialog
           worktree={showDeleteDialog ? worktree : null}
           open={showDeleteDialog}
@@ -293,6 +315,23 @@ function WorktreeDetailPage() {
           onConfirm={handleConfirmDelete}
           isDeleting={deleteWorktreeMutation.isPending}
           assignedAgentCount={assignments.length}
+        />
+
+        {/* Delete Session Dialog */}
+        <SessionDeleteDialog
+          session={sessionToDelete}
+          open={sessionToDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) setSessionToDelete(null);
+          }}
+          onConfirm={() => {
+            if (sessionToDelete) {
+              deleteSessionMutation.mutate({
+                sessionId: sessionToDelete.id,
+              });
+            }
+          }}
+          isDeleting={deleteSessionMutation.isPending}
         />
       </div>
     </PageContainer>
@@ -336,11 +375,15 @@ function AgentsSection({
   hasMultipleAgents,
   projectId,
   onSpawn,
+  onDeleteSession,
+  deletingSessionId,
 }: {
   sessions: AgentSession[];
   hasMultipleAgents: boolean;
   projectId: string;
   onSpawn: () => void;
+  onDeleteSession: (session: AgentSession) => void;
+  deletingSessionId?: string;
 }) {
   return (
     <div>
@@ -385,6 +428,8 @@ function AgentsSection({
               key={session.id}
               session={session}
               projectId={projectId}
+              onDelete={() => onDeleteSession(session)}
+              isDeleting={deletingSessionId === session.id}
             />
           ))}
         </div>
