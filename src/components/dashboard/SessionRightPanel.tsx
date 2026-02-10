@@ -9,34 +9,18 @@ import {
   Trash2,
 } from "lucide-react";
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
-import { ApprovalBanner } from "@/components/dashboard/ApprovalBanner";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { ContextMeter } from "@/components/dashboard/ContextMeter";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
-import { PlanDocumentViewer } from "@/components/dashboard/PlanDocumentViewer";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
-import { TaskPanel } from "@/components/dashboard/TaskPanel";
 import { Button } from "@/components/ui/button";
-import type {
-  AgentSession,
-  ApprovalRequest,
-  PlanPayload,
-  UsageUpdatePayload,
-} from "@/lib/agents/types";
+import type { AgentSession, UsageUpdatePayload } from "@/lib/agents/types";
 
 // ---------------------------------------------------------------------------
 // Public prop types (kept for external consumers)
 // ---------------------------------------------------------------------------
-
-export interface SessionApprovalState {
-  pendingApproval: ApprovalRequest | null;
-  onApprove: (approvalId: string, optionId: string) => void;
-  onDeny: (approvalId: string) => void;
-  isApproving: boolean;
-  isDenying: boolean;
-}
 
 export interface SessionActions {
   onKillSession: () => void;
@@ -49,13 +33,6 @@ export interface SessionActions {
   isReconnecting: boolean;
 }
 
-export interface TaskState {
-  latestPlan: PlanPayload | null;
-  planFilePath: string | null;
-  taskPanelCollapsed: boolean;
-  onToggleTaskPanel: () => void;
-}
-
 export interface SessionRightPanelProps {
   isOpen: boolean;
   session: AgentSession;
@@ -63,9 +40,7 @@ export interface SessionRightPanelProps {
   branch?: string;
   worktreeId?: string;
   projectName?: string;
-  approval: SessionApprovalState;
   actions: SessionActions;
-  tasks: TaskState;
   usageInfo?: UsageUpdatePayload;
   onStartReview?: () => void;
 }
@@ -81,9 +56,7 @@ export function SessionRightPanel({
   branch,
   worktreeId,
   projectName,
-  approval,
   actions,
-  tasks,
   usageInfo,
   onStartReview,
 }: SessionRightPanelProps) {
@@ -147,41 +120,17 @@ export function SessionRightPanel({
         {/* ── Scrollable body ──────────────────────────── */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {/* Urgent banners */}
-          {(approval.pendingApproval || session.isActive === false) && (
+          {session.isActive === false && (
             <div className="px-4 pt-3 space-y-3">
-              {approval.pendingApproval && (
-                <ApprovalBanner
-                  approval={approval.pendingApproval}
-                  onApprove={approval.onApprove}
-                  onDeny={approval.onDeny}
-                  isApproving={approval.isApproving}
-                  isDenying={approval.isDenying}
-                />
-              )}
-              {session.isActive === false && (
-                <ReconnectBanner
-                  onReconnect={actions.onReconnect}
-                  isReconnecting={actions.isReconnecting}
-                />
-              )}
+              <ReconnectBanner
+                onReconnect={actions.onReconnect}
+                isReconnecting={actions.isReconnecting}
+              />
             </div>
           )}
 
           {/* Collapsible sections */}
           <div className="px-4 py-2 space-y-1">
-            {tasks.latestPlan && (
-              <TaskPanel
-                entries={tasks.latestPlan.entries}
-                isCollapsed={tasks.taskPanelCollapsed}
-                onToggleCollapse={tasks.onToggleTaskPanel}
-                planFilePath={tasks.planFilePath}
-              />
-            )}
-
-            {!tasks.latestPlan && tasks.planFilePath && (
-              <PlanDocumentViewer filePath={tasks.planFilePath} />
-            )}
-
             <PanelSection icon={GitMerge} label="Git" defaultOpen>
               <GitInfoPanel cwd={session.cwd} worktreeId={worktreeId} />
             </PanelSection>

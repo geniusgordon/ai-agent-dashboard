@@ -326,13 +326,6 @@ export function SessionDetailView({
             branch={branch}
             worktreeId={session.worktreeId}
             projectName={projectQuery.data?.name}
-            approval={{
-              pendingApproval,
-              onApprove: approve,
-              onDeny: deny,
-              isApproving,
-              isDenying,
-            }}
             actions={{
               onKillSession: killSession,
               isKilling,
@@ -342,12 +335,6 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
-            }}
-            tasks={{
-              latestPlan,
-              planFilePath,
-              taskPanelCollapsed,
-              onToggleTaskPanel: toggleTaskPanel,
             }}
             usageInfo={usageInfo}
             onStartReview={
@@ -363,13 +350,6 @@ export function SessionDetailView({
             branch={branch}
             worktreeId={session.worktreeId}
             projectName={projectQuery.data?.name}
-            approval={{
-              pendingApproval,
-              onApprove: approve,
-              onDeny: deny,
-              isApproving,
-              isDenying,
-            }}
             actions={{
               onKillSession: killSession,
               isKilling,
@@ -379,12 +359,6 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
-            }}
-            tasks={{
-              latestPlan,
-              planFilePath,
-              taskPanelCollapsed,
-              onToggleTaskPanel: toggleTaskPanel,
             }}
             onStartReview={
               canStartReview ? () => setReviewDialogOpen(true) : undefined

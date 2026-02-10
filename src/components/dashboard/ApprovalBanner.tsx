@@ -113,7 +113,7 @@ export function ApprovalBanner({
       </div>
 
       {/* Buttons */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 lg:flex-row lg:flex-wrap">
         {approval.options.map((option) => {
           const isThisLoading = isBusy && clickedOptionId === option.optionId;
           return (
@@ -121,7 +121,7 @@ export function ApprovalBanner({
               key={option.optionId}
               variant={getOptionVariant(option.kind)}
               size="sm"
-              className="w-full justify-center text-xs"
+              className="w-full justify-center text-xs lg:w-auto lg:min-w-28"
               onClick={() => {
                 setClickedOptionId(option.optionId);
                 isRejectOption(option.kind)
