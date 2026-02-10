@@ -25,7 +25,6 @@ export function useSessionDetail(sessionId: string) {
   const queryClient = useQueryClient();
   const scrollRef = useRef<SessionLogScrollHandle>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
   const autoScrollRef = useRef(true);
   const isNearBottomRef = useRef(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -47,7 +46,6 @@ export function useSessionDetail(sessionId: string) {
       prevSessionIdRef.current = sessionId;
       setEvents([]);
       setOptimisticApproval(null);
-      setAutoScroll(true);
       autoScrollRef.current = true;
       setShowScrollButton(false);
       initialScrollDone.current = false;
@@ -147,12 +145,10 @@ export function useSessionDetail(sessionId: string) {
         // Auto-pause when user scrolls away from bottom
         if (!nearBottom && autoScrollRef.current) {
           autoScrollRef.current = false;
-          setAutoScroll(false);
         }
         // Re-engage when user scrolls back to bottom
         if (nearBottom && !autoScrollRef.current) {
           autoScrollRef.current = true;
-          setAutoScroll(true);
         }
 
         ticking = false;
@@ -194,7 +190,6 @@ export function useSessionDetail(sessionId: string) {
     scrollRef.current?.scrollToBottom("smooth");
     // Re-engage auto-scroll
     autoScrollRef.current = true;
-    setAutoScroll(true);
   };
 
   // ---------------------------------------------------------------------------
@@ -464,7 +459,6 @@ export function useSessionDetail(sessionId: string) {
     // Re-engage auto-scroll so the incoming SSE echo of this message
     // (and the subsequent agent response) will auto-scroll via scheduleScroll.
     autoScrollRef.current = true;
-    setAutoScroll(true);
   };
 
   const approve = (approvalId: string, optionId: string) =>
@@ -487,22 +481,6 @@ export function useSessionDetail(sessionId: string) {
   const reconnect = () => reconnectMutation.mutate({ sessionId });
 
   const deleteSession = () => deleteMutation.mutate({ sessionId });
-
-  const clearLogs = () => setEvents([]);
-
-  const toggleAutoScroll = () => {
-    setAutoScroll((prev) => {
-      const next = !prev;
-      autoScrollRef.current = next;
-      // When re-enabling, immediately scroll to bottom
-      if (next) {
-        requestAnimationFrame(() => {
-          scrollRef.current?.scrollToBottom("smooth");
-        });
-      }
-      return next;
-    });
-  };
 
   // ---------------------------------------------------------------------------
   // Derived: latest plan entries
@@ -553,7 +531,6 @@ export function useSessionDetail(sessionId: string) {
     events,
     pendingApproval,
     connected,
-    autoScroll,
     showScrollButton,
     supportsImages,
     latestPlan,
@@ -588,8 +565,6 @@ export function useSessionDetail(sessionId: string) {
     setMode,
     reconnect,
     deleteSession,
-    clearLogs,
-    toggleAutoScroll,
     toggleTaskPanel,
     manualScrollToBottom,
   };
