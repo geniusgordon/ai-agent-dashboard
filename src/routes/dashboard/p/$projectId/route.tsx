@@ -9,6 +9,15 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard/p/$projectId")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(
+      context.trpc.projects.get.queryOptions({ id: params.projectId }),
+    ),
+  head: ({ loaderData }) => ({
+    meta: loaderData?.name
+      ? [{ title: `${loaderData.name} — AI Agent Dashboard` }]
+      : [],
+  }),
   component: ProjectLayout,
 });
 
