@@ -52,18 +52,16 @@ import { ProjectSwitcher } from "./ProjectSwitcher";
 // Constants
 // =============================================================================
 
-const ACTIVE_STATUSES = new Set([
-  "running",
-  "waiting-approval",
-  "starting",
-  "idle",
-]);
+/** Statuses hidden from the sidebar — only fully completed sessions are excluded. */
+const HIDDEN_STATUSES = new Set(["completed"]);
 
 const statusColors: Record<string, string> = {
   running: "text-status-running",
   "waiting-approval": "text-status-waiting",
   starting: "text-status-starting",
   idle: "text-muted-foreground",
+  error: "text-destructive",
+  killed: "text-muted-foreground",
 };
 
 // =============================================================================
@@ -166,8 +164,8 @@ export function Sidebar() {
   });
 
   const allSessions = sessionsQuery.data ?? [];
-  const activeSessions = allSessions.filter(
-    (s) => s.isActive !== false && ACTIVE_STATUSES.has(s.status),
+  const visibleSessions = allSessions.filter(
+    (s) => !HIDDEN_STATUSES.has(s.status),
   );
 
   const handleNavClick = () => setOpenMobile(false);
@@ -223,13 +221,13 @@ export function Sidebar() {
             projectId={projectId}
             worktrees={worktreesQuery.data ?? []}
             assignments={assignmentsQuery.data ?? []}
-            sessions={activeSessions}
+            sessions={visibleSessions}
             activeSessionId={activeSessionId}
             onNavigate={handleNavClick}
           />
         ) : (
           <GlobalActiveAgents
-            sessions={activeSessions}
+            sessions={visibleSessions}
             activeSessionId={activeSessionId}
             onNavigate={handleNavClick}
           />
@@ -409,35 +407,35 @@ function ProjectAgents({
 
   for (const assignment of assignments) {
     const session = sessionById.get(assignment.sessionId);
-    if (session && ACTIVE_STATUSES.has(session.status)) {
+    if (session && !HIDDEN_STATUSES.has(session.status)) {
       const list = sessionMap.get(assignment.worktreeId) ?? [];
       list.push(session);
       sessionMap.set(assignment.worktreeId, list);
     }
   }
 
-  // Only show worktrees that have active agents
-  const activeWorktrees = worktrees.filter((w) => sessionMap.has(w.id));
+  // Only show worktrees that have assigned agents
+  const assignedWorktrees = worktrees.filter((w) => sessionMap.has(w.id));
 
   return (
     <>
       <SidebarSeparator />
       <SidebarGroup>
-        <SidebarGroupLabel>Active Agents</SidebarGroupLabel>
+        <SidebarGroupLabel>Agents</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {activeWorktrees.length === 0 ? (
+            {assignedWorktrees.length === 0 ? (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   size="sm"
                   disabled
                   className="text-muted-foreground"
                 >
-                  <span>No active agents</span>
+                  <span>No agents</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ) : (
-              activeWorktrees.map((worktree) => (
+              assignedWorktrees.map((worktree) => (
                 <WorktreeAgentGroup
                   key={worktree.id}
                   projectId={projectId}
@@ -526,7 +524,7 @@ function GlobalActiveAgents({
     <>
       <SidebarSeparator />
       <SidebarGroup>
-        <SidebarGroupLabel>Active Sessions</SidebarGroupLabel>
+        <SidebarGroupLabel>Sessions</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {sessions.length === 0 ? (
@@ -536,7 +534,7 @@ function GlobalActiveAgents({
                   disabled
                   className="text-muted-foreground"
                 >
-                  <span>No active agents</span>
+                  <span>No agents</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ) : (
