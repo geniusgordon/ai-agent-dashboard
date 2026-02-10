@@ -39,20 +39,6 @@ export function useSessionDetail(sessionId: string) {
   /** Track toolCallIds for plan file writes so we can invalidate on completion */
   const planWriteToolCallIds = useRef(new Set<string>());
 
-  // Reset local state when switching sessions
-  const prevSessionIdRef = useRef(sessionId);
-  useEffect(() => {
-    if (prevSessionIdRef.current !== sessionId) {
-      prevSessionIdRef.current = sessionId;
-      setEvents([]);
-      setOptimisticApproval(null);
-      autoScrollRef.current = true;
-      setShowScrollButton(false);
-      initialScrollDone.current = false;
-      planWriteToolCallIds.current.clear();
-    }
-  }, [sessionId]);
-
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
@@ -443,6 +429,39 @@ export function useSessionDetail(sessionId: string) {
       },
     }),
   );
+
+  // Reset all local + mutation state when switching sessions so spinners,
+  // banners, and other transient UI from Session A don't leak into Session B.
+  const prevSessionIdRef = useRef(sessionId);
+  useEffect(() => {
+    if (prevSessionIdRef.current !== sessionId) {
+      prevSessionIdRef.current = sessionId;
+      setEvents([]);
+      setOptimisticApproval(null);
+      autoScrollRef.current = true;
+      setShowScrollButton(false);
+      initialScrollDone.current = false;
+      planWriteToolCallIds.current.clear();
+      reconnectMutation.reset();
+      cancelSessionMutation.reset();
+      killSessionMutation.reset();
+      completeSessionMutation.reset();
+      renameSessionMutation.reset();
+      setModeMutation.reset();
+      approveMutation.reset();
+      denyMutation.reset();
+    }
+  }, [
+    sessionId,
+    reconnectMutation,
+    cancelSessionMutation,
+    killSessionMutation,
+    completeSessionMutation,
+    renameSessionMutation,
+    setModeMutation,
+    approveMutation,
+    denyMutation,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Action callbacks
