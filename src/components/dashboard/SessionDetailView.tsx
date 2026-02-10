@@ -84,7 +84,6 @@ export function SessionDetailView({
     events,
     pendingApproval,
     connected,
-    autoScroll,
     showScrollButton,
     supportsImages,
     latestPlan,
@@ -115,8 +114,6 @@ export function SessionDetailView({
     setMode,
     reconnect,
     deleteSession,
-    clearLogs,
-    toggleAutoScroll,
     toggleTaskPanel,
     manualScrollToBottom,
   } = useSessionDetail(sessionId);
@@ -144,9 +141,6 @@ export function SessionDetailView({
           <SessionContextHeader
             session={session}
             connected={connected}
-            autoScroll={autoScroll}
-            onToggleAutoScroll={toggleAutoScroll}
-            onClearLogs={clearLogs}
             backTo={headerBackTo}
             backParams={headerBackParams}
             onRename={renameSession}
