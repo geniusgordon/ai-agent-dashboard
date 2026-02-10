@@ -379,10 +379,10 @@ export async function getFilesChanged(
   baseBranch: string,
   compareBranch: string,
 ): Promise<ChangedFile[]> {
-  try {
-    validateBranchName(baseBranch);
-    validateBranchName(compareBranch);
+  validateBranchName(baseBranch);
+  validateBranchName(compareBranch);
 
+  try {
     const stdout = await getGit(repoPath).diff([
       "--numstat",
       `${baseBranch}...${compareBranch}`,
