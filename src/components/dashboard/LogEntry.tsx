@@ -166,13 +166,34 @@ function getPreview(content: string, maxLength = 80): string {
     }
   }
 
-  const firstLine = content.split("\n")[0];
+  const firstLine = getDisplayLines(content)[0] ?? "";
   if (firstLine.length <= maxLength) return firstLine;
   return `${firstLine.slice(0, maxLength)}…`;
 }
 
+function getDisplayLines(content: string): string[] {
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  let start = 0;
+  let end = lines.length - 1;
+
+  while (start <= end && lines[start].trim() === "") {
+    start += 1;
+  }
+  while (end >= start && lines[end].trim() === "") {
+    end -= 1;
+  }
+
+  if (start > end) return [];
+  return lines.slice(start, end + 1);
+}
+
+function getDisplayLineCount(content: string): number {
+  const displayLines = getDisplayLines(content);
+  return displayLines.length;
+}
+
 function isLongContent(content: string): boolean {
-  return content.length > 120 || content.includes("\n");
+  return content.length > 120 || getDisplayLineCount(content) > 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +256,7 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
     (isThinking || isToolCallStart) && isLongContent(content);
 
   const Icon = config.icon;
+  const displayLineCount = getDisplayLineCount(content);
   const displayContent =
     isCollapsible && !isExpanded ? getPreview(content) : content;
 
@@ -278,7 +300,7 @@ function LogEntryContent({ event }: { event: AgentEvent }) {
 
       {isCollapsible && !isExpanded && (
         <span className="text-muted-foreground/50 ml-1 text-xs">
-          ({content.split("\n").length} lines)
+          ({displayLineCount} lines)
         </span>
       )}
     </div>
