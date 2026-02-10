@@ -104,10 +104,8 @@ export function SessionCard({
 
       {/* Footer */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {branch && <BranchBadge branch={branch} size="sm" />}
-          <span className="text-xs text-muted-foreground">{timeAgo}</span>
-        </div>
+        {branch && <BranchBadge branch={branch} size="sm" />}
+        <span className="text-xs text-muted-foreground">{timeAgo}</span>
       </div>
     </Link>
   );
