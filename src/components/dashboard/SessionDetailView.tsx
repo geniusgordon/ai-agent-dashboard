@@ -220,6 +220,8 @@ export function SessionDetailView({
   };
 
   const canStartReview = !!resolvedProjectId && !!branch;
+  const hasTaskPanel = !!latestPlan || !!planFilePath;
+  const hasFloatingTaskPanel = hasTaskPanel;
 
   return (
     <>
@@ -227,7 +229,19 @@ export function SessionDetailView({
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         {/* Left column: banners + log + input */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          {/* Mobile/tablet: inline banners and task panel */}
+          {pendingApproval && (
+            <div className="sticky top-0 z-20 shrink-0 border-b border-border bg-background px-3 py-2">
+              <ApprovalBanner
+                approval={pendingApproval}
+                onApprove={approve}
+                onDeny={deny}
+                isApproving={isApproving}
+                isDenying={isDenying}
+              />
+            </div>
+          )}
+
+          {/* Mobile/tablet: inline urgent banners */}
           {!isDesktop && (
             <div className="flex flex-col shrink-0">
               {session.isActive === false && (
@@ -236,35 +250,6 @@ export function SessionDetailView({
                     onReconnect={reconnect}
                     isReconnecting={isReconnecting}
                   />
-                </div>
-              )}
-
-              {pendingApproval && (
-                <div className="px-3 py-2 border-b border-border">
-                  <ApprovalBanner
-                    approval={pendingApproval}
-                    onApprove={approve}
-                    onDeny={deny}
-                    isApproving={isApproving}
-                    isDenying={isDenying}
-                  />
-                </div>
-              )}
-
-              {latestPlan && (
-                <div className="px-3 py-2 border-b border-border">
-                  <TaskPanel
-                    entries={latestPlan.entries}
-                    isCollapsed={taskPanelCollapsed}
-                    onToggleCollapse={toggleTaskPanel}
-                    planFilePath={planFilePath}
-                  />
-                </div>
-              )}
-
-              {!latestPlan && planFilePath && (
-                <div className="px-3 py-2 border-b border-border">
-                  <PlanDocumentViewer filePath={planFilePath} />
                 </div>
               )}
             </div>
@@ -278,30 +263,52 @@ export function SessionDetailView({
             onScrollToBottom={manualScrollToBottom}
           />
 
-          {showInput && (
-            <MessageInput
-              sessionId={sessionId}
-              onSend={sendMessage}
-              disabled={!!pendingApproval || session.isActive === false}
-              isAgentBusy={isAgentBusy}
-              placeholder={
-                session.isActive === false
-                  ? "Agent disconnected — reconnect to send messages"
-                  : pendingApproval
-                    ? "Waiting for approval..."
-                    : "Send a message..."
-              }
-              supportsImages={supportsImages}
-              availableModes={session.availableModes}
-              currentModeId={session.currentModeId}
-              onSetMode={setMode}
-              isSettingMode={isSettingMode}
-              onCancel={cancelSession}
-              isCancelling={isCancelling}
-              usageInfo={usageInfo}
-              availableCommands={availableCommands}
-            />
-          )}
+          <div className="relative shrink-0">
+            {hasFloatingTaskPanel && (
+              <div
+                className={`absolute inset-x-0 z-20 px-3 ${showInput ? "bottom-full pb-2" : "bottom-0 pb-3"}`}
+              >
+                <div className="max-h-[min(45vh,24rem)] overflow-y-auto space-y-2 rounded-lg border border-border bg-background/95 p-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                  {hasTaskPanel &&
+                    (latestPlan ? (
+                      <TaskPanel
+                        entries={latestPlan.entries}
+                        isCollapsed={taskPanelCollapsed}
+                        onToggleCollapse={toggleTaskPanel}
+                        planFilePath={planFilePath}
+                      />
+                    ) : (
+                      <PlanDocumentViewer filePath={planFilePath} />
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {showInput && (
+              <MessageInput
+                sessionId={sessionId}
+                onSend={sendMessage}
+                disabled={!!pendingApproval || session.isActive === false}
+                isAgentBusy={isAgentBusy}
+                placeholder={
+                  session.isActive === false
+                    ? "Agent disconnected — reconnect to send messages"
+                    : pendingApproval
+                      ? "Waiting for approval..."
+                      : "Send a message..."
+                }
+                supportsImages={supportsImages}
+                availableModes={session.availableModes}
+                currentModeId={session.currentModeId}
+                onSetMode={setMode}
+                isSettingMode={isSettingMode}
+                onCancel={cancelSession}
+                isCancelling={isCancelling}
+                usageInfo={usageInfo}
+                availableCommands={availableCommands}
+              />
+            )}
+          </div>
         </div>
 
         {/* Right column */}
@@ -313,13 +320,6 @@ export function SessionDetailView({
             branch={branch}
             worktreeId={session.worktreeId}
             projectName={projectQuery.data?.name}
-            approval={{
-              pendingApproval,
-              onApprove: approve,
-              onDeny: deny,
-              isApproving,
-              isDenying,
-            }}
             actions={{
               onKillSession: killSession,
               isKilling,
@@ -329,12 +329,6 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
-            }}
-            tasks={{
-              latestPlan,
-              planFilePath,
-              taskPanelCollapsed,
-              onToggleTaskPanel: toggleTaskPanel,
             }}
             usageInfo={usageInfo}
             onStartReview={
@@ -350,13 +344,6 @@ export function SessionDetailView({
             branch={branch}
             worktreeId={session.worktreeId}
             projectName={projectQuery.data?.name}
-            approval={{
-              pendingApproval,
-              onApprove: approve,
-              onDeny: deny,
-              isApproving,
-              isDenying,
-            }}
             actions={{
               onKillSession: killSession,
               isKilling,
@@ -366,12 +353,6 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
-            }}
-            tasks={{
-              latestPlan,
-              planFilePath,
-              taskPanelCollapsed,
-              onToggleTaskPanel: toggleTaskPanel,
             }}
             onStartReview={
               canStartReview ? () => setReviewDialogOpen(true) : undefined
