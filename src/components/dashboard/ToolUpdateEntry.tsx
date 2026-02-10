@@ -86,7 +86,7 @@ function TerminalExitEntry({ event }: { event: AgentEvent }) {
       `}
     >
       {/* Timestamp */}
-      <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+      <div className="shrink-0 hidden sm:flex items-start gap-1 w-[5.5rem] pt-0.5">
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
           {formatTime(event.timestamp)}
         </span>
@@ -195,7 +195,7 @@ function TerminalErrorEntry({ event }: { event: AgentEvent }) {
   return (
     <div className="group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2 border-l-event-error/50 bg-destructive/5 transition-colors duration-200 hover:bg-accent/50">
       {/* Timestamp */}
-      <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+      <div className="shrink-0 hidden sm:flex items-start gap-1 w-[5.5rem] pt-0.5">
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
           {formatTime(event.timestamp)}
         </span>
@@ -337,7 +337,7 @@ function DiffEntry({ event }: { event: AgentEvent }) {
   return (
     <div className="group flex gap-1.5 lg:gap-2.5 py-1.5 lg:py-2 px-2 lg:px-3 rounded-md border-l-2 border-l-event-tool/50 transition-colors duration-200 hover:bg-accent/50">
       {/* Timestamp */}
-      <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+      <div className="shrink-0 hidden sm:flex items-start gap-1 w-[5.5rem] pt-0.5">
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
           {formatTime(event.timestamp)}
         </span>
@@ -408,7 +408,7 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
         aria-expanded={isExpanded}
       >
         {/* Timestamp */}
-        <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+        <div className="shrink-0 hidden sm:flex items-start gap-1 w-[5.5rem] pt-0.5">
           <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
             {formatTime(event.timestamp)}
           </span>
@@ -449,7 +449,7 @@ function GenericToolUpdateEntry({ event }: { event: AgentEvent }) {
       `}
     >
       {/* Timestamp */}
-      <div className="shrink-0 hidden sm:flex items-center gap-1 w-[5.5rem] pt-0.5">
+      <div className="shrink-0 hidden sm:flex items-start gap-1 w-[5.5rem] pt-0.5">
         <span className="text-muted-foreground/70 text-[11px] tabular-nums select-none">
           {formatTime(event.timestamp)}
         </span>
