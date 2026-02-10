@@ -221,7 +221,7 @@ function OnboardingView() {
         {/* Action Card */}
         <Link
           to="/dashboard/projects/new"
-          className="flex flex-col items-center gap-3 p-8 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all group mt-8"
+          className="flex flex-col items-center gap-3 p-8 rounded-xl border border-border bg-card/50 transition-all duration-200 hover:bg-card hover:border-primary/20 group mt-8"
         >
           <div className="p-3 rounded-xl bg-git/10 group-hover:bg-git/20 transition-colors">
             <FolderGit2 className="size-6 text-git-muted" />
