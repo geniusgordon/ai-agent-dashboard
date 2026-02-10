@@ -2,12 +2,9 @@
  * Session Card Component
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { useBranchInfo } from "../../hooks/useBranchInfo";
-import { useTRPC } from "../../integrations/trpc/react";
 import type { AgentSession } from "../../lib/agents/types";
 import { AgentBadge } from "./AgentBadge";
 import { BranchBadge } from "./BranchBadge";
@@ -17,6 +14,8 @@ interface SessionCardProps {
   session: AgentSession;
   /** When set, links to project-scoped session detail route */
   projectId?: string;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
 const statusLeftBorder: Record<string, string> = {
@@ -29,38 +28,17 @@ const statusLeftBorder: Record<string, string> = {
   idle: "border-l-muted-foreground",
 };
 
-export function SessionCard({ session, projectId }: SessionCardProps) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const [confirmDelete, setConfirmDelete] = useState(false);
+export function SessionCard({
+  session,
+  projectId,
+  onDelete,
+  isDeleting,
+}: SessionCardProps) {
   const branchQuery = useBranchInfo(session.cwd);
   const branch = branchQuery.data?.branch;
 
-  const deleteMutation = useMutation(
-    trpc.sessions.deleteSession.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.sessions.listSessions.queryKey(),
-        });
-      },
-    }),
-  );
-
   const timeAgo = getTimeAgo(session.createdAt);
   const isInactive = session.isActive === false;
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (confirmDelete) {
-      deleteMutation.mutate({ sessionId: session.id });
-    } else {
-      setConfirmDelete(true);
-      // Reset confirmation after 3 seconds
-      setTimeout(() => setConfirmDelete(false), 3000);
-    }
-  };
 
   return (
     <Link
@@ -85,67 +63,50 @@ export function SessionCard({ session, projectId }: SessionCardProps) {
         }
       `}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
-            <AgentBadge type={session.agentType} size="sm" />
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-medium text-sm truncate">
+              {session.name || session.id.slice(0, 8)}
+            </h4>
             <StatusBadge status={session.status} />
             {isInactive && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground font-medium">
                 History
               </span>
             )}
           </div>
-
-          {/* Session Name or ID */}
-          <p className="font-mono text-sm text-foreground truncate mb-1">
-            {session.name || session.id.slice(0, 8)}
-          </p>
-
-          {/* CWD & Branch */}
-          <div className="flex items-center gap-2 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">
-              {session.cwd}
-            </p>
-            {branch && <BranchBadge branch={branch} size="sm" />}
-          </div>
+          <AgentBadge type={session.agentType} size="sm" />
         </div>
 
-        {/* Time, Delete & Nav */}
-        <div className="text-right shrink-0 flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground">{timeAgo}</p>
-            <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+            }}
+            disabled={isDeleting}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Delete session"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        )}
+      </div>
 
-          {/* Delete button - show on hover or when confirming */}
-          <div className="flex flex-col items-end gap-1">
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              disabled={deleteMutation.isPending}
-              className={`
-                p-1.5 rounded-md transition-all
-                ${
-                  confirmDelete
-                    ? "bg-destructive/10 text-destructive opacity-100"
-                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
-                }
-                disabled:opacity-50 disabled:cursor-not-allowed
-              `}
-              title={
-                confirmDelete ? "Click again to confirm" : "Delete session"
-              }
-            >
-              <Trash2 className="size-4" />
-            </button>
-            {confirmDelete && (
-              <span className="text-[11px] text-destructive whitespace-nowrap">
-                Confirm delete
-              </span>
-            )}
-          </div>
+      {/* Path */}
+      <p className="text-xs text-muted-foreground font-mono truncate mb-3">
+        {session.cwd}
+      </p>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {branch && <BranchBadge branch={branch} size="sm" />}
+          <span className="text-xs text-muted-foreground">{timeAgo}</span>
         </div>
       </div>
     </Link>

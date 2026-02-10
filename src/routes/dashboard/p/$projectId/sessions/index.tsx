@@ -15,8 +15,13 @@ import {
   Search,
 } from "lucide-react";
 import { useState } from "react";
-import { PageContainer, SessionCard } from "@/components/dashboard";
+import {
+  PageContainer,
+  SessionCard,
+  SessionDeleteDialog,
+} from "@/components/dashboard";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
+import { useSessionDelete } from "@/hooks/useSessionDelete";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentSession } from "@/lib/agents/types";
 import type { AgentWorktreeAssignment, Worktree } from "@/lib/projects/types";
@@ -36,6 +41,8 @@ function ProjectSessionsPage() {
   const [collapsedWorktrees, setCollapsedWorktrees] = useState<Set<string>>(
     new Set(["__unassigned"]),
   );
+
+  const sessionDelete = useSessionDelete();
 
   // Queries
   const sessionsQuery = useQuery(
@@ -202,11 +209,23 @@ function ProjectSessionsPage() {
                 projectId={projectId}
                 isCollapsed={collapsedWorktrees.has(group.id)}
                 onToggle={() => toggleWorktree(group.id)}
+                onDeleteSession={sessionDelete.setSessionToDelete}
+                deletingSessionId={sessionDelete.deletingSessionId}
               />
             ))}
           </div>
         )}
       </div>
+
+      <SessionDeleteDialog
+        session={sessionDelete.sessionToDelete}
+        open={sessionDelete.sessionToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) sessionDelete.setSessionToDelete(null);
+        }}
+        onConfirm={sessionDelete.confirmDelete}
+        isDeleting={sessionDelete.isDeleting}
+      />
     </PageContainer>
   );
 }
@@ -227,11 +246,15 @@ function WorktreeSessionGroup({
   projectId,
   isCollapsed,
   onToggle,
+  onDeleteSession,
+  deletingSessionId,
 }: {
   group: SessionGroup;
   projectId: string;
   isCollapsed: boolean;
   onToggle: () => void;
+  onDeleteSession: (session: AgentSession) => void;
+  deletingSessionId?: string;
 }) {
   const Chevron = isCollapsed ? ChevronRight : ChevronDown;
 
@@ -257,6 +280,8 @@ function WorktreeSessionGroup({
               key={session.id}
               session={session}
               projectId={projectId}
+              onDelete={() => onDeleteSession(session)}
+              isDeleting={deletingSessionId === session.id}
             />
           ))}
         </div>
