@@ -282,12 +282,14 @@ export function SessionDetailView({
             <MessageInput
               sessionId={sessionId}
               onSend={sendMessage}
-              disabled={!!pendingApproval}
+              disabled={!!pendingApproval || session.isActive === false}
               isAgentBusy={isAgentBusy}
               placeholder={
-                pendingApproval
-                  ? "Waiting for approval..."
-                  : "Send a message..."
+                session.isActive === false
+                  ? "Agent disconnected — reconnect to send messages"
+                  : pendingApproval
+                    ? "Waiting for approval..."
+                    : "Send a message..."
               }
               supportsImages={supportsImages}
               availableModes={session.availableModes}
