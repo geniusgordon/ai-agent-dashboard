@@ -420,6 +420,16 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  // Reset reconnect mutation state when switching sessions so the
+  // "Reconnecting…" spinner from Session A doesn't leak into Session B.
+  const prevReconnectSessionRef = useRef(sessionId);
+  useEffect(() => {
+    if (prevReconnectSessionRef.current !== sessionId) {
+      prevReconnectSessionRef.current = sessionId;
+      reconnectMutation.reset();
+    }
+  }, [sessionId, reconnectMutation]);
+
   const cancelSessionMutation = useMutation(
     trpc.sessions.cancelSession.mutationOptions({
       onSuccess: () => {
