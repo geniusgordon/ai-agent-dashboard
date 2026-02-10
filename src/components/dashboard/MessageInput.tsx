@@ -325,7 +325,6 @@ export function MessageInput({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-running opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-status-running" />
               </span>
-              <Loader2 className="size-3 animate-spin" />
               <span className="font-medium">Agent is thinking...</span>
             </div>
           )}
