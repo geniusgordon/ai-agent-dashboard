@@ -2,15 +2,17 @@
  * Tests for git-operations.ts
  *
  * Tests validation logic and output parsing.
- * Mocks `execFile` to avoid needing actual git repos.
+ * Mocks `simple-git` to avoid needing actual git repos.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { validateBranchName } from "./git-operations.js";
 
 // =============================================================================
 // Branch Name Validation
 // =============================================================================
+
+// Validation functions are pure logic — import directly, no mocking needed.
+import { validateBranchName } from "./git-operations.js";
 
 describe("validateBranchName", () => {
   it("accepts valid branch names", () => {
@@ -94,38 +96,36 @@ describe("validateBranchName", () => {
 // =============================================================================
 
 describe("listWorktrees (parsing)", () => {
-  // We test the parsing logic by mocking execFile
-  const mockExecFile = vi.fn();
+  const mockRaw = vi.fn();
+  const mockRevparse = vi.fn();
 
   beforeEach(() => {
     vi.resetModules();
-    mockExecFile.mockReset();
+    mockRaw.mockReset();
+    mockRevparse.mockReset();
   });
 
   it("parses porcelain output with multiple worktrees", async () => {
-    // Mock the child_process module
-    vi.doMock("node:child_process", () => ({
-      execFile: (
-        _cmd: string,
-        _args: string[],
-        _opts: unknown,
-        cb: (err: null, result: { stdout: string; stderr: string }) => void,
-      ) => {
-        cb(null, {
-          stdout: [
-            "worktree /repo",
-            "HEAD abc123",
-            "branch refs/heads/main",
-            "",
-            "worktree /repo/feature-x",
-            "HEAD def456",
-            "branch refs/heads/feature-x",
-            "",
-          ].join("\n"),
-          stderr: "",
-        });
-      },
+    vi.doMock("simple-git", () => ({
+      default: () => ({
+        raw: mockRaw,
+        revparse: mockRevparse,
+      }),
+      CheckRepoActions: { BARE: "BARE" },
     }));
+
+    mockRaw.mockResolvedValueOnce(
+      [
+        "worktree /repo",
+        "HEAD abc123",
+        "branch refs/heads/main",
+        "",
+        "worktree /repo/feature-x",
+        "HEAD def456",
+        "branch refs/heads/feature-x",
+        "",
+      ].join("\n"),
+    );
 
     const { listWorktrees } = await import("./git-operations.js");
     const result = await listWorktrees("/repo");
@@ -144,25 +144,22 @@ describe("listWorktrees (parsing)", () => {
   });
 
   it("handles bare repo in worktree list and resolves branch from HEAD", async () => {
-    vi.doMock("node:child_process", () => ({
-      execFile: (
-        _cmd: string,
-        args: string[],
-        _opts: unknown,
-        cb: (err: null, result: { stdout: string; stderr: string }) => void,
-      ) => {
-        if (args.includes("worktree")) {
-          cb(null, {
-            stdout: ["worktree /repo.git", "HEAD abc123", "bare", ""].join(
-              "\n",
-            ),
-            stderr: "",
-          });
-        } else if (args.includes("rev-parse")) {
-          cb(null, { stdout: "main\n", stderr: "" });
-        }
-      },
+    vi.doMock("simple-git", () => ({
+      default: () => ({
+        raw: mockRaw,
+        revparse: mockRevparse,
+        checkIsRepo: vi.fn().mockResolvedValue(true),
+      }),
+      CheckRepoActions: { BARE: "BARE" },
     }));
+
+    // First call: worktree list --porcelain
+    mockRaw.mockResolvedValueOnce(
+      ["worktree /repo.git", "HEAD abc123", "bare", ""].join("\n"),
+    );
+
+    // getCurrentBranch uses revparse(["--abbrev-ref", "HEAD"])
+    mockRevparse.mockResolvedValueOnce("main");
 
     const { listWorktrees } = await import("./git-operations.js");
     const result = await listWorktrees("/repo.git");
@@ -176,24 +173,17 @@ describe("listWorktrees (parsing)", () => {
   });
 
   it("handles detached HEAD", async () => {
-    vi.doMock("node:child_process", () => ({
-      execFile: (
-        _cmd: string,
-        _args: string[],
-        _opts: unknown,
-        cb: (err: null, result: { stdout: string; stderr: string }) => void,
-      ) => {
-        cb(null, {
-          stdout: [
-            "worktree /repo/detached",
-            "HEAD abc123",
-            "detached",
-            "",
-          ].join("\n"),
-          stderr: "",
-        });
-      },
+    vi.doMock("simple-git", () => ({
+      default: () => ({
+        raw: mockRaw,
+        revparse: mockRevparse,
+      }),
+      CheckRepoActions: { BARE: "BARE" },
     }));
+
+    mockRaw.mockResolvedValueOnce(
+      ["worktree /repo/detached", "HEAD abc123", "detached", ""].join("\n"),
+    );
 
     const { listWorktrees } = await import("./git-operations.js");
     const result = await listWorktrees("/repo/detached");
