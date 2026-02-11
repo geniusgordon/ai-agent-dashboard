@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ApprovalBanner,
@@ -78,6 +78,8 @@ export function SessionDetailView({
   );
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const taskPanelContainerRef = useRef<HTMLDivElement>(null);
+  const [taskPanelPlaceholderHeight, setTaskPanelPlaceholderHeight] = useState(0);
 
   const {
     session,
@@ -226,6 +228,34 @@ export function SessionDetailView({
   const canStartReview = !!resolvedProjectId && !!branch;
   const hasTaskPanel = !!latestPlan || !!planFilePath;
 
+  useEffect(() => {
+    if (!hasTaskPanel) {
+      setTaskPanelPlaceholderHeight(0);
+      return;
+    }
+
+    const taskPanelContainer = taskPanelContainerRef.current;
+    if (!taskPanelContainer) return;
+
+    const updateTaskPanelHeight = () => {
+      const nextHeight = Math.ceil(
+        taskPanelContainer.getBoundingClientRect().height,
+      );
+      setTaskPanelPlaceholderHeight((prevHeight) =>
+        prevHeight !== nextHeight ? nextHeight : prevHeight,
+      );
+    };
+
+    updateTaskPanelHeight();
+
+    const resizeObserver = new ResizeObserver(updateTaskPanelHeight);
+    resizeObserver.observe(taskPanelContainer);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [hasTaskPanel]);
+
   return (
     <>
       {headerPortal}
@@ -263,8 +293,17 @@ export function SessionDetailView({
           />
 
           <div className="relative shrink-0">
+            {hasTaskPanel && taskPanelPlaceholderHeight > 0 && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none"
+                style={{ height: taskPanelPlaceholderHeight }}
+              />
+            )}
+
             {hasTaskPanel && (
               <div
+                ref={taskPanelContainerRef}
                 className={`absolute inset-x-0 z-20 px-3 ${showInput ? "bottom-full pb-2" : "bottom-0 pb-3"}`}
               >
                 <div className="max-h-[min(38svh,20rem)] overflow-y-auto space-y-2 rounded-lg border border-border bg-background/95 p-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:max-h-[min(42svh,22rem)]">

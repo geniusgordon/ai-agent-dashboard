@@ -568,25 +568,23 @@ export function MessageInput({
                   <Button
                     type="button"
                     variant="destructive"
-                    size="xs"
+                    size="icon-sm"
                     onClick={onCancel}
                     disabled={isCancelling}
-                    className="cursor-pointer"
+                    className="cursor-pointer rounded-full"
+                    aria-label={isCancelling ? "Stopping" : "Stop"}
                   >
                     {isCancelling ? (
                       <Loader2 className="size-3 animate-spin" />
                     ) : (
                       <StopCircle className="size-3" />
                     )}
-                    <span className="hidden sm:inline">
-                      {isCancelling ? "Stopping…" : "Stop"}
-                    </span>
                   </Button>
                 ) : (
                   <Button
                     type="submit"
                     variant="success"
-                    size="icon-xs"
+                    size="icon-sm"
                     disabled={!canSubmit || disabled}
                     className="cursor-pointer rounded-full"
                   >
