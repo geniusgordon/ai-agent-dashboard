@@ -32,6 +32,10 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.5rem;
+  --diff-add: oklch(0.87 0.15 145 / 0.18);
+  --diff-add-foreground: oklch(0.36 0.14 150);
+  --diff-del: oklch(0.65 0.2 25 / 0.15);
+  --diff-del-foreground: oklch(0.5 0.2 25);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: oklch(0.21 0.006 285.885);
@@ -67,6 +71,10 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  --diff-add: oklch(0.35 0.1 150 / 0.25);
+  --diff-add-foreground: oklch(0.75 0.17 150);
+  --diff-del: oklch(0.45 0.15 25 / 0.25);
+  --diff-del-foreground: oklch(0.72 0.17 20);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -158,6 +166,12 @@
   /* Muted variants for existing action tokens */
   --color-action-warning-muted: #fbbf24;
   --color-action-success-muted: #34d399;
+
+  /* Diff (GitHub-style) */
+  --color-diff-add: var(--diff-add);
+  --color-diff-add-foreground: var(--diff-add-foreground);
+  --color-diff-del: var(--diff-del);
+  --color-diff-del-foreground: var(--diff-del-foreground);
 
   /* Typography */
   --font-heading: "JetBrains Mono", monospace;
