@@ -8,7 +8,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { useTheme } from "@/hooks/useTheme";
 
 import {
   computeLineDiff,
@@ -258,9 +257,6 @@ function DiffLines({ lines }: { lines: string[] }) {
 }
 
 function DiffBlock({ block }: { block: DiffContentBlock }) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
   const diffText = computeLineDiff(block.oldText ?? "", block.newText);
   const lines = diffText.split("\n");
   const isLong = lines.length > OUTPUT_COLLAPSE_THRESHOLD;
@@ -271,9 +267,7 @@ function DiffBlock({ block }: { block: DiffContentBlock }) {
   return (
     <div className="rounded-md border border-border/40 bg-secondary/30 overflow-hidden">
       {/* File path header */}
-      <div
-        className={`flex items-center justify-between px-3 py-1.5 border-b border-border/30 ${isDark ? "bg-white/5" : "bg-black/[0.03]"}`}
-      >
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30 bg-black/[0.03] dark:bg-white/5">
         <span
           className="text-[11px] font-mono text-muted-foreground/70 truncate"
           title={block.path}
