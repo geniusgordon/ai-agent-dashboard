@@ -26,7 +26,7 @@ export function MarkdownContent({
   const isDark = theme === "dark";
   return (
     <div
-      className={`prose prose-sm max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_hr]:border-border [&_hr]:my-3 ${isDark ? "prose-invert" : ""}`}
+      className={`prose prose-sm max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 ${isDark ? "prose-invert" : ""}`}
     >
       <Markdown
         components={getMarkdownComponents(isDark)}
@@ -131,6 +131,81 @@ function getMarkdownComponents(
         >
           {children}
         </tr>
+      );
+    },
+    a({ href, children, ...props }) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 transition-colors"
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    },
+    blockquote({ children }) {
+      return (
+        <blockquote className="border-l-2 border-primary/30 pl-3 my-2 text-muted-foreground italic">
+          {children}
+        </blockquote>
+      );
+    },
+    h1({ children }) {
+      return (
+        <h1 className="text-lg font-semibold font-heading mt-4 mb-2 text-foreground">
+          {children}
+        </h1>
+      );
+    },
+    h2({ children }) {
+      return (
+        <h2 className="text-base font-semibold font-heading mt-3 mb-1.5 text-foreground">
+          {children}
+        </h2>
+      );
+    },
+    h3({ children }) {
+      return (
+        <h3 className="text-sm font-semibold font-heading mt-2.5 mb-1 text-foreground">
+          {children}
+        </h3>
+      );
+    },
+    h4({ children }) {
+      return (
+        <h4 className="text-sm font-medium font-heading mt-2 mb-1 text-foreground">
+          {children}
+        </h4>
+      );
+    },
+    ul({ children }) {
+      return <ul className="my-1.5 pl-4 list-disc space-y-0.5">{children}</ul>;
+    },
+    ol({ children }) {
+      return (
+        <ol className="my-1.5 pl-4 list-decimal space-y-0.5">{children}</ol>
+      );
+    },
+    li({ children }) {
+      return (
+        <li className="text-foreground/90 leading-relaxed">{children}</li>
+      );
+    },
+    hr() {
+      return <hr className="my-3 border-border" />;
+    },
+    img({ src, alt, ...props }) {
+      return (
+        <img
+          src={src}
+          alt={alt ?? ""}
+          className="max-w-full rounded-md my-2"
+          loading="lazy"
+          {...props}
+        />
       );
     },
     pre({ children }) {

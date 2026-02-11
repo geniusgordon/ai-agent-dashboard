@@ -8,12 +8,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/cjs/styles/prism";
-
 import { useTheme } from "@/hooks/useTheme";
 
 import {
@@ -236,10 +230,36 @@ function TerminalErrorEntry({ event }: { event: AgentEvent }) {
 // Diff — file edit results from agent tools
 // ---------------------------------------------------------------------------
 
+function DiffLine({ line }: { line: string }) {
+  const isAdd = line.startsWith("+");
+  const isDel = line.startsWith("-");
+  const isHunk = line.startsWith("@@");
+
+  let className = "";
+  if (isAdd) className = "bg-diff-add text-diff-add-foreground";
+  else if (isDel) className = "bg-diff-del text-diff-del-foreground";
+  else if (isHunk) className = "text-muted-foreground/60";
+
+  return (
+    <div className={`px-3 ${className}`}>
+      <span>{line}</span>
+    </div>
+  );
+}
+
+function DiffLines({ lines }: { lines: string[] }) {
+  return (
+    <pre className="py-2 text-[0.75rem] leading-relaxed font-mono overflow-x-auto">
+      {lines.map((line, i) => (
+        <DiffLine key={i} line={line} />
+      ))}
+    </pre>
+  );
+}
+
 function DiffBlock({ block }: { block: DiffContentBlock }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const syntaxTheme = isDark ? oneDark : oneLight;
 
   const diffText = computeLineDiff(block.oldText ?? "", block.newText);
   const lines = diffText.split("\n");
@@ -270,20 +290,7 @@ function DiffBlock({ block }: { block: DiffContentBlock }) {
           className="w-full text-left cursor-pointer"
           onClick={() => setIsExpanded(true)}
         >
-          <SyntaxHighlighter
-            style={syntaxTheme}
-            language="diff"
-            PreTag="div"
-            customStyle={{
-              margin: 0,
-              padding: "0.5rem 0.75rem",
-              borderRadius: 0,
-              fontSize: "0.75rem",
-              background: "transparent",
-            }}
-          >
-            {lines.slice(0, COLLAPSED_PREVIEW_LINES).join("\n")}
-          </SyntaxHighlighter>
+          <DiffLines lines={lines.slice(0, COLLAPSED_PREVIEW_LINES)} />
           <div className="flex items-center gap-1 px-3 py-1.5 border-t border-border/30 text-[11px] text-muted-foreground/60">
             <ChevronRight className="size-3" />
             <span>{lines.length - COLLAPSED_PREVIEW_LINES} more lines</span>
@@ -291,20 +298,7 @@ function DiffBlock({ block }: { block: DiffContentBlock }) {
         </button>
       ) : (
         <div>
-          <SyntaxHighlighter
-            style={syntaxTheme}
-            language="diff"
-            PreTag="div"
-            customStyle={{
-              margin: 0,
-              padding: "0.5rem 0.75rem",
-              borderRadius: 0,
-              fontSize: "0.75rem",
-              background: "transparent",
-            }}
-          >
-            {diffText}
-          </SyntaxHighlighter>
+          <DiffLines lines={lines} />
           {isLong && (
             <button
               type="button"
