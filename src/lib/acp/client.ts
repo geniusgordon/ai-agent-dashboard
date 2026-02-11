@@ -17,6 +17,7 @@ import {
   type SessionConfigOption,
   type SessionConfigValueOption,
 } from "../agents/types.js";
+import { expandPath } from "../utils/expand-path.js";
 
 // Re-export useful types from the SDK
 export type {
@@ -180,10 +181,7 @@ export class ACPClient extends EventEmitter {
     cwd: string = process.cwd(),
   ) {
     super();
-    // Expand ~ to home directory
-    this.cwd = cwd.startsWith("~")
-      ? cwd.replace("~", process.env.HOME ?? "")
-      : cwd;
+    this.cwd = expandPath(cwd);
   }
 
   /**
@@ -267,10 +265,7 @@ export class ACPClient extends EventEmitter {
       throw new Error("Client not started. Call start() first.");
     }
 
-    // Expand ~ to home directory
-    const expandedCwd = cwd.startsWith("~")
-      ? cwd.replace("~", process.env.HOME ?? "")
-      : cwd;
+    const expandedCwd = expandPath(cwd);
 
     console.log(`[ACPClient] Creating session with cwd: ${expandedCwd}`);
     const result = await this.connection.newSession({
@@ -438,9 +433,7 @@ export class ACPClient extends EventEmitter {
       throw new Error("Agent does not support loadSession");
     }
 
-    const expandedCwd = (cwd ?? this.cwd).startsWith("~")
-      ? (cwd ?? this.cwd).replace("~", process.env.HOME ?? "")
-      : (cwd ?? this.cwd);
+    const expandedCwd = expandPath(cwd ?? this.cwd);
 
     console.log(
       `[ACPClient] Loading session: ${sessionId} with cwd: ${expandedCwd}`,

@@ -6,13 +6,13 @@
  */
 
 import { EventEmitter } from "node:events";
-import path from "node:path";
 import type * as acp from "@agentclientprotocol/sdk";
 import {
   type AgentType as ACPAgentType,
   ACPClient,
   type PendingPermission,
 } from "../acp/index.js";
+import { collapsePath, expandPath } from "../utils/expand-path.js";
 import { recordRecentDirectory } from "./recent-dirs.js";
 import * as store from "./store.js";
 import {
@@ -43,26 +43,11 @@ import {
   normalizeSessionConfigOptions,
 } from "./types.js";
 
-const HOME_DIR = process.env.HOME ?? "";
-
-/**
- * Collapse absolute home-prefixed paths back to ~ for display.
- */
-function collapsePath(cwd: string): string {
-  if (HOME_DIR && (cwd === HOME_DIR || cwd.startsWith(`${HOME_DIR}/`))) {
-    return `~${cwd.slice(HOME_DIR.length)}`;
-  }
-  return cwd;
-}
-
 /**
  * Expand ~ and resolve . / .. / trailing slashes so string comparison works.
  */
 function normalizeCwd(cwd: string): string {
-  const expanded = cwd.startsWith("~")
-    ? (process.env.HOME ?? "") + cwd.slice(1)
-    : cwd;
-  return path.resolve(expanded);
+  return expandPath(cwd);
 }
 
 /**

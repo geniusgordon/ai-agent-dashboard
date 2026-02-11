@@ -7,6 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { basename, resolve } from "node:path";
+import { expandPath } from "../utils/expand-path.js";
 import { getDatabase } from "./db.js";
 import * as git from "./git-operations.js";
 import type {
@@ -118,7 +119,7 @@ export class ProjectManager {
     description?: string;
     settings?: ProjectSettings;
   }): Promise<Project> {
-    const resolvedPath = resolve(opts.repoPath);
+    const resolvedPath = expandPath(opts.repoPath);
     git.validatePath(resolvedPath);
 
     if (
@@ -493,7 +494,7 @@ export class ProjectManager {
     dirPath: string,
     options?: { name?: string; description?: string },
   ): Promise<Project> {
-    const resolvedPath = resolve(dirPath);
+    const resolvedPath = expandPath(dirPath);
     git.validatePath(resolvedPath);
 
     if (

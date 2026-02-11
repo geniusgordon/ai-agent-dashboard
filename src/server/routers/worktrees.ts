@@ -14,6 +14,12 @@ import {
   getProjectManager,
   getRecentCommits,
 } from "../../lib/projects/index.js";
+import type { Worktree } from "../../lib/projects/types.js";
+import { collapsePath } from "../../lib/utils/expand-path.js";
+
+function collapseWorktree(w: Worktree): Worktree {
+  return { ...w, path: collapsePath(w.path) };
+}
 
 export const worktreesRouter = createTRPCRouter({
   list: publicProcedure
@@ -21,14 +27,15 @@ export const worktreesRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const manager = getProjectManager();
       await manager.syncWorktrees(input.projectId);
-      return manager.listWorktrees(input.projectId);
+      return manager.listWorktrees(input.projectId).map(collapseWorktree);
     }),
 
   get: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(({ input }) => {
       const manager = getProjectManager();
-      return manager.getWorktree(input.id) ?? null;
+      const worktree = manager.getWorktree(input.id);
+      return worktree ? collapseWorktree(worktree) : null;
     }),
 
   create: publicProcedure
@@ -43,7 +50,7 @@ export const worktreesRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const manager = getProjectManager();
-      return manager.createWorktree(input);
+      return collapseWorktree(await manager.createWorktree(input));
     }),
 
   delete: publicProcedure

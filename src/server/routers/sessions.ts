@@ -24,6 +24,7 @@ import {
   hasUncommittedChanges,
   isGitRepo,
 } from "../../lib/projects/index.js";
+import { expandPath } from "../../lib/utils/expand-path.js";
 
 const AgentTypeSchema = z.enum(["gemini", "claude-code", "codex"]);
 
@@ -347,10 +348,7 @@ export const sessionsRouter = createTRPCRouter({
   getBranchInfo: publicProcedure
     .input(z.object({ cwd: z.string() }))
     .query(async ({ input }) => {
-      let cwd = input.cwd;
-      if (cwd.startsWith("~")) {
-        cwd = cwd.replace("~", process.env.HOME ?? "");
-      }
+      const cwd = expandPath(input.cwd);
       return getBranchInfo(cwd);
     }),
 
@@ -390,10 +388,7 @@ export const sessionsRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input }) => {
-      let cwd = input.cwd;
-      if (cwd.startsWith("~")) {
-        cwd = cwd.replace("~", process.env.HOME ?? "");
-      }
+      const cwd = expandPath(input.cwd);
 
       const isRepo = await isGitRepo(cwd);
       if (!isRepo) {

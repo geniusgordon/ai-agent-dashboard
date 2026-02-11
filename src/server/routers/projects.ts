@@ -8,6 +8,13 @@ import {
   publicProcedure,
 } from "../../integrations/trpc/init.js";
 import { getProjectManager } from "../../lib/projects/index.js";
+import type { Project } from "../../lib/projects/types.js";
+import { collapsePath } from "../../lib/utils/expand-path.js";
+
+/** Collapse absolute paths to ~ for frontend display. */
+function collapseProject(p: Project): Project {
+  return { ...p, repoPath: collapsePath(p.repoPath) };
+}
 
 const ProjectSettingsSchema = z
   .object({
@@ -29,19 +36,20 @@ export const projectsRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const manager = getProjectManager();
-      return manager.createProject(input);
+      return collapseProject(await manager.createProject(input));
     }),
 
   list: publicProcedure.query(() => {
     const manager = getProjectManager();
-    return manager.listProjects();
+    return manager.listProjects().map(collapseProject);
   }),
 
   get: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(({ input }) => {
       const manager = getProjectManager();
-      return manager.getProject(input.id) ?? null;
+      const project = manager.getProject(input.id);
+      return project ? collapseProject(project) : null;
     }),
 
   update: publicProcedure
@@ -55,7 +63,7 @@ export const projectsRouter = createTRPCRouter({
     )
     .mutation(({ input }) => {
       const manager = getProjectManager();
-      return manager.updateProject(input.id, input);
+      return collapseProject(manager.updateProject(input.id, input));
     }),
 
   delete: publicProcedure
@@ -76,10 +84,12 @@ export const projectsRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const manager = getProjectManager();
-      return manager.importFromDirectory(input.dirPath, {
-        name: input.name,
-        description: input.description,
-      });
+      return collapseProject(
+        await manager.importFromDirectory(input.dirPath, {
+          name: input.name,
+          description: input.description,
+        }),
+      );
     }),
 
   listBranches: publicProcedure
