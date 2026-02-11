@@ -141,7 +141,7 @@ function toStoredEvent(event: AgentEvent): StoredEvent {
     clientId: event.clientId,
     sessionId: event.sessionId,
     timestamp: event.timestamp.toISOString(),
-    payload: event.payload,
+    payload: JSON.parse(JSON.stringify(event.payload)),
   };
 }
 

@@ -6,11 +6,29 @@ Session logs displayed duplicated words/text because consecutive message and thi
 
 ## Observed Behavior
 
-When viewing persisted session logs (e.g. session `89b18f08-dc94-4f62-a178-c7be3a289190`), message content appeared with duplicated words. For example, a message that should read `"hello world"` would instead display as `"hello worldhello world"`.
+When viewing persisted session logs (e.g. session `89b18f08-dc94-4f62-a178-c7be3a289190`), message content appeared with duplicated words. For example, a message that should read `"Looking at this"` would instead display as `"LookingLooking at this at this"` — every token doubled.
 
-## Root Cause
+## Root Causes
 
-The event pipeline has three independent coalescing layers, and `getSessionEvents()` was applying an additional merge on top of data that was already coalesced:
+Two bugs were found and fixed in sequence:
+
+### Bug 1: `getSessionEvents()` re-merged already-coalesced events (fixed in `3a9314e`)
+
+`getSessionEvents()` unconditionally called `mergeConsecutiveEvents()` on in-memory events that were already coalesced by `emitEvent()`, concatenating content that was already merged and producing duplicated text.
+
+**Fix**: Skip re-merge for the in-memory path; keep merge only for disk-loaded events (where the 500ms flush timer can split a message across JSONL lines).
+
+### Bug 2: Shared payload reference between in-memory array and store write buffer
+
+Even after Bug 1 was fixed, word-level duplication persisted **on disk**. The root cause was a shared JS object reference:
+
+1. Token `"Looking"` arrives. `emitEvent()` pushes event to in-memory array. `store.appendSessionEvent()` calls `toStoredEvent(event)` which copies fields but **reuses `event.payload` by reference**. The store's pending write buffer now holds a `StoredEvent` whose `.payload` is the **same object** as `events[last].payload` in memory.
+
+2. Token `" at this"` arrives. `emitEvent()` merges in-memory: mutates `lastPayload.content = "Looking" + " at this"`. Because the store's buffered payload is the same object reference, it is also mutated to `"Looking at this"`.
+
+3. `store.appendSessionEvent()` merges the new raw token into pending: `"Looking at this" + " at this"` = `"Looking at this at this"` — **doubled**.
+
+**Fix**: Clone the payload in `toStoredEvent()` with `JSON.parse(JSON.stringify(event.payload))` so the store owns an independent copy, breaking the shared reference.
 
 ### Event Flow (write path)
 
@@ -20,42 +38,33 @@ ACP agent emits token-by-token chunks
   ▼
 AgentManager.emitEvent()
   ├─ Merges consecutive message/thinking tokens in-memory (sessionEvents map)
-  ├─ Calls store.appendSessionEvent() ──► write buffer coalesces tokens,
+  │   └─ Mutates last.payload.content IN-PLACE
+  ├─ Calls store.appendSessionEvent() ──► toStoredEvent() clones payload,
+  │                                        write buffer coalesces tokens,
   │                                        flushes to JSONL after 500ms or on
   │                                        type change
   └─ Emits raw token via EventEmitter ──► SSE ──► browser
 ```
 
-### Event Flow (read path — the bug)
+### Event Flow (read path)
 
 ```
 AgentManager.getSessionEvents()
   ├─ In-memory path: events already merged by emitEvent()
-  │   └─ BUG: mergeConsecutiveEvents() re-merged ──► duplicated content
+  │   └─ Returns shallow copy directly (no re-merge)
   │
   └─ Disk path: JSONL lines already coalesced by write buffer
-      └─ BUG: mergeConsecutiveEvents() re-merged ──► duplicated content
+      └─ mergeConsecutiveEvents() heals flush-boundary splits only
 ```
-
-### Why duplication happens
-
-When `emitEvent()` receives tokens `"hello"` + `" world"`, it merges them into a single in-memory event with content `"hello world"`. The next token `" foo"` arrives and gets merged to `"hello world foo"`.
-
-When `getSessionEvents()` then calls `mergeConsecutiveEvents()`, it sees two adjacent events (the merged one and whatever follows) that may still be "mergeable" (same type, same sender). If the next event is also a message from the same sender (e.g. after a flush boundary), the content gets concatenated again — producing `"hello world foohello world foo"`.
 
 ### Frontend SSE merge (not affected)
 
 The frontend (`useSessionDetail.ts`) also merges consecutive SSE tokens in `handleEvent()`. This is correct and not affected — it operates on individual SSE tokens during live streaming. On reconnect/refetch, the server returns pre-merged events which replace the local state entirely.
 
-## Fix
-
-Changed `getSessionEvents()` to:
-- **In-memory events**: Return directly without re-merging (already coalesced by `emitEvent()`)
-- **Disk-loaded events**: Still merge, because the 500ms flush timer in `appendSessionEvent()` can split a single logical message across two adjacent JSONL lines when the timer fires mid-stream
-
 ## Files Changed
 
-- `src/lib/agents/manager.ts` — `getSessionEvents()` skips merge for in-memory path; `mergeConsecutiveEvents()` retained for disk-only use
+- `src/lib/agents/manager.ts` — `getSessionEvents()` skips merge for in-memory path; `mergeConsecutiveEvents()` retained for disk-only use (Bug 1)
+- `src/lib/agents/store.ts` — `toStoredEvent()` deep-clones payload to break shared reference with in-memory array (Bug 2)
 
 ## Coalescing Layer Reference
 
