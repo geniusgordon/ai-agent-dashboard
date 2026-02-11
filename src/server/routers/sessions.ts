@@ -181,7 +181,7 @@ export const sessionsRouter = createTRPCRouter({
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
       const manager = getAgentManager();
-      return manager.getSessionEvents(input.sessionId);
+      return await manager.getSessionEvents(input.sessionId);
     }),
 
   /**

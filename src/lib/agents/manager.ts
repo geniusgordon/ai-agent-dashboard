@@ -15,6 +15,7 @@ import {
 } from "../acp/index.js";
 import { recordRecentDirectory } from "./recent-dirs.js";
 import * as store from "./store.js";
+import { MAX_SESSION_EVENTS } from "./store.js";
 import type {
   AgentClient,
   AgentEvent,
@@ -566,7 +567,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     this.sessionToClient.set(sessionId, client.id);
 
     // Load events from disk into memory
-    const storedEvents = store.loadSessionEvents(sessionId);
+    const storedEvents = await store.loadSessionEvents(sessionId);
     const events = storedEvents.map((e) => ({
       ...e,
       timestamp: new Date(e.timestamp),
@@ -1091,16 +1092,16 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   /**
    * Get event history for a session
    */
-  getSessionEvents(sessionId: string): AgentEvent[] {
-    // Try in-memory first
+  async getSessionEvents(sessionId: string): Promise<AgentEvent[]> {
+    // Try in-memory first (fast path — no I/O)
     const memEvents = this.sessionEvents.get(sessionId);
     if (memEvents && memEvents.length > 0) {
       // Always merge - memory events are stored as fragments
       return this.mergeConsecutiveEvents(memEvents);
     }
 
-    // Load from disk and merge consecutive message/thinking chunks
-    const storedEvents = store.loadSessionEvents(sessionId);
+    // Load from disk (tail-read, capped) and merge consecutive chunks
+    const storedEvents = await store.loadSessionEvents(sessionId);
     if (storedEvents.length > 0) {
       const events = storedEvents.map((e) => ({
         ...e,
@@ -1480,6 +1481,13 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     const events = this.sessionEvents.get(event.sessionId) ?? [];
     events.push(event);
     this.sessionEvents.set(event.sessionId, events);
+
+    // Batch-trim: drop 25% off the front when we exceed the cap so the array
+    // oscillates between 75%-100% instead of trimming every single push.
+    if (events.length > MAX_SESSION_EVENTS) {
+      const dropCount = Math.floor(MAX_SESSION_EVENTS * 0.25);
+      events.splice(0, dropCount);
+    }
 
     // Persist to disk
     store.appendSessionEvent(event.sessionId, event);

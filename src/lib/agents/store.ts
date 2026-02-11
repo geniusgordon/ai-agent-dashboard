@@ -18,6 +18,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
+import { open, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { getDatabase } from "../projects/db.js";
 import type {
@@ -44,6 +45,14 @@ function ensureEventsDir(): void {
 function getEventsPath(sessionId: string): string {
   return join(EVENTS_DIR, `${sessionId}.jsonl`);
 }
+
+/**
+ * Maximum number of raw JSONL lines kept in memory per session.
+ * After merging consecutive message chunks this yields ~200-500 visible events
+ * — plenty for chat history.  When exceeded, emitEvent() batch-trims 25% off
+ * the front so the array oscillates between 75%-100% of the cap.
+ */
+export const MAX_SESSION_EVENTS = 20_000;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -428,16 +437,83 @@ export function appendSessionEvent(sessionId: string, event: AgentEvent): void {
 }
 
 /**
- * Load all events for a session from its JSONL file.
+ * Read the last `maxLines` newline-delimited lines from a file without loading
+ * the entire file into memory.  Reads backwards in CHUNK_SIZE-byte blocks.
+ * Small files (≤ CHUNK_SIZE) are read in a single call — no penalty for the
+ * common case.
+ *
+ * JSON.stringify escapes non-ASCII as \uXXXX, so every 0x0A byte in the file
+ * is a real line separator — byte-level \n scanning is safe.
  */
-export function loadSessionEvents(sessionId: string): StoredEvent[] {
-  const path = getEventsPath(sessionId);
-  if (!existsSync(path)) return [];
+const CHUNK_SIZE = 64 * 1024; // 64 KB
 
-  const content = readFileSync(path, "utf-8");
+async function tailLines(
+  filePath: string,
+  maxLines: number,
+): Promise<string[]> {
+  const info = await stat(filePath);
+  const fileSize = info.size;
+  if (fileSize === 0) return [];
+
+  const fh = await open(filePath, "r");
+  try {
+    const lines: string[] = [];
+    let position = fileSize;
+    let trailing = ""; // bytes after the last \n we've seen so far
+
+    while (position > 0 && lines.length < maxLines) {
+      const readSize = Math.min(CHUNK_SIZE, position);
+      position -= readSize;
+
+      const buf = Buffer.alloc(readSize);
+      await fh.read(buf, 0, readSize, position);
+      const chunk = buf.toString("utf-8");
+
+      const text = chunk + trailing;
+      trailing = "";
+
+      const parts = text.split("\n");
+      // The first element is a partial line (or the start of the file) —
+      // carry it forward for the next iteration.
+      trailing = parts[0];
+
+      // Walk from end to start (newest lines first)
+      for (let i = parts.length - 1; i >= 1; i--) {
+        if (parts[i].length > 0) {
+          lines.push(parts[i]);
+          if (lines.length >= maxLines) break;
+        }
+      }
+    }
+
+    // If we've consumed the whole file, the leftover `trailing` is the
+    // very first line.
+    if (position === 0 && trailing.length > 0 && lines.length < maxLines) {
+      lines.push(trailing);
+    }
+
+    // `lines` is newest-first — reverse to chronological order.
+    lines.reverse();
+    return lines;
+  } finally {
+    await fh.close();
+  }
+}
+
+/**
+ * Load the most recent events for a session from its JSONL file.
+ * Reads only the last MAX_SESSION_EVENTS lines from disk (async, backwards)
+ * so that even a 500 MB event file won't cause OOM.
+ */
+export async function loadSessionEvents(
+  sessionId: string,
+): Promise<StoredEvent[]> {
+  const eventsPath = getEventsPath(sessionId);
+  if (!existsSync(eventsPath)) return [];
+
+  const lines = await tailLines(eventsPath, MAX_SESSION_EVENTS);
   const events: StoredEvent[] = [];
-  for (const line of content.split("\n")) {
-    if (line.trim().length === 0) continue;
+  for (const line of lines) {
     try {
       events.push(JSON.parse(line) as StoredEvent);
     } catch {
