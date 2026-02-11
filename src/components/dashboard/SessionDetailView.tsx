@@ -79,7 +79,8 @@ export function SessionDetailView({
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const taskPanelContainerRef = useRef<HTMLDivElement>(null);
-  const [taskPanelPlaceholderHeight, setTaskPanelPlaceholderHeight] = useState(0);
+  const [taskPanelPlaceholderHeight, setTaskPanelPlaceholderHeight] =
+    useState(0);
 
   const {
     session,
@@ -139,6 +140,36 @@ export function SessionDetailView({
   useEffect(() => {
     setSlotActive(!!session);
   });
+
+  const hasTaskPanel = !!latestPlan || !!planFilePath;
+
+  useEffect(() => {
+    if (!session || !hasTaskPanel) {
+      setTaskPanelPlaceholderHeight(0);
+      return;
+    }
+
+    const taskPanelContainer = taskPanelContainerRef.current;
+    if (!taskPanelContainer) return;
+
+    const updateTaskPanelHeight = () => {
+      const nextHeight = Math.ceil(
+        taskPanelContainer.getBoundingClientRect().height,
+      );
+      setTaskPanelPlaceholderHeight((prevHeight) =>
+        prevHeight !== nextHeight ? nextHeight : prevHeight,
+      );
+    };
+
+    updateTaskPanelHeight();
+
+    const resizeObserver = new ResizeObserver(updateTaskPanelHeight);
+    resizeObserver.observe(taskPanelContainer);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [session, hasTaskPanel]);
 
   // Render session header into the global header bar via portal.
   const headerPortal =
@@ -226,35 +257,6 @@ export function SessionDetailView({
   };
 
   const canStartReview = !!resolvedProjectId && !!branch;
-  const hasTaskPanel = !!latestPlan || !!planFilePath;
-
-  useEffect(() => {
-    if (!hasTaskPanel) {
-      setTaskPanelPlaceholderHeight(0);
-      return;
-    }
-
-    const taskPanelContainer = taskPanelContainerRef.current;
-    if (!taskPanelContainer) return;
-
-    const updateTaskPanelHeight = () => {
-      const nextHeight = Math.ceil(
-        taskPanelContainer.getBoundingClientRect().height,
-      );
-      setTaskPanelPlaceholderHeight((prevHeight) =>
-        prevHeight !== nextHeight ? nextHeight : prevHeight,
-      );
-    };
-
-    updateTaskPanelHeight();
-
-    const resizeObserver = new ResizeObserver(updateTaskPanelHeight);
-    resizeObserver.observe(taskPanelContainer);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [hasTaskPanel]);
 
   return (
     <>
