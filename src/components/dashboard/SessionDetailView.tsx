@@ -141,10 +141,11 @@ export function SessionDetailView({
     setSlotActive(!!session);
   });
 
+  const hasSession = !!session;
   const hasTaskPanel = !!latestPlan || !!planFilePath;
 
   useEffect(() => {
-    if (!session || !hasTaskPanel) {
+    if (!hasSession || !hasTaskPanel) {
       setTaskPanelPlaceholderHeight(0);
       return;
     }
@@ -169,7 +170,7 @@ export function SessionDetailView({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [session, hasTaskPanel]);
+  }, [hasSession, hasTaskPanel]);
 
   // Render session header into the global header bar via portal.
   const headerPortal =
