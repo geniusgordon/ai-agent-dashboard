@@ -45,7 +45,11 @@ import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useTheme } from "@/hooks/useTheme";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentSession } from "@/lib/agents/types";
-import type { AgentWorktreeAssignment, Worktree } from "@/lib/projects/types";
+import type {
+  AgentWorktreeAssignment,
+  Project,
+  Worktree,
+} from "@/lib/projects/types";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 
 // =============================================================================
@@ -105,6 +109,12 @@ export function Sidebar() {
 
   // Fetch sessions for active agents display
   const sessionsQuery = useQuery(trpc.sessions.listSessions.queryOptions());
+
+  // Fetch projects for global-mode session grouping
+  const projectsQuery = useQuery({
+    ...trpc.projects.list.queryOptions(),
+    enabled: !projectId,
+  });
 
   // Fetch worktrees + assignments when in project context
   const worktreesQuery = useQuery({
@@ -228,6 +238,7 @@ export function Sidebar() {
         ) : (
           <GlobalActiveAgents
             sessions={visibleSessions}
+            projects={projectsQuery.data ?? []}
             activeSessionId={activeSessionId}
             onNavigate={handleNavClick}
           />
@@ -513,13 +524,36 @@ function WorktreeAgentGroup({
 
 function GlobalActiveAgents({
   sessions,
+  projects,
   activeSessionId,
   onNavigate,
 }: {
   sessions: AgentSession[];
+  projects: Project[];
   activeSessionId: string | null;
   onNavigate: () => void;
 }) {
+  // Group sessions: projectId -> sessions, with null for unassigned
+  const projectById = new Map(projects.map((p) => [p.id, p]));
+  const grouped = new Map<string | null, AgentSession[]>();
+
+  for (const session of sessions) {
+    const key = session.projectId ?? null;
+    const list = grouped.get(key) ?? [];
+    list.push(session);
+    grouped.set(key, list);
+  }
+
+  // Project groups first (sorted by project name), then unassigned at the end
+  const projectGroups = [...grouped.entries()]
+    .filter(([key]) => key !== null)
+    .sort(([a], [b]) => {
+      const nameA = projectById.get(a!)?.name ?? "";
+      const nameB = projectById.get(b!)?.name ?? "";
+      return nameA.localeCompare(nameB);
+    });
+  const unassigned = grouped.get(null) ?? [];
+
   return (
     <>
       <SidebarSeparator />
@@ -538,19 +572,87 @@ function GlobalActiveAgents({
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ) : (
-              sessions.map((session) => (
-                <ActiveSessionItem
-                  key={session.id}
-                  session={session}
-                  isActive={session.id === activeSessionId}
-                  onNavigate={onNavigate}
-                />
-              ))
+              <>
+                {projectGroups.map(([projectId, projectSessions]) => {
+                  const project = projectById.get(projectId!);
+                  return (
+                    <ProjectSessionGroup
+                      key={projectId}
+                      projectId={projectId!}
+                      projectName={project?.name ?? projectId!}
+                      sessions={projectSessions}
+                      activeSessionId={activeSessionId}
+                      onNavigate={onNavigate}
+                    />
+                  );
+                })}
+                {unassigned.map((session) => (
+                  <ActiveSessionItem
+                    key={session.id}
+                    session={session}
+                    isActive={session.id === activeSessionId}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+              </>
             )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
     </>
+  );
+}
+
+/** A collapsible project group in the global sidebar, mirroring the worktree pattern. */
+function ProjectSessionGroup({
+  projectId,
+  projectName,
+  sessions,
+  activeSessionId,
+  onNavigate,
+}: {
+  projectId: string;
+  projectName: string;
+  sessions: AgentSession[];
+  activeSessionId: string | null;
+  onNavigate: () => void;
+}) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild tooltip={projectName} size="sm">
+        <Link
+          to="/dashboard/p/$projectId"
+          params={{ projectId }}
+          onClick={onNavigate}
+        >
+          <LayoutDashboard className="text-muted-foreground" />
+          <span className="truncate font-medium">{projectName}</span>
+        </Link>
+      </SidebarMenuButton>
+      <SidebarMenuSub>
+        {sessions.map((session) => (
+          <SidebarMenuSubItem key={session.id} className="relative">
+            <SidebarMenuSubButton
+              asChild
+              size="sm"
+              isActive={session.id === activeSessionId}
+              className="pr-6"
+            >
+              <Link
+                to="/dashboard/p/$projectId/sessions/$sessionId"
+                params={{ projectId, sessionId: session.id }}
+                onClick={onNavigate}
+              >
+                <StatusDot status={session.status} />
+                <span className="truncate">
+                  {session.name || session.agentType}
+                </span>
+              </Link>
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>
+        ))}
+      </SidebarMenuSub>
+    </SidebarMenuItem>
   );
 }
 
