@@ -154,9 +154,7 @@ type RawSessionConfigOption = {
 };
 
 function normalizeConfigCategory(v: unknown): SessionConfigOption["category"] {
-  return v === "mode" || v === "model" || v === "thought_level"
-    ? v
-    : "_custom";
+  return v === "mode" || v === "model" || v === "thought_level" ? v : "_custom";
 }
 
 /**
@@ -189,9 +187,7 @@ export function normalizeSessionConfigOptions(
             .map((opt) => ({
               value: opt.value as string,
               name:
-                typeof opt.name === "string"
-                  ? opt.name
-                  : (opt.value as string),
+                typeof opt.name === "string" ? opt.name : (opt.value as string),
             }))
         : [],
     }));

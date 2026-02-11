@@ -385,7 +385,9 @@ export class ACPClient extends EventEmitter {
         }) => Promise<void>
       )({ sessionId, optionId, value });
     } else {
-      throw new Error("ACP connection does not support session/set_config_option");
+      throw new Error(
+        "ACP connection does not support session/set_config_option",
+      );
     }
 
     const session = this.sessions.get(sessionId);
@@ -846,9 +848,7 @@ export class ACPClient extends EventEmitter {
     };
   }
 
-  private deriveConfigState(
-    payload: unknown,
-  ): {
+  private deriveConfigState(payload: unknown): {
     configOptions: SessionConfigOption[];
     currentModeId?: string;
     modelOptionId?: string;

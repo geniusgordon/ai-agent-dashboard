@@ -25,11 +25,11 @@ export type {
   ClientStatus,
   CompletePayload,
   CreateSessionOptions,
+  DerivedSessionConfigState,
   ErrorPayload,
   EventHandler,
   // Manager interface
   IAgentManager,
-  DerivedSessionConfigState,
   MessagePayload,
   PlanPayload,
   SessionConfigOption,
