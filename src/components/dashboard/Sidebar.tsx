@@ -639,8 +639,8 @@ function ProjectSessionGroup({
               className="pr-6"
             >
               <Link
-                to="/dashboard/sessions/$sessionId"
-                params={{ sessionId: session.id }}
+                to="/dashboard/p/$projectId/sessions/$sessionId"
+                params={{ projectId, sessionId: session.id }}
                 onClick={onNavigate}
               >
                 <StatusDot status={session.status} />
