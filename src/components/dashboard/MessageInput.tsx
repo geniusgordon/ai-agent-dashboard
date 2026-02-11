@@ -1,8 +1,8 @@
 import {
+  ArrowUp,
   ChevronDown,
   ImagePlus,
   Loader2,
-  Send,
   StopCircle,
   X,
 } from "lucide-react";
@@ -512,12 +512,12 @@ export function MessageInput({
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={disabled || !supportsImages}
                         className="cursor-pointer disabled:cursor-not-allowed"
                       >
-                        <ImagePlus className="size-4" />
+                        <ImagePlus />
                       </Button>
                     </span>
                   </TooltipTrigger>
@@ -575,9 +575,9 @@ export function MessageInput({
                     aria-label={isCancelling ? "Stopping" : "Stop"}
                   >
                     {isCancelling ? (
-                      <Loader2 className="size-3 animate-spin" />
+                      <Loader2 className="animate-spin" />
                     ) : (
-                      <StopCircle className="size-3" />
+                      <StopCircle />
                     )}
                   </Button>
                 ) : (
@@ -588,7 +588,7 @@ export function MessageInput({
                     disabled={!canSubmit || disabled}
                     className="cursor-pointer rounded-full"
                   >
-                    <Send className="size-3" />
+                    <ArrowUp />
                   </Button>
                 )}
               </div>
