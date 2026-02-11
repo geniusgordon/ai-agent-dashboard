@@ -496,7 +496,7 @@ export function MessageInput({
                 rows={1}
                 className="
                   w-full min-h-[2.5rem] max-h-[10rem] px-4 pt-3 pb-1
-                  text-sm bg-transparent border-none font-sans
+                  text-base sm:text-sm bg-transparent border-none font-sans
                   text-foreground placeholder-muted-foreground
                   focus:outline-none disabled:opacity-50
                   resize-none
@@ -568,15 +568,15 @@ export function MessageInput({
                   <Button
                     type="button"
                     variant="destructive"
-                    size="sm"
+                    size="xs"
                     onClick={onCancel}
                     disabled={isCancelling}
                     className="cursor-pointer"
                   >
                     {isCancelling ? (
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Loader2 className="size-3 animate-spin" />
                     ) : (
-                      <StopCircle className="size-3.5" />
+                      <StopCircle className="size-3" />
                     )}
                     <span className="hidden sm:inline">
                       {isCancelling ? "Stopping…" : "Stop"}
@@ -590,7 +590,7 @@ export function MessageInput({
                     disabled={!canSubmit || disabled}
                     className="cursor-pointer rounded-full"
                   >
-                    <Send className="size-3.5" />
+                    <Send className="size-3" />
                   </Button>
                 )}
               </div>
