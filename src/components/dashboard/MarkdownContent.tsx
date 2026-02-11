@@ -190,9 +190,7 @@ function getMarkdownComponents(
       );
     },
     li({ children }) {
-      return (
-        <li className="text-foreground/90 leading-relaxed">{children}</li>
-      );
+      return <li className="text-foreground/90 leading-relaxed">{children}</li>;
     },
     hr() {
       return <hr className="my-3 border-border" />;

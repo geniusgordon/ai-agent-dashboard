@@ -408,7 +408,7 @@ export function MessageInput({
         onDrop={handleDrop}
         className="shrink-0"
       >
-        <div className="flex flex-col gap-1.5 px-3 pb-3 pt-1">
+        <div className="flex flex-col gap-1.5 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1">
           {/* Context window meter — above the input container */}
           {usageInfo && usageInfo.size > 0 && !isAgentBusy && (
             <ContextMeter usage={usageInfo} />

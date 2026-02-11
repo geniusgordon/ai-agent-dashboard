@@ -134,7 +134,7 @@ export function SessionMobileDrawer({
         </div>
 
         {/* Action footer — always visible */}
-        <DrawerFooter className="border-t border-border pb-[env(safe-area-inset-bottom)]">
+        <DrawerFooter className="border-t border-border pb-[max(1rem,env(safe-area-inset-bottom))]">
           {(!isTerminal || session.isActive === false) && (
             <div className="flex flex-wrap gap-1.5">
               {!isTerminal && actions.onCompleteSession && (
