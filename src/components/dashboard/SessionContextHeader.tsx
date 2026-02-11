@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  Info,
   Loader2,
   PanelRightClose,
   PanelRightOpen,
@@ -169,12 +170,8 @@ export function SessionContextHeader({
           <div className="hidden lg:flex items-center">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-xs" onClick={onTogglePanel}>
-                  {panelOpen ? (
-                    <PanelRightClose className="size-3.5" />
-                  ) : (
-                    <PanelRightOpen className="size-3.5" />
-                  )}
+                <Button variant="ghost" size="icon-sm" onClick={onTogglePanel}>
+                  {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
@@ -191,10 +188,10 @@ export function SessionContextHeader({
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="icon-xs"
+                  size="icon-sm"
                   onClick={onOpenMobileDrawer}
                 >
-                  <PanelRightOpen className="size-4" />
+                  <Info />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Session details</TooltipContent>
