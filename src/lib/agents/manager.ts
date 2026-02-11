@@ -15,7 +15,11 @@ import {
 } from "../acp/index.js";
 import { recordRecentDirectory } from "./recent-dirs.js";
 import * as store from "./store.js";
-import { MAX_SESSION_EVENTS } from "./store.js";
+import {
+  canMergeEvents,
+  flushAllSessionWrites,
+  MAX_SESSION_EVENTS,
+} from "./store.js";
 import type {
   AgentClient,
   AgentEvent,
@@ -1177,6 +1181,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   // -------------------------------------------------------------------------
 
   async dispose(): Promise<void> {
+    // Flush any buffered writes to disk before tearing down
+    flushAllSessionWrites();
+
     for (const managed of this.clients.values()) {
       managed.acpClient.stop();
     }
@@ -1477,10 +1484,44 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   }
 
   private emitEvent(event: AgentEvent): void {
-    // Store event in history
+    // Store event in history — coalesce consecutive mergeable events in-place
     const events = this.sessionEvents.get(event.sessionId) ?? [];
-    events.push(event);
-    this.sessionEvents.set(event.sessionId, events);
+
+    const last = events[events.length - 1];
+    const storedLast = last
+      ? {
+          type: last.type,
+          clientId: last.clientId,
+          sessionId: last.sessionId,
+          timestamp: last.timestamp.toISOString(),
+          payload: last.payload,
+        }
+      : undefined;
+    const storedNew = {
+      type: event.type,
+      clientId: event.clientId,
+      sessionId: event.sessionId,
+      timestamp: event.timestamp.toISOString(),
+      payload: event.payload,
+    };
+
+    if (storedLast && canMergeEvents(storedLast, storedNew)) {
+      // Merge content into the last event in-place
+      const lastPayload = last.payload as Record<string, unknown>;
+      const newPayload = event.payload as Record<string, unknown>;
+      const getContent = (p: Record<string, unknown>): string => {
+        if (typeof p.content === "string") return p.content;
+        if (typeof p.content === "object" && p.content !== null) {
+          return ((p.content as Record<string, unknown>).text as string) ?? "";
+        }
+        return "";
+      };
+      lastPayload.content = getContent(lastPayload) + getContent(newPayload);
+      last.timestamp = event.timestamp;
+    } else {
+      events.push(event);
+      this.sessionEvents.set(event.sessionId, events);
+    }
 
     // Batch-trim: drop 25% off the front when we exceed the cap so the array
     // oscillates between 75%-100% instead of trimming every single push.
@@ -1492,7 +1533,7 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     // Persist to disk
     store.appendSessionEvent(event.sessionId, event);
 
-    // Emit to listeners
+    // Emit to listeners (individual tokens — SSE delivery unchanged)
     this.emit("event", event);
   }
 

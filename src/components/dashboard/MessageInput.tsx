@@ -3,7 +3,7 @@ import {
   ChevronDown,
   ImagePlus,
   Loader2,
-  StopCircle,
+  Square,
   X,
 } from "lucide-react";
 import {
@@ -577,7 +577,7 @@ export function MessageInput({
                     {isCancelling ? (
                       <Loader2 className="animate-spin" />
                     ) : (
-                      <StopCircle />
+                      <Square />
                     )}
                   </Button>
                 ) : (

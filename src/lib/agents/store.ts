@@ -306,6 +306,13 @@ export function loadAllSessions(): StoredSession[] {
  * Delete a session from SQLite and its JSONL event file.
  */
 export function deleteSession(sessionId: string): void {
+  // Cancel any pending write buffer (data is being deleted anyway)
+  const pending = pendingWrites.get(sessionId);
+  if (pending) {
+    clearTimeout(pending.timer);
+    pendingWrites.delete(sessionId);
+  }
+
   cancelPendingTimestamp(sessionId);
   const db = getDatabase();
   db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
@@ -397,6 +404,74 @@ export function updateSessionConfigOptions(
 const pendingTimestamps = new Map<string, NodeJS.Timeout>();
 const DEBOUNCE_MS = 2_000;
 
+// ---------------------------------------------------------------------------
+// Write coalescing buffer
+// ---------------------------------------------------------------------------
+
+interface PendingWrite {
+  event: StoredEvent;
+  timer: NodeJS.Timeout;
+}
+
+/** Per-session buffer for coalescing consecutive mergeable events. */
+const pendingWrites = new Map<string, PendingWrite>();
+const FLUSH_MS = 500;
+
+/**
+ * Whether two events can be merged (same type, both message/thinking,
+ * same sessionId, same isUser flag).
+ */
+export function canMergeEvents(a: StoredEvent, b: StoredEvent): boolean {
+  if (a.type !== b.type) return false;
+  if (a.type !== "message" && a.type !== "thinking") return false;
+  if (a.sessionId !== b.sessionId) return false;
+  const aPayload = a.payload as Record<string, unknown>;
+  const bPayload = b.payload as Record<string, unknown>;
+  return (aPayload.isUser === true) === (bPayload.isUser === true);
+}
+
+/** Extract string content from an event payload. */
+function getEventContent(payload: Record<string, unknown>): string {
+  if (typeof payload.content === "string") return payload.content;
+  if (typeof payload.content === "object" && payload.content !== null) {
+    return ((payload.content as Record<string, unknown>).text as string) ?? "";
+  }
+  return "";
+}
+
+/** Merge event b's content into event a (mutates a). */
+function mergeInto(a: StoredEvent, b: StoredEvent): void {
+  const aPayload = a.payload as Record<string, unknown>;
+  const bPayload = b.payload as Record<string, unknown>;
+  aPayload.content = getEventContent(aPayload) + getEventContent(bPayload);
+  a.timestamp = b.timestamp;
+}
+
+/** Flush the pending write buffer for a single session to disk. */
+function flushPending(sessionId: string): void {
+  const pending = pendingWrites.get(sessionId);
+  if (!pending) return;
+
+  clearTimeout(pending.timer);
+  pendingWrites.delete(sessionId);
+
+  ensureEventsDir();
+  const line = `${JSON.stringify(pending.event)}\n`;
+  appendFileSync(getEventsPath(sessionId), line);
+}
+
+/** Flush pending buffer for one session. Safe to call if nothing is pending. */
+export function flushSessionWrites(sessionId: string): void {
+  flushPending(sessionId);
+}
+
+/** Flush all pending write buffers (e.g. on shutdown). */
+export function flushAllSessionWrites(): void {
+  for (const sessionId of [...pendingWrites.keys()]) {
+    flushPending(sessionId);
+  }
+}
+
 /** Cancel a pending debounced write (no flush — caller will write directly). */
 function cancelPendingTimestamp(sessionId: string): void {
   const timer = pendingTimestamps.get(sessionId);
@@ -425,13 +500,42 @@ function debouncedUpdatedAt(sessionId: string): void {
 
 /**
  * Append a single event to the session's JSONL file.
- * The `updated_at` timestamp in SQLite is debounced to avoid excessive writes
- * during high-frequency streaming.
+ *
+ * Consecutive mergeable events (message/thinking with same sender) are
+ * coalesced in a per-session buffer before writing, dramatically reducing
+ * JSONL lines for token-by-token agents like Codex.
+ *
+ * Non-mergeable events flush the buffer first, then write immediately.
+ * A 500ms timer auto-flushes so the last tokens are never lost.
  */
 export function appendSessionEvent(sessionId: string, event: AgentEvent): void {
-  ensureEventsDir();
-  const line = `${JSON.stringify(toStoredEvent(event))}\n`;
-  appendFileSync(getEventsPath(sessionId), line);
+  const stored = toStoredEvent(event);
+  const pending = pendingWrites.get(sessionId);
+
+  const isMergeable = stored.type === "message" || stored.type === "thinking";
+
+  if (isMergeable) {
+    if (pending && canMergeEvents(pending.event, stored)) {
+      // Merge into existing buffer entry and reset timer
+      mergeInto(pending.event, stored);
+      clearTimeout(pending.timer);
+      const timer = setTimeout(() => flushPending(sessionId), FLUSH_MS);
+      timer.unref();
+      pending.timer = timer;
+    } else {
+      // Flush any existing buffer, then start a new one
+      flushPending(sessionId);
+      const timer = setTimeout(() => flushPending(sessionId), FLUSH_MS);
+      timer.unref();
+      pendingWrites.set(sessionId, { event: stored, timer });
+    }
+  } else {
+    // Non-mergeable: flush buffer first, then write immediately
+    flushPending(sessionId);
+    ensureEventsDir();
+    const line = `${JSON.stringify(stored)}\n`;
+    appendFileSync(getEventsPath(sessionId), line);
+  }
 
   debouncedUpdatedAt(sessionId);
 }

@@ -54,6 +54,10 @@ vi.mock("./store.js", () => ({
   updateSessionMode: vi.fn(),
   updateSessionConfigOptions: vi.fn(),
   deleteSession: vi.fn(),
+  MAX_SESSION_EVENTS: 20_000,
+  canMergeEvents: vi.fn().mockReturnValue(false),
+  flushSessionWrites: vi.fn(),
+  flushAllSessionWrites: vi.fn(),
 }));
 
 // Mock recent dirs
