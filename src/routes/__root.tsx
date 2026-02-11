@@ -42,15 +42,15 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   }),
   component: RootComponent,
   notFoundComponent: () => (
-    <div className="flex flex-col items-center justify-center h-screen bg-background text-text">
+    <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground">
       <div className="text-center">
-        <h1 className="text-6xl font-bold font-heading text-primary animate-pulse">
+        <h1 className="text-6xl font-bold font-heading text-primary">
           404
         </h1>
         <p className="mt-4 text-lg font-body">
           Oops! The page you're looking for doesn't exist.
         </p>
-        <p className="mt-2 text-sm font-body text-secondary">
+        <p className="mt-2 text-sm font-body text-muted-foreground">
           It might have been moved or deleted.
         </p>
         <div className="mt-8">
