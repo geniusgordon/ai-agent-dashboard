@@ -976,7 +976,10 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   /**
    * Set session thought level using ACP config options.
    */
-  async setThoughtLevel(sessionId: string, thoughtLevel: string): Promise<void> {
+  async setThoughtLevel(
+    sessionId: string,
+    thoughtLevel: string,
+  ): Promise<void> {
     await this.setConfigByCategory(sessionId, "thought_level", thoughtLevel);
   }
 
@@ -996,7 +999,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
     }
 
     const optionId =
-      category === "model" ? session.modelOptionId : session.thoughtLevelOptionId;
+      category === "model"
+        ? session.modelOptionId
+        : session.thoughtLevelOptionId;
     if (!optionId) {
       throw new Error(`Session does not expose ${category} config option`);
     }
@@ -1324,7 +1329,8 @@ export class AgentManager extends EventEmitter implements IAgentManager {
       if (session) {
         this.applyConfigOptions(session, configOptions, true);
         const modeOption = configOptions.find((opt) => opt.category === "mode");
-        if (modeOption?.currentValue) session.currentModeId = modeOption.currentValue;
+        if (modeOption?.currentValue)
+          session.currentModeId = modeOption.currentValue;
         session.updatedAt = new Date();
       }
 

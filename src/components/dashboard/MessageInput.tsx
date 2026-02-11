@@ -1,4 +1,11 @@
-import { ImagePlus, Loader2, Send, StopCircle, X } from "lucide-react";
+import {
+  ChevronDown,
+  ImagePlus,
+  Loader2,
+  Send,
+  StopCircle,
+  X,
+} from "lucide-react";
 import {
   type ClipboardEvent,
   type DragEvent,
@@ -11,12 +18,14 @@ import { CommandPalette } from "@/components/dashboard/CommandPalette";
 import { ContextMeter } from "@/components/dashboard/ContextMeter";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -92,48 +101,61 @@ const ACCEPTED_IMAGE_TYPES = [
 ];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-interface ConfigSelectProps {
+interface ConfigDropdownProps {
   value?: string;
   onValueChange: (value: string) => void;
   disabled?: boolean;
   isLoading?: boolean;
-  placeholder: string;
+  label: string;
   options: SessionConfigValueOption[];
-  triggerClassName: string;
 }
 
-function ConfigSelect({
+function ConfigDropdown({
   value,
   onValueChange,
   disabled,
   isLoading,
-  placeholder,
+  label,
   options,
-  triggerClassName,
-}: ConfigSelectProps) {
+}: ConfigDropdownProps) {
+  const current = options.find((o) => o.value === value);
   return (
-    <Select
-      value={value}
-      onValueChange={(next) => {
-        if (next) onValueChange(next);
-      }}
-      disabled={disabled}
-    >
-      <SelectTrigger size="sm" className={triggerClassName}>
-        {isLoading ? (
-          <Loader2 className="size-3 animate-spin" />
-        ) : (
-          <SelectValue placeholder={placeholder} />
-        )}
-      </SelectTrigger>
-      <SelectContent position="popper" side="top" align="start">
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          disabled={disabled}
+          className="gap-1 text-muted-foreground hover:text-foreground"
+        >
+          {isLoading ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <span className="max-w-[6rem] truncate">
+              {current?.name ?? label}
+            </span>
+          )}
+          <ChevronDown className="size-3 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start">
+        <DropdownMenuLabel>{label}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(next) => {
+            if (next) onValueChange(next);
+          }}
+        >
+          {options.map((option) => (
+            <DropdownMenuRadioItem key={option.value} value={option.value}>
+              {option.name}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -386,20 +408,15 @@ export function MessageInput({
         onDrop={handleDrop}
         className="shrink-0"
       >
-        <div
-          className={`
-            flex flex-col gap-2 p-2 border-t border-border bg-background transition-colors
-            ${isDragging ? "border-t-primary bg-primary/5" : ""}
-          `}
-        >
-          {/* Context window meter — hidden when busy to avoid redundancy with right panel */}
+        <div className="flex flex-col gap-1.5 px-3 pb-3 pt-1">
+          {/* Context window meter — above the input container */}
           {usageInfo && usageInfo.size > 0 && !isAgentBusy && (
             <ContextMeter usage={usageInfo} />
           )}
 
-          {/* Processing indicator */}
+          {/* Processing indicator — above the input container */}
           {isAgentBusy && (
-            <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-status-running">
+            <div className="flex items-center gap-2 px-1 py-1 text-xs text-status-running">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-running opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-status-running" />
@@ -408,105 +425,9 @@ export function MessageInput({
             </div>
           )}
 
-          {/* Image previews */}
-          {images.length > 0 && (
-            <div className="flex flex-wrap gap-2 px-2 pt-1">
-              {images.map((img) => (
-                <div key={img.id} className="relative group">
-                  <img
-                    src={img.preview}
-                    alt="attachment"
-                    className="h-16 w-16 object-cover rounded-lg border border-border"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(img.id)}
-                    className="
-                    absolute -top-1.5 -right-1.5 p-0.5 rounded-full
-                    bg-destructive text-destructive-foreground
-                    opacity-0 group-hover:opacity-100 transition-opacity
-                    hover:bg-destructive/90
-                  "
-                  >
-                    <X className="size-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Toolbar row — shown above textarea on mobile, inline on sm+ */}
-          <div className="flex flex-wrap items-center gap-1.5 px-1 sm:hidden">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={disabled || !supportsImages}
-                    className="cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    <ImagePlus className="size-4" />
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top">{imagePickerTitle}</TooltipContent>
-            </Tooltip>
-            {showModeSelector && (
-              <ConfigSelect
-                value={currentModeId}
-                onValueChange={onSetMode}
-                disabled={isSettingMode}
-                isLoading={isSettingMode}
-                placeholder="Mode"
-                options={availableModes!.map((mode) => ({
-                  value: mode.id,
-                  name: mode.name,
-                }))}
-                triggerClassName="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-              />
-            )}
-            {showModelSelector && (
-              <ConfigSelect
-                value={currentModel}
-                onValueChange={onSetModel}
-                disabled={isSettingModel}
-                isLoading={isSettingModel}
-                placeholder="Model"
-                options={availableModels!}
-                triggerClassName="h-7 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-              />
-            )}
-            {showThoughtLevelSelector && (
-              <ConfigSelect
-                value={currentThoughtLevel}
-                onValueChange={onSetThoughtLevel}
-                disabled={isSettingThoughtLevel}
-                isLoading={isSettingThoughtLevel}
-                placeholder="Think"
-                options={availableThoughtLevels!}
-                triggerClassName="h-7 w-auto min-w-[4.5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-              />
-            )}
-          </div>
-
-          {/* Hidden file input */}
-          {supportsImages && (
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_IMAGE_TYPES.join(",")}
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          )}
-
-          {/* Input row */}
-          <div className="relative flex gap-2 items-end">
-            {/* Command palette (positioned above input) */}
+          {/* Rounded input container */}
+          <div className="relative">
+            {/* Command palette (positioned above the container) */}
             {showCommandPalette && (
               <CommandPalette
                 commands={availableCommands!}
@@ -516,132 +437,164 @@ export function MessageInput({
                 onSelectedIndexChange={setCommandSelectedIndex}
               />
             )}
-            {/* Image upload button — hidden on mobile, shown inline on sm+ */}
-            <div className="hidden sm:block">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={disabled || !supportsImages}
-                      className="cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      <ImagePlus className="size-5" />
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top">{imagePickerTitle}</TooltipContent>
-              </Tooltip>
-            </div>
 
-            {/* Mode selector — hidden on mobile, shown inline on sm+ */}
-            {showModeSelector && (
-              <div className="hidden sm:block self-center">
-                <ConfigSelect
-                  value={currentModeId}
-                  onValueChange={onSetMode}
-                  disabled={isSettingMode}
-                  isLoading={isSettingMode}
-                  placeholder="Mode"
-                  options={availableModes!.map((mode) => ({
-                    value: mode.id,
-                    name: mode.name,
-                  }))}
-                  triggerClassName="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
+            <div
+              className={`
+                rounded-2xl border bg-muted/30 transition-[border-color,box-shadow]
+                focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30
+                ${isDragging ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border"}
+              `}
+            >
+              {/* Image previews */}
+              {images.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-3 pt-3">
+                  {images.map((img) => (
+                    <div key={img.id} className="relative group">
+                      <img
+                        src={img.preview}
+                        alt="attachment"
+                        className="h-16 w-16 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(img.id)}
+                        className="
+                          absolute -top-1.5 -right-1.5 p-0.5 rounded-full
+                          bg-destructive text-destructive-foreground
+                          opacity-0 group-hover:opacity-100 transition-opacity
+                          hover:bg-destructive/90
+                        "
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              {supportsImages && (
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
                 />
-              </div>
-            )}
+              )}
 
-            {showModelSelector && (
-              <div className="hidden sm:block self-center">
-                <ConfigSelect
-                  value={currentModel}
-                  onValueChange={onSetModel}
-                  disabled={isSettingModel}
-                  isLoading={isSettingModel}
-                  placeholder="Model"
-                  options={availableModels!}
-                  triggerClassName="h-8 w-auto min-w-[6rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                />
-              </div>
-            )}
-
-            {showThoughtLevelSelector && (
-              <div className="hidden sm:block self-center">
-                <ConfigSelect
-                  value={currentThoughtLevel}
-                  onValueChange={onSetThoughtLevel}
-                  disabled={isSettingThoughtLevel}
-                  isLoading={isSettingThoughtLevel}
-                  placeholder="Think"
-                  options={availableThoughtLevels!}
-                  triggerClassName="h-8 w-auto min-w-[5rem] text-xs border-none bg-secondary/50 hover:bg-secondary/80 shadow-none"
-                />
-              </div>
-            )}
-
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => handleInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder={isDragging ? "Drop image here..." : placeholder}
-              disabled={disabled}
-              rows={1}
-              className="
-              flex-1 px-4 py-2.5 rounded-lg
-              text-base sm:text-sm
-              bg-transparent border-none font-sans
-              text-foreground placeholder-muted-foreground
-              focus:outline-none
-              disabled:opacity-50
-              resize-none
-            "
-            />
-            {isAgentBusy && onCancel ? (
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isCancelling}
+              {/* Textarea — full width */}
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => handleInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder={isDragging ? "Drop image here..." : placeholder}
+                disabled={disabled}
+                rows={1}
                 className="
-                  px-3 lg:px-5 py-2 lg:py-2.5 rounded-lg font-semibold text-sm
-                  bg-action-danger text-white
-                  hover:bg-action-danger-hover
-                  transition-colors duration-200
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  cursor-pointer shrink-0 inline-flex items-center gap-2
+                  w-full min-h-[2.5rem] max-h-[10rem] px-4 pt-3 pb-1
+                  text-base sm:text-sm bg-transparent border-none font-sans
+                  text-foreground placeholder-muted-foreground
+                  focus:outline-none disabled:opacity-50
+                  resize-none
                 "
-              >
-                {isCancelling ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <StopCircle className="size-4" />
+              />
+
+              {/* Bottom toolbar */}
+              <div className="flex items-center gap-1 px-2 pb-2">
+                {/* Left side: image attach + config dropdowns */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={disabled || !supportsImages}
+                        className="cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        <ImagePlus className="size-4" />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{imagePickerTitle}</TooltipContent>
+                </Tooltip>
+
+                {showModeSelector && (
+                  <ConfigDropdown
+                    value={currentModeId}
+                    onValueChange={onSetMode}
+                    disabled={isSettingMode}
+                    isLoading={isSettingMode}
+                    label="Mode"
+                    options={availableModes!.map((mode) => ({
+                      value: mode.id,
+                      name: mode.name,
+                    }))}
+                  />
                 )}
-                <span className="hidden sm:inline">
-                  {isCancelling ? "Stopping…" : "Stop"}
-                </span>
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={!canSubmit || disabled}
-                className="
-                  px-3 lg:px-5 py-2 lg:py-2.5 rounded-lg font-semibold text-sm
-                  bg-action-success text-white
-                  hover:bg-action-success-hover
-                  transition-colors duration-200
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  cursor-pointer shrink-0 inline-flex items-center gap-2
-                "
-              >
-                <Send className="size-4" />
-                <span className="hidden sm:inline">Send</span>
-              </button>
-            )}
+
+                {showModelSelector && (
+                  <ConfigDropdown
+                    value={currentModel}
+                    onValueChange={onSetModel}
+                    disabled={isSettingModel}
+                    isLoading={isSettingModel}
+                    label="Model"
+                    options={availableModels!}
+                  />
+                )}
+
+                {showThoughtLevelSelector && (
+                  <ConfigDropdown
+                    value={currentThoughtLevel}
+                    onValueChange={onSetThoughtLevel}
+                    disabled={isSettingThoughtLevel}
+                    isLoading={isSettingThoughtLevel}
+                    label="Thinking"
+                    options={availableThoughtLevels!}
+                  />
+                )}
+
+                {/* Spacer */}
+                <div className="flex-1" />
+
+                {/* Right side: Send or Stop */}
+                {isAgentBusy && onCancel ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="xs"
+                    onClick={onCancel}
+                    disabled={isCancelling}
+                    className="cursor-pointer"
+                  >
+                    {isCancelling ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <StopCircle className="size-3" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {isCancelling ? "Stopping…" : "Stop"}
+                    </span>
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    variant="success"
+                    size="icon-xs"
+                    disabled={!canSubmit || disabled}
+                    className="cursor-pointer rounded-full"
+                  >
+                    <Send className="size-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </form>
