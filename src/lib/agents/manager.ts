@@ -1097,14 +1097,18 @@ export class AgentManager extends EventEmitter implements IAgentManager {
    * Get event history for a session
    */
   async getSessionEvents(sessionId: string): Promise<AgentEvent[]> {
-    // Try in-memory first (fast path — no I/O)
+    // Try in-memory first (fast path — no I/O).
+    // In-memory events are already coalesced by emitEvent(), so no extra merge.
     const memEvents = this.sessionEvents.get(sessionId);
     if (memEvents && memEvents.length > 0) {
-      // Always merge - memory events are stored as fragments
-      return this.mergeConsecutiveEvents(memEvents);
+      return memEvents.slice();
     }
 
-    // Load from disk (tail-read, capped) and merge consecutive chunks
+    // Load from disk (tail-read, capped).
+    // The write buffer in appendSessionEvent() coalesces most consecutive
+    // tokens, but a flush-timer boundary can split one logical message into
+    // two adjacent JSONL lines.  We merge those here — but only from disk,
+    // never from the already-merged in-memory array (which would duplicate).
     const storedEvents = await store.loadSessionEvents(sessionId);
     if (storedEvents.length > 0) {
       const events = storedEvents.map((e) => ({
@@ -1119,7 +1123,9 @@ export class AgentManager extends EventEmitter implements IAgentManager {
   }
 
   /**
-   * Merge consecutive message/thinking events with same sender
+   * Merge consecutive message/thinking events with the same sender.
+   * Used only for disk-loaded events where the write-buffer flush timer
+   * may have split a single logical message into adjacent JSONL lines.
    */
   private mergeConsecutiveEvents(events: AgentEvent[]): AgentEvent[] {
     const merged: AgentEvent[] = [];
@@ -1140,7 +1146,6 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           lastIsUser === newIsUser;
 
         if (canMerge) {
-          // Extract content
           const getContent = (p: Record<string, unknown>): string => {
             if (typeof p.content === "string") return p.content;
             if (typeof p.content === "object" && p.content !== null) {
@@ -1153,7 +1158,6 @@ export class AgentManager extends EventEmitter implements IAgentManager {
           const lastContent = getContent(lastPayload);
           const newContent = getContent(newPayload);
 
-          // Update last event with merged content
           last.payload = { ...lastPayload, content: lastContent + newContent };
           last.timestamp = event.timestamp;
           continue;
