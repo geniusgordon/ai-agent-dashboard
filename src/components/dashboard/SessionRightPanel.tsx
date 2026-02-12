@@ -11,6 +11,7 @@ import {
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { ContextMeter } from "@/components/dashboard/ContextMeter";
+import { DocumentActionMenu } from "@/components/dashboard/DocumentActionMenu";
 import { GitActionsGrid } from "@/components/dashboard/GitActionsGrid";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
@@ -54,6 +55,7 @@ export interface SessionRightPanelProps {
   actions: SessionActions;
   usageInfo?: UsageUpdatePayload;
   onStartReview?: () => void;
+  onSendMessage?: (message: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +73,7 @@ export function SessionRightPanel({
   actions,
   usageInfo,
   onStartReview,
+  onSendMessage,
 }: SessionRightPanelProps) {
   const isTerminal =
     session.status === "completed" || session.status === "killed";
@@ -244,6 +247,14 @@ export function SessionRightPanel({
               agentBusy={session.status === "running"}
               branch={branch}
               projectId={projectId}
+            />
+          )}
+
+          {/* Document actions */}
+          {isActiveSession && onSendMessage && (
+            <DocumentActionMenu
+              onSendMessage={onSendMessage}
+              disabled={session.status === "running"}
             />
           )}
 

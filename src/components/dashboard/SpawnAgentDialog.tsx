@@ -4,9 +4,11 @@
  * Modal dialog for picking an agent type and spawning it in a worktree.
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Play } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronDown, ChevronRight, FileText, Play } from "lucide-react";
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
+import { buildInitialMessage } from "@/lib/documents/prompts";
 import { AgentBadge } from "./AgentBadge";
 
 const agentTypes: AgentType[] = ["claude-code", "codex", "gemini"];
@@ -41,6 +45,10 @@ export function SpawnAgentDialog({
   const queryClient = useQueryClient();
   const [spawningType, setSpawningType] = useState<AgentType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [initialPrompt, setInitialPrompt] = useState("");
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [resumeFromDocs, setResumeFromDocs] = useState(false);
+  const navigate = useNavigate();
 
   const spawnMutation = useMutation(
     trpc.sessions.getOrSpawnClient.mutationOptions(),
@@ -51,6 +59,17 @@ export function SpawnAgentDialog({
   const assignMutation = useMutation(
     trpc.worktrees.assignAgent.mutationOptions(),
   );
+  const sendMessageMutation = useMutation(
+    trpc.sessions.sendMessage.mutationOptions(),
+  );
+
+  const docsQuery = useQuery({
+    ...trpc.worktrees.detectDocuments.queryOptions({
+      worktreeId: worktreeId,
+    }),
+    enabled: open,
+  });
+  const detectedDocs = docsQuery.data ?? [];
 
   const invalidateAll = () => {
     // Invalidate both filtered (project page) and unfiltered (sidebar) session queries
@@ -89,8 +108,28 @@ export function SpawnAgentDialog({
         worktreeId,
         projectId,
       });
+
+      // Build and send initial prompt if provided
+      const message = buildInitialMessage(
+        detectedDocs,
+        resumeFromDocs,
+        initialPrompt,
+      );
+      if (message) {
+        await sendMessageMutation.mutateAsync({
+          sessionId: session.id,
+          message,
+        });
+      }
+
       invalidateAll();
       onOpenChange(false);
+
+      // Navigate to the new session
+      navigate({
+        to: "/dashboard/sessions/$sessionId",
+        params: { sessionId: session.id },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to spawn agent");
       invalidateAll();
@@ -100,7 +139,18 @@ export function SpawnAgentDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) {
+          setInitialPrompt("");
+          setPromptExpanded(false);
+          setResumeFromDocs(false);
+          setError(null);
+        }
+        onOpenChange(v);
+      }}
+    >
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -132,6 +182,62 @@ export function SpawnAgentDialog({
             );
           })}
         </div>
+
+        {/* Initial prompt (collapsible) */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setPromptExpanded((prev) => !prev)}
+          >
+            {promptExpanded ? (
+              <ChevronDown className="size-3.5" />
+            ) : (
+              <ChevronRight className="size-3.5" />
+            )}
+            Initial prompt
+          </button>
+
+          {promptExpanded && (
+            <Textarea
+              value={initialPrompt}
+              onChange={(e) => setInitialPrompt(e.target.value)}
+              placeholder="Optional first message to send after spawning..."
+              className="min-h-[80px] text-sm"
+            />
+          )}
+        </div>
+
+        {/* Resume from documents */}
+        {detectedDocs.length > 0 && (
+          <div className="flex items-start gap-2 p-3 rounded-lg border border-border bg-secondary/30">
+            <Checkbox
+              id="resume-from-docs"
+              checked={resumeFromDocs}
+              onCheckedChange={(checked) => setResumeFromDocs(checked === true)}
+              className="mt-0.5"
+            />
+            <label
+              htmlFor="resume-from-docs"
+              className="space-y-1 cursor-pointer"
+            >
+              <span className="text-sm font-medium">
+                Resume from previous documents
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {detectedDocs.map((doc) => (
+                  <span
+                    key={doc.path}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded"
+                  >
+                    <FileText className="size-3" />
+                    {doc.path}
+                  </span>
+                ))}
+              </div>
+            </label>
+          </div>
+        )}
 
         {error && (
           <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
