@@ -6,7 +6,8 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GitBranch, Play, Plus } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronDown, ChevronRight, GitBranch, Play, Plus } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -25,8 +26,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
+import { buildInitialMessage } from "@/lib/documents/prompts";
 import { AgentBadge } from "./AgentBadge";
 
 interface WorktreeCreateDialogProps {
@@ -42,6 +45,7 @@ export function WorktreeCreateDialog({
 }: WorktreeCreateDialogProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [branchPrefix, setBranchPrefix] = useState("feat");
   const [branchName, setBranchName] = useState("");
@@ -51,6 +55,8 @@ export function WorktreeCreateDialog({
   const [agentType, setAgentType] = useState<AgentType>("claude-code");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialPrompt, setInitialPrompt] = useState("");
+  const [promptExpanded, setPromptExpanded] = useState(false);
 
   const branchPrefixes = ["feat", "fix", "hotfix", "release", "chore"] as const;
   const fullBranchName = createNewBranch
@@ -79,6 +85,9 @@ export function WorktreeCreateDialog({
   const assignAgentMutation = useMutation(
     trpc.worktrees.assignAgent.mutationOptions(),
   );
+  const sendMessageMutation = useMutation(
+    trpc.sessions.sendMessage.mutationOptions(),
+  );
 
   const resetForm = () => {
     setBranchPrefix("feat");
@@ -87,6 +96,8 @@ export function WorktreeCreateDialog({
     setSpawnAgent(false);
     setAgentType("claude-code");
     setError(null);
+    setInitialPrompt("");
+    setPromptExpanded(false);
   };
 
   const invalidateQueries = () => {
@@ -119,13 +130,21 @@ export function WorktreeCreateDialog({
           : undefined,
       });
 
+      let sessionId: string | undefined;
       if (spawnAgent) {
-        await spawnAgentInWorktree(worktree.id, worktree.path);
+        sessionId = await spawnAgentInWorktree(worktree.id, worktree.path);
       }
 
       invalidateQueries();
       setOpen(false);
       resetForm();
+
+      if (sessionId) {
+        navigate({
+          to: "/dashboard/sessions/$sessionId",
+          params: { sessionId },
+        });
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create worktree",
@@ -139,7 +158,7 @@ export function WorktreeCreateDialog({
   const spawnAgentInWorktree = async (
     worktreeId: string,
     worktreePath: string,
-  ) => {
+  ): Promise<string> => {
     const client = await spawnClientMutation.mutateAsync({
       agentType,
       cwd: worktreePath,
@@ -155,6 +174,17 @@ export function WorktreeCreateDialog({
       worktreeId,
       projectId,
     });
+
+    // Build and send initial prompt if provided
+    const message = buildInitialMessage([], false, initialPrompt);
+    if (message) {
+      await sendMessageMutation.mutateAsync({
+        sessionId: session.id,
+        message,
+      });
+    }
+
+    return session.id;
   };
 
   return (
@@ -309,22 +339,49 @@ export function WorktreeCreateDialog({
               </div>
 
               {spawnAgent && (
-                <div className="flex flex-wrap gap-2">
-                  {agentTypes.map((type) => (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {agentTypes.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setAgentType(type)}
+                        className={`px-3 py-2 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${
+                          agentType === type
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-secondary/50 hover:bg-secondary hover:border-border"
+                        }`}
+                      >
+                        <AgentBadge type={type} size="sm" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Initial prompt (collapsible) */}
+                  <div className="space-y-2">
                     <button
-                      key={type}
                       type="button"
-                      onClick={() => setAgentType(type)}
-                      className={`px-3 py-2 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${
-                        agentType === type
-                          ? "border-primary bg-primary/10"
-                          : "border-border bg-secondary/50 hover:bg-secondary hover:border-border"
-                      }`}
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setPromptExpanded((prev) => !prev)}
                     >
-                      <AgentBadge type={type} size="sm" />
+                      {promptExpanded ? (
+                        <ChevronDown className="size-3.5" />
+                      ) : (
+                        <ChevronRight className="size-3.5" />
+                      )}
+                      Initial prompt
                     </button>
-                  ))}
-                </div>
+
+                    {promptExpanded && (
+                      <Textarea
+                        value={initialPrompt}
+                        onChange={(e) => setInitialPrompt(e.target.value)}
+                        placeholder="Optional first message to send after spawning..."
+                        className="min-h-[80px] text-sm"
+                      />
+                    )}
+                  </div>
+                </>
               )}
             </div>
 

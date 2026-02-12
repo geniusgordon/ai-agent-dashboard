@@ -386,6 +386,7 @@ export function SessionDetailView({
               onCreatePR: branch ? sendPRPrompt : undefined,
               isSendingPR,
             }}
+            usageInfo={usageInfo}
             onStartReview={
               canStartReview ? () => setReviewDialogOpen(true) : undefined
             }

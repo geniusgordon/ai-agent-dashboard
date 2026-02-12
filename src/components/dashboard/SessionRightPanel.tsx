@@ -1,48 +1,16 @@
-import {
-  CheckCircle,
-  Clock,
-  FolderGit2,
-  GitMerge,
-  Info,
-  Loader2,
-  Square,
-  Trash2,
-} from "lucide-react";
-import { AgentBadge } from "@/components/dashboard/AgentBadge";
-import { BranchBadge } from "@/components/dashboard/BranchBadge";
-import { ContextMeter } from "@/components/dashboard/ContextMeter";
-import { DocumentActionMenu } from "@/components/dashboard/DocumentActionMenu";
-import { GitActionsGrid } from "@/components/dashboard/GitActionsGrid";
-import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
-import { PanelSection } from "@/components/dashboard/PanelSection";
-import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
-import { StatusBadge } from "@/components/dashboard/StatusBadge";
-import { Button } from "@/components/ui/button";
 import type { AgentSession, UsageUpdatePayload } from "@/lib/agents/types";
+import type { SessionActions } from "./SessionInfoContent";
+import {
+  SessionInfoActions,
+  SessionInfoBody,
+  SessionInfoHeader,
+} from "./SessionInfoContent";
 
 // ---------------------------------------------------------------------------
 // Public prop types (kept for external consumers)
 // ---------------------------------------------------------------------------
 
-export interface SessionActions {
-  onKillSession: () => void;
-  isKilling: boolean;
-  onCompleteSession?: () => void;
-  isCompleting: boolean;
-  onDeleteSession?: () => void;
-  isDeleting: boolean;
-  onReconnect: () => void;
-  isReconnecting: boolean;
-  // Git actions
-  onPushToOrigin?: () => void;
-  isPushing?: boolean;
-  onCommit?: () => void;
-  isSendingCommit?: boolean;
-  onMerge?: (targetBranch: string) => void;
-  isSendingMerge?: boolean;
-  onCreatePR?: (baseBranch: string) => void;
-  isSendingPR?: boolean;
-}
+export type { SessionActions };
 
 export interface SessionRightPanelProps {
   isOpen: boolean;
@@ -75,200 +43,43 @@ export function SessionRightPanel({
   onStartReview,
   onSendMessage,
 }: SessionRightPanelProps) {
-  const isTerminal =
-    session.status === "completed" || session.status === "killed";
-  const isActiveSession = !isTerminal && session.isActive !== false;
-  const hasGitActions =
-    branch && !isTerminal && (actions.onPushToOrigin || actions.onCommit);
-
   return (
     <aside
       className={`shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out border-l border-border ${isOpen ? "w-72" : "w-0"}`}
     >
       <div className="min-w-72 h-full flex flex-col bg-background">
-        {/* ── Panel header ─────────────────────────────── */}
-        <div className="px-4 pt-3 pb-2 border-b border-border space-y-2 shrink-0">
-          {/* Row 1: Agent + name */}
-          <div className="flex items-center gap-2 min-w-0">
-            <AgentBadge type={session.agentType} size="sm" />
-            <span className="font-mono text-sm truncate flex-1">
-              {session.name || session.id.slice(0, 8)}
-            </span>
-          </div>
-
-          {/* Row 2: Status + connection + time */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <StatusBadge status={session.status} />
-            {connected ? (
-              <span className="text-xs font-medium text-live flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-live" />
-                </span>
-                Live
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Loader2 className="size-3 animate-spin" />
-                Connecting
-              </span>
-            )}
-            <span className="text-muted-foreground/40">&middot;</span>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Clock className="size-3 shrink-0" />
-              {new Date(session.createdAt).toLocaleTimeString()}
-            </span>
-          </div>
-
-          {/* Row 3+: Project and branch on their own rows */}
-          {projectName && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-              <FolderGit2 className="size-3 shrink-0" />
-              {projectName}
-            </div>
-          )}
-          {branch && (
-            <div className="min-w-0">
-              <BranchBadge branch={branch} size="sm" />
-            </div>
-          )}
+        {/* Panel header */}
+        <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
+          <SessionInfoHeader
+            session={session}
+            connected={connected}
+            projectName={projectName}
+            branch={branch}
+          />
         </div>
 
-        {/* ── Scrollable body ──────────────────────────── */}
+        {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          {/* Urgent banners */}
-          {session.isActive === false && (
-            <div className="px-4 pt-3 space-y-3">
-              <ReconnectBanner
-                onReconnect={actions.onReconnect}
-                isReconnecting={actions.isReconnecting}
-              />
-            </div>
-          )}
-
-          {/* Collapsible sections */}
           <div className="px-4 py-2 space-y-1">
-            <PanelSection icon={GitMerge} label="Git" defaultOpen>
-              <GitInfoPanel cwd={session.cwd} worktreeId={worktreeId} />
-            </PanelSection>
-
-            <PanelSection icon={Info} label="Session Info">
-              <div className="space-y-1.5 text-xs text-muted-foreground px-1 pb-1">
-                {usageInfo && usageInfo.size > 0 && (
-                  <ContextMeter usage={usageInfo} compact />
-                )}
-                <div className="flex items-center gap-1.5">
-                  <Clock className="size-3 shrink-0" />
-                  <span>
-                    Started {new Date(session.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <div className="font-mono text-[10px] text-muted-foreground/60 break-all select-all">
-                  {session.id}
-                </div>
-              </div>
-            </PanelSection>
+            <SessionInfoBody
+              session={session}
+              worktreeId={worktreeId}
+              usageInfo={usageInfo}
+              actions={actions}
+            />
           </div>
         </div>
 
-        {/* ── Sticky action footer ─────────────────────── */}
+        {/* Sticky action footer */}
         <div className="px-4 py-3 border-t border-border shrink-0 space-y-2">
-          {/* Session lifecycle */}
-          {(!isTerminal || session.isActive === false) && (
-            <div className="flex flex-wrap gap-1.5">
-              {!isTerminal && actions.onCompleteSession && (
-                <Button
-                  className="flex-1"
-                  variant="success"
-                  disabled={
-                    actions.isCompleting || session.status === "running"
-                  }
-                  onClick={actions.onCompleteSession}
-                >
-                  {actions.isCompleting ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <CheckCircle />
-                  )}
-                  {actions.isCompleting ? "Completing…" : "Complete"}
-                </Button>
-              )}
-
-              {isActiveSession && (
-                <Button
-                  className="flex-1"
-                  variant="destructive"
-                  disabled={actions.isKilling}
-                  onClick={() => {
-                    if (confirm("Kill this session?")) {
-                      actions.onKillSession();
-                    }
-                  }}
-                >
-                  {actions.isKilling ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <Square />
-                  )}
-                  {actions.isKilling ? "Killing…" : "Kill"}
-                </Button>
-              )}
-
-              {session.isActive === false && actions.onDeleteSession && (
-                <Button
-                  className="flex-1"
-                  variant="destructive"
-                  disabled={actions.isDeleting}
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Delete this session permanently? This cannot be undone.",
-                      )
-                    ) {
-                      actions.onDeleteSession?.();
-                    }
-                  }}
-                >
-                  {actions.isDeleting ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <Trash2 />
-                  )}
-                  {actions.isDeleting ? "Deleting…" : "Delete"}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Git actions */}
-          {hasGitActions && (
-            <GitActionsGrid
-              actions={actions}
-              agentBusy={session.status === "running"}
-              branch={branch}
-              projectId={projectId}
-            />
-          )}
-
-          {/* Document actions */}
-          {isActiveSession && onSendMessage && (
-            <DocumentActionMenu
-              onSendMessage={onSendMessage}
-              disabled={session.status === "running"}
-            />
-          )}
-
-          {/* Code review */}
-          {onStartReview && branch && (
-            <Button
-              variant="outline"
-              onClick={onStartReview}
-              className="w-full justify-center"
-            >
-              <GitMerge />
-              Code Review
-            </Button>
-          )}
+          <SessionInfoActions
+            session={session}
+            branch={branch}
+            projectId={projectId}
+            actions={actions}
+            onStartReview={onStartReview}
+            onSendMessage={onSendMessage}
+          />
         </div>
       </div>
     </aside>

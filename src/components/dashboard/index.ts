@@ -5,6 +5,7 @@ export { BranchBadge } from "./BranchBadge";
 export { BranchList } from "./BranchList";
 export { CodeReviewDialog } from "./CodeReviewDialog";
 export { CommandPalette } from "./CommandPalette";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { ContextMeter } from "./ContextMeter";
 export { DashboardLayout } from "./DashboardLayout";
 export { DocumentActionMenu } from "./DocumentActionMenu";
@@ -23,6 +24,13 @@ export { ReconnectBanner } from "./ReconnectBanner";
 export { SessionCard } from "./SessionCard";
 export { SessionContextHeader } from "./SessionContextHeader";
 export { SessionDeleteDialog } from "./SessionDeleteDialog";
+export {
+  type SessionActions,
+  SessionInfoActions,
+  SessionInfoBody,
+  type SessionInfoContentProps,
+  SessionInfoHeader,
+} from "./SessionInfoContent";
 export { SessionLog, type SessionLogScrollHandle } from "./SessionLog";
 export { SessionLogSkeleton } from "./SessionLogSkeleton";
 export { SessionMobileDrawer } from "./SessionMobileDrawer";

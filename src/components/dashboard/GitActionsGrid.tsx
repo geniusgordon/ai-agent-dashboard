@@ -14,6 +14,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -28,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTRPC } from "@/integrations/trpc/react";
-import type { SessionActions } from "./SessionRightPanel";
+import type { SessionActions } from "./SessionInfoContent";
 
 interface GitActionsGridProps {
   actions: SessionActions;
@@ -43,6 +44,8 @@ export function GitActionsGrid({
   branch,
   projectId,
 }: GitActionsGridProps) {
+  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
+
   return (
     <div className="space-y-1.5">
       <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
@@ -55,11 +58,7 @@ export function GitActionsGrid({
             size="sm"
             className="text-xs"
             disabled={actions.isPushing}
-            onClick={() => {
-              if (confirm(`Push ${branch ?? "branch"} to origin?`)) {
-                actions.onPushToOrigin?.();
-              }
-            }}
+            onClick={() => setPushConfirmOpen(true)}
           >
             {actions.isPushing ? (
               <Loader2 className="size-3 animate-spin" />
@@ -126,6 +125,18 @@ export function GitActionsGrid({
           />
         )}
       </div>
+
+      <ConfirmDialog
+        open={pushConfirmOpen}
+        onOpenChange={setPushConfirmOpen}
+        title="Push to Origin"
+        description={`Push ${branch ?? "branch"} to origin?`}
+        confirmLabel="Push"
+        onConfirm={() => {
+          setPushConfirmOpen(false);
+          actions.onPushToOrigin?.();
+        }}
+      />
     </div>
   );
 }
