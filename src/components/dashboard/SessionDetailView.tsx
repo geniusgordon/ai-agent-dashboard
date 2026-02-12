@@ -106,6 +106,10 @@ export function SessionDetailView({
     isSettingThoughtLevel,
     isReconnecting,
     isDeleting,
+    isPushing,
+    isSendingCommit,
+    isSendingMerge,
+    isSendingPR,
     sendMessage,
     approve,
     deny,
@@ -118,6 +122,10 @@ export function SessionDetailView({
     setThoughtLevel,
     reconnect,
     deleteSession,
+    pushToOrigin,
+    sendCommitPrompt,
+    sendMergePrompt,
+    sendPRPrompt,
     toggleTaskPanel,
     manualScrollToBottom,
   } = useSessionDetail(sessionId);
@@ -324,6 +332,7 @@ export function SessionDetailView({
             connected={connected}
             branch={branch}
             worktreeId={session.worktreeId}
+            projectId={resolvedProjectId}
             projectName={projectQuery.data?.name}
             actions={{
               onKillSession: killSession,
@@ -334,6 +343,14 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
+              onPushToOrigin: branch ? pushToOrigin : undefined,
+              isPushing,
+              onCommit: branch ? sendCommitPrompt : undefined,
+              isSendingCommit,
+              onMerge: branch ? sendMergePrompt : undefined,
+              isSendingMerge,
+              onCreatePR: branch ? sendPRPrompt : undefined,
+              isSendingPR,
             }}
             usageInfo={usageInfo}
             onStartReview={
@@ -348,6 +365,7 @@ export function SessionDetailView({
             connected={connected}
             branch={branch}
             worktreeId={session.worktreeId}
+            projectId={resolvedProjectId}
             projectName={projectQuery.data?.name}
             actions={{
               onKillSession: killSession,
@@ -358,6 +376,14 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
+              onPushToOrigin: branch ? pushToOrigin : undefined,
+              isPushing,
+              onCommit: branch ? sendCommitPrompt : undefined,
+              isSendingCommit,
+              onMerge: branch ? sendMergePrompt : undefined,
+              isSendingMerge,
+              onCreatePR: branch ? sendPRPrompt : undefined,
+              isSendingPR,
             }}
             onStartReview={
               canStartReview ? () => setReviewDialogOpen(true) : undefined

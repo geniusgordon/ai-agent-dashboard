@@ -450,6 +450,41 @@ export function useSessionDetail(sessionId: string) {
     }),
   );
 
+  // Git action mutations
+  const pushToOriginMutation = useMutation(
+    trpc.sessions.pushToOrigin.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: [["sessions", "getGitInfo"]],
+        });
+      },
+    }),
+  );
+
+  const sendCommitPromptMutation = useMutation(
+    trpc.sessions.sendCommitPrompt.mutationOptions({
+      onSuccess: () => {
+        autoScrollRef.current = true;
+      },
+    }),
+  );
+
+  const sendMergePromptMutation = useMutation(
+    trpc.sessions.sendMergePrompt.mutationOptions({
+      onSuccess: () => {
+        autoScrollRef.current = true;
+      },
+    }),
+  );
+
+  const sendPRPromptMutation = useMutation(
+    trpc.sessions.sendPRPrompt.mutationOptions({
+      onSuccess: () => {
+        autoScrollRef.current = true;
+      },
+    }),
+  );
+
   // Reset all local + mutation state when switching sessions so spinners,
   // banners, and other transient UI from Session A don't leak into Session B.
   const prevSessionIdRef = useRef(sessionId);
@@ -472,6 +507,10 @@ export function useSessionDetail(sessionId: string) {
       setThoughtLevelMutation.reset();
       approveMutation.reset();
       denyMutation.reset();
+      pushToOriginMutation.reset();
+      sendCommitPromptMutation.reset();
+      sendMergePromptMutation.reset();
+      sendPRPromptMutation.reset();
     }
   }, [
     sessionId,
@@ -485,6 +524,10 @@ export function useSessionDetail(sessionId: string) {
     setThoughtLevelMutation,
     approveMutation,
     denyMutation,
+    pushToOriginMutation,
+    sendCommitPromptMutation,
+    sendMergePromptMutation,
+    sendPRPromptMutation,
   ]);
 
   // ---------------------------------------------------------------------------
@@ -530,6 +573,17 @@ export function useSessionDetail(sessionId: string) {
   const reconnect = () => reconnectMutation.mutate({ sessionId });
 
   const deleteSession = () => deleteMutation.mutate({ sessionId });
+
+  const pushToOrigin = () =>
+    pushToOriginMutation.mutate({ sessionId, setUpstream: true });
+
+  const sendCommitPrompt = () => sendCommitPromptMutation.mutate({ sessionId });
+
+  const sendMergePrompt = (targetBranch: string) =>
+    sendMergePromptMutation.mutate({ sessionId, targetBranch });
+
+  const sendPRPrompt = (baseBranch: string) =>
+    sendPRPromptMutation.mutate({ sessionId, baseBranch });
 
   // ---------------------------------------------------------------------------
   // Derived: latest plan entries
@@ -604,6 +658,10 @@ export function useSessionDetail(sessionId: string) {
     isSettingThoughtLevel: setThoughtLevelMutation.isPending,
     isReconnecting: reconnectMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isPushing: pushToOriginMutation.isPending,
+    isSendingCommit: sendCommitPromptMutation.isPending,
+    isSendingMerge: sendMergePromptMutation.isPending,
+    isSendingPR: sendPRPromptMutation.isPending,
 
     // Actions
     sendMessage,
@@ -618,6 +676,10 @@ export function useSessionDetail(sessionId: string) {
     setThoughtLevel,
     reconnect,
     deleteSession,
+    pushToOrigin,
+    sendCommitPrompt,
+    sendMergePrompt,
+    sendPRPrompt,
     toggleTaskPanel,
     manualScrollToBottom,
   };

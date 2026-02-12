@@ -21,6 +21,7 @@ export {
   listBranches,
   listWorktrees as listGitWorktrees,
   mergeBranch,
+  pushToRemote,
   validateBranchName,
   validateRef,
 } from "./git-operations.js";
