@@ -14,10 +14,8 @@ import {
   GitPullRequestCreate,
   Loader2,
   Pen,
-  Upload,
 } from "lucide-react";
 import { useState } from "react";
-import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -55,8 +53,6 @@ import {
 } from "@/lib/documents/prompts";
 
 export interface QuickActions {
-  onPushToOrigin?: () => void;
-  isPushing?: boolean;
   onCommit?: () => void;
   isSendingCommit?: boolean;
   onMerge?: (targetBranch: string) => void;
@@ -82,28 +78,8 @@ export function QuickActionsBar({
   onStartReview,
   onSendMessage,
 }: QuickActionsBarProps) {
-  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
-
   return (
     <div className="flex items-center gap-1.5 px-4 pb-1 flex-wrap">
-      {/* Push */}
-      {actions.onPushToOrigin && (
-        <Button
-          variant="outline"
-          size="xs"
-          disabled={actions.isPushing}
-          onClick={() => setPushConfirmOpen(true)}
-          className="text-xs gap-1"
-        >
-          {actions.isPushing ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <Upload className="size-3" />
-          )}
-          Push
-        </Button>
-      )}
-
       {/* Commit */}
       {actions.onCommit && (
         <Button
@@ -180,19 +156,6 @@ export function QuickActionsBar({
       {onSendMessage && (
         <DocumentDropdown onSendMessage={onSendMessage} disabled={agentBusy} />
       )}
-
-      {/* Push confirm dialog */}
-      <ConfirmDialog
-        open={pushConfirmOpen}
-        onOpenChange={setPushConfirmOpen}
-        title="Push to Origin"
-        description={`Push ${branch} to origin?`}
-        confirmLabel="Push"
-        onConfirm={() => {
-          setPushConfirmOpen(false);
-          actions.onPushToOrigin?.();
-        }}
-      />
     </div>
   );
 }

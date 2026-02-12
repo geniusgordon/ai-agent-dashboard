@@ -483,3 +483,18 @@ export async function pushToRemote(
     return { success: false, error: (error as Error).message };
   }
 }
+
+export async function pullFromRemote(
+  worktreePath: string,
+  branchName?: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (branchName) validateBranchName(branchName);
+
+  const sg = getGit(worktreePath);
+  try {
+    await sg.pull("origin", branchName ?? undefined);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}

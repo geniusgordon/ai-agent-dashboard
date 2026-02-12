@@ -5,7 +5,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import type { ImageAttachment } from "@/components/dashboard";
 import type { SessionLogScrollHandle } from "@/components/dashboard/SessionLog";
 import { useTRPC } from "@/integrations/trpc/react";
@@ -452,22 +451,6 @@ export function useSessionDetail(sessionId: string) {
   );
 
   // Git action mutations
-  const pushToOriginMutation = useMutation(
-    trpc.sessions.pushToOrigin.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: [["sessions", "getGitInfo"]],
-        });
-        toast.success("Pushed to origin");
-      },
-      onError: (error) => {
-        toast.error("Push failed", {
-          description: error.message,
-        });
-      },
-    }),
-  );
-
   const sendCommitPromptMutation = useMutation(
     trpc.sessions.sendCommitPrompt.mutationOptions({
       onSuccess: () => {
@@ -523,7 +506,6 @@ export function useSessionDetail(sessionId: string) {
       setThoughtLevelMutation.reset();
       approveMutation.reset();
       denyMutation.reset();
-      pushToOriginMutation.reset();
       sendCommitPromptMutation.reset();
       sendMergePromptMutation.reset();
       sendPRPromptMutation.reset();
@@ -540,7 +522,6 @@ export function useSessionDetail(sessionId: string) {
     setThoughtLevelMutation,
     approveMutation,
     denyMutation,
-    pushToOriginMutation,
     sendCommitPromptMutation,
     sendMergePromptMutation,
     sendPRPromptMutation,
@@ -589,9 +570,6 @@ export function useSessionDetail(sessionId: string) {
   const reconnect = () => reconnectMutation.mutate({ sessionId });
 
   const deleteSession = () => deleteMutation.mutate({ sessionId });
-
-  const pushToOrigin = () =>
-    pushToOriginMutation.mutate({ sessionId, setUpstream: true });
 
   const sendCommitPrompt = () => sendCommitPromptMutation.mutate({ sessionId });
 
@@ -674,7 +652,6 @@ export function useSessionDetail(sessionId: string) {
     isSettingThoughtLevel: setThoughtLevelMutation.isPending,
     isReconnecting: reconnectMutation.isPending,
     isDeleting: deleteMutation.isPending,
-    isPushing: pushToOriginMutation.isPending,
     isSendingCommit: sendCommitPromptMutation.isPending,
     isSendingMerge: sendMergePromptMutation.isPending,
     isSendingPR: sendPRPromptMutation.isPending,
@@ -692,7 +669,6 @@ export function useSessionDetail(sessionId: string) {
     setThoughtLevel,
     reconnect,
     deleteSession,
-    pushToOrigin,
     sendCommitPrompt,
     sendMergePrompt,
     sendPRPrompt,

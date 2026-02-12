@@ -21,6 +21,7 @@ export {
   listBranches,
   listWorktrees as listGitWorktrees,
   mergeBranch,
+  pullFromRemote,
   pushToRemote,
   validateBranchName,
   validateRef,

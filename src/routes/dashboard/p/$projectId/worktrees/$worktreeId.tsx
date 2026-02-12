@@ -13,15 +13,20 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDot,
+  Download,
   FolderGit2,
   GitBranch,
   GitCommitHorizontal,
+  Loader2,
   Play,
+  Upload,
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   BranchBadge,
+  ConfirmDialog,
   ErrorDisplay,
   PageContainer,
   SessionCard,
@@ -29,6 +34,7 @@ import {
   SpawnAgentDialog,
   WorktreeDeleteDialog,
 } from "@/components/dashboard";
+import { Button } from "@/components/ui/button";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useSessionDelete } from "@/hooks/useSessionDelete";
 import { useTRPC } from "@/integrations/trpc/react";
@@ -138,6 +144,46 @@ function WorktreeDetailPage() {
     deleteWorktreeMutation.mutate({ id: worktreeId, deleteBranch });
   };
 
+  // ---- Git push/pull ----
+  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
+  const [pullConfirmOpen, setPullConfirmOpen] = useState(false);
+
+  const invalidateWorktreeQueries = () => {
+    queryClient.invalidateQueries({
+      queryKey: trpc.worktrees.getStatus.queryKey({ id: worktreeId }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.worktrees.getRecentCommits.queryKey({ id: worktreeId }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.worktrees.getBranchCommits.queryKey({ id: worktreeId }),
+    });
+  };
+
+  const pushMutation = useMutation(
+    trpc.worktrees.pushToOrigin.mutationOptions({
+      onSuccess: () => {
+        invalidateWorktreeQueries();
+        toast.success("Pushed to origin");
+      },
+      onError: (error) => {
+        toast.error("Push failed", { description: error.message });
+      },
+    }),
+  );
+
+  const pullMutation = useMutation(
+    trpc.worktrees.pullFromOrigin.mutationOptions({
+      onSuccess: () => {
+        invalidateWorktreeQueries();
+        toast.success("Pulled from origin");
+      },
+      onError: (error) => {
+        toast.error("Pull failed", { description: error.message });
+      },
+    }),
+  );
+
   // ---- Loading / Error states ----
 
   if (worktreeQuery.isLoading) {
@@ -235,6 +281,38 @@ function WorktreeDetailPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
+              {!worktree.isMainWorktree && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pullMutation.isPending}
+                    onClick={() => setPullConfirmOpen(true)}
+                  >
+                    {pullMutation.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Download className="size-3.5" />
+                    )}
+                    Pull
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pushMutation.isPending}
+                    onClick={() => setPushConfirmOpen(true)}
+                  >
+                    {pushMutation.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="size-3.5" />
+                    )}
+                    Push
+                  </Button>
+                </>
+              )}
+
               <button
                 type="button"
                 onClick={() => setShowSpawnDialog(true)}
@@ -314,6 +392,32 @@ function WorktreeDetailPage() {
           }}
           onConfirm={sessionDelete.confirmDelete}
           isDeleting={sessionDelete.isDeleting}
+        />
+
+        {/* Push confirm */}
+        <ConfirmDialog
+          open={pushConfirmOpen}
+          onOpenChange={setPushConfirmOpen}
+          title="Push to Origin"
+          description={`Push ${worktree.branch} to origin?`}
+          confirmLabel="Push"
+          onConfirm={() => {
+            setPushConfirmOpen(false);
+            pushMutation.mutate({ id: worktreeId });
+          }}
+        />
+
+        {/* Pull confirm */}
+        <ConfirmDialog
+          open={pullConfirmOpen}
+          onOpenChange={setPullConfirmOpen}
+          title="Pull from Origin"
+          description={`Pull latest changes from origin into ${worktree.branch}?`}
+          confirmLabel="Pull"
+          onConfirm={() => {
+            setPullConfirmOpen(false);
+            pullMutation.mutate({ id: worktreeId });
+          }}
         />
       </div>
     </PageContainer>
