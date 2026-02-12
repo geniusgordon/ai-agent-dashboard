@@ -269,7 +269,7 @@ export async function getDefaultBranch(repoPath: string): Promise<string> {
   // Fallback: check for common default branch names
   try {
     const branches = await listBranches(repoPath);
-    for (const candidate of ["main", "master"]) {
+    for (const candidate of ["dev", "staging", "main", "master"]) {
       if (branches.includes(candidate)) return candidate;
     }
     // Last resort: bare repo HEAD or first branch

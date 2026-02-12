@@ -62,9 +62,10 @@ export function WorktreeCreateDialog({
   );
 
   const branches = (branchesQuery.data ?? []).filter((b) => b !== "HEAD");
-  const defaultBranch = branches.includes("main")
-    ? "main"
-    : (branches[0] ?? "");
+  const defaultBranch =
+    ["dev", "staging", "main", "master"].find((b) => branches.includes(b)) ??
+    branches[0] ??
+    "";
 
   const createWorktreeMutation = useMutation(
     trpc.worktrees.create.mutationOptions(),
