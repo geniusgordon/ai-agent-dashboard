@@ -5,9 +5,11 @@
  * Chains three tRPC mutations: getOrSpawnClient → createSession → assignAgent.
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Play } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronDown, ChevronRight, FileText, Play } from "lucide-react";
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -15,8 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
+import { buildInitialMessage } from "@/lib/documents/prompts";
 import type { Worktree } from "@/lib/projects/types";
 import { AgentBadge } from "./AgentBadge";
 
@@ -36,6 +40,12 @@ export function ProjectSpawnFlow({
   const [selectedWorktreeId, setSelectedWorktreeId] = useState("");
   const [spawningType, setSpawningType] = useState<AgentType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [initialPrompt, setInitialPrompt] = useState("");
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [resumeFromDocs, setResumeFromDocs] = useState(false);
+  const navigate = useNavigate();
+
+  const selectedWorktree = worktrees.find((w) => w.id === selectedWorktreeId);
 
   const spawnMutation = useMutation(
     trpc.sessions.getOrSpawnClient.mutationOptions(),
@@ -46,6 +56,17 @@ export function ProjectSpawnFlow({
   const assignMutation = useMutation(
     trpc.worktrees.assignAgent.mutationOptions(),
   );
+  const sendMessageMutation = useMutation(
+    trpc.sessions.sendMessage.mutationOptions(),
+  );
+
+  const docsQuery = useQuery({
+    ...trpc.worktrees.detectDocuments.queryOptions({
+      worktreeId: selectedWorktreeId,
+    }),
+    enabled: !!selectedWorktree,
+  });
+  const detectedDocs = docsQuery.data ?? [];
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({
@@ -67,8 +88,7 @@ export function ProjectSpawnFlow({
   };
 
   const handleSpawn = async (agentType: AgentType) => {
-    const worktree = worktrees.find((w) => w.id === selectedWorktreeId);
-    if (!worktree) return;
+    if (!selectedWorktree) return;
 
     setSpawningType(agentType);
     setError(null);
@@ -77,7 +97,7 @@ export function ProjectSpawnFlow({
       // 1. Spawn client in worktree directory
       const client = await spawnMutation.mutateAsync({
         agentType,
-        cwd: worktree.path,
+        cwd: selectedWorktree.path,
       });
 
       // 2. Create session on the new client
@@ -93,7 +113,26 @@ export function ProjectSpawnFlow({
         projectId,
       });
 
+      // Build and send initial prompt if provided
+      const message = buildInitialMessage(
+        detectedDocs,
+        resumeFromDocs,
+        initialPrompt,
+      );
+      if (message) {
+        await sendMessageMutation.mutateAsync({
+          sessionId: session.id,
+          message,
+        });
+      }
+
       invalidateAll();
+
+      // Navigate to the new session
+      navigate({
+        to: "/dashboard/sessions/$sessionId",
+        params: { sessionId: session.id },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to spawn agent");
       invalidateAll();
@@ -114,7 +153,10 @@ export function ProjectSpawnFlow({
       {/* Worktree selector */}
       <Select
         value={selectedWorktreeId || undefined}
-        onValueChange={setSelectedWorktreeId}
+        onValueChange={(v) => {
+          setSelectedWorktreeId(v);
+          setResumeFromDocs(false);
+        }}
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select a worktree..." />
@@ -148,6 +190,62 @@ export function ProjectSpawnFlow({
           );
         })}
       </div>
+
+      {/* Initial prompt (collapsible) */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => setPromptExpanded((prev) => !prev)}
+        >
+          {promptExpanded ? (
+            <ChevronDown className="size-3.5" />
+          ) : (
+            <ChevronRight className="size-3.5" />
+          )}
+          Initial prompt
+        </button>
+
+        {promptExpanded && (
+          <Textarea
+            value={initialPrompt}
+            onChange={(e) => setInitialPrompt(e.target.value)}
+            placeholder="Optional first message to send after spawning..."
+            className="min-h-[80px] text-sm"
+          />
+        )}
+      </div>
+
+      {/* Resume from documents */}
+      {detectedDocs.length > 0 && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-border bg-secondary/30">
+          <Checkbox
+            id="psf-resume-from-docs"
+            checked={resumeFromDocs}
+            onCheckedChange={(checked) => setResumeFromDocs(checked === true)}
+            className="mt-0.5"
+          />
+          <label
+            htmlFor="psf-resume-from-docs"
+            className="space-y-1 cursor-pointer"
+          >
+            <span className="text-sm font-medium">
+              Resume from previous documents
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {detectedDocs.map((doc) => (
+                <span
+                  key={doc.path}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded"
+                >
+                  <FileText className="size-3" />
+                  {doc.path}
+                </span>
+              ))}
+            </div>
+          </label>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
