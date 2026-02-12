@@ -2,6 +2,8 @@
  * Worktrees Router - tRPC endpoints for git worktree management
  */
 
+import { readdir, readFile, stat } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { z } from "zod";
 import {
   createTRPCRouter,
@@ -157,5 +159,49 @@ export const worktreesRouter = createTRPCRouter({
       const manager = getProjectManager();
       manager.unassignAgent(input.sessionId);
       return { success: true };
+    }),
+
+  detectDocuments: publicProcedure
+    .input(z.object({ worktreePath: z.string() }))
+    .query(async ({ input }) => {
+      const { expandPath } = await import("../../lib/utils/expand-path.js");
+      const absPath = expandPath(input.worktreePath);
+      const patterns = [
+        { dir: "docs", match: /^(handoff|learnings|summary)/i },
+        { dir: ".", match: /^HANDOFF\.md$/i },
+      ];
+      const results: Array<{
+        path: string;
+        name: string;
+        modifiedAt: string;
+        content: string;
+      }> = [];
+
+      for (const { dir, match } of patterns) {
+        const dirPath = join(absPath, dir);
+        let entries: string[];
+        try {
+          entries = await readdir(dirPath);
+        } catch {
+          continue;
+        }
+        for (const entry of entries) {
+          if (!match.test(entry)) continue;
+          const filePath = join(dirPath, entry);
+          try {
+            const s = await stat(filePath);
+            if (!s.isFile()) continue;
+            const content = await readFile(filePath, "utf-8");
+            results.push({
+              path: relative(absPath, filePath),
+              name: entry,
+              modifiedAt: s.mtime.toISOString(),
+              content: content.slice(0, 10000),
+            });
+          } catch {}
+        }
+      }
+
+      return results;
     }),
 });
