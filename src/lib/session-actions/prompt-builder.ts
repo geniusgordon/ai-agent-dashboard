@@ -20,18 +20,26 @@ If there are no changes to commit, let me know.`;
 }
 
 export function buildMergePrompt(targetBranch: string): string {
-  return `Please merge \`${targetBranch}\` into the current branch:
+  return `Please merge the current branch into \`${targetBranch}\`.
 
-1. Check the current branch with \`git branch --show-current\`
-2. Fetch latest: \`git fetch origin\`
-3. Merge: \`git merge ${targetBranch}\`
-4. If there are conflicts:
-   - Review conflicting files with \`git status\`
-   - Examine each conflict and resolve by keeping the appropriate changes
-   - Stage resolved files and complete the merge with \`git commit\`
-5. Confirm the result with \`git log -1 --oneline\`
+This project uses a bare repo with worktrees. Each branch has its own worktree directory.
 
-Preserve important changes from both branches when resolving conflicts.`;
+1. Check the current branch: \`git branch --show-current\`
+2. Check for merge conflicts before merging:
+   \`\`\`
+   git merge-tree $(git merge-base HEAD ${targetBranch}) HEAD ${targetBranch}
+   \`\`\`
+   If this reports conflicts, list them and stop — do NOT proceed with the merge. Ask me how to resolve them.
+3. Find the worktree directory for \`${targetBranch}\`:
+   \`\`\`
+   git worktree list
+   \`\`\`
+4. \`cd\` into the \`${targetBranch}\` worktree directory and merge:
+   \`\`\`
+   cd <${targetBranch}-worktree-path>
+   git merge $(git -C <original-worktree-path> branch --show-current)
+   \`\`\`
+5. Confirm the result: \`git log -1 --oneline\``;
 }
 
 export function buildPRPrompt(

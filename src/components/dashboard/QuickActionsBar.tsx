@@ -128,7 +128,8 @@ export function QuickActionsBar({
           label="Merge"
           description={
             <>
-              Merge a branch into <code className="text-[10px]">{branch}</code>
+              Merge <code className="text-[10px]">{branch}</code> into a target
+              branch
             </>
           }
           icon={<GitMerge className="size-3" />}
