@@ -472,6 +472,9 @@ export function useSessionDetail(sessionId: string) {
     trpc.sessions.sendCommitPrompt.mutationOptions({
       onSuccess: () => {
         autoScrollRef.current = true;
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
       },
     }),
   );
@@ -480,6 +483,9 @@ export function useSessionDetail(sessionId: string) {
     trpc.sessions.sendMergePrompt.mutationOptions({
       onSuccess: () => {
         autoScrollRef.current = true;
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
       },
     }),
   );
@@ -488,6 +494,9 @@ export function useSessionDetail(sessionId: string) {
     trpc.sessions.sendPRPrompt.mutationOptions({
       onSuccess: () => {
         autoScrollRef.current = true;
+        queryClient.invalidateQueries({
+          queryKey: trpc.sessions.getSession.queryKey({ sessionId }),
+        });
       },
     }),
   );
