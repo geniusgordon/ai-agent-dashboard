@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { AgentType } from "@/lib/agents/types";
+import { buildInitialMessage } from "@/lib/documents/prompts";
 import { AgentBadge } from "./AgentBadge";
 
 const agentTypes: AgentType[] = ["claude-code", "codex", "gemini"];
@@ -64,7 +65,7 @@ export function SpawnAgentDialog({
 
   const docsQuery = useQuery({
     ...trpc.worktrees.detectDocuments.queryOptions({
-      worktreePath: worktreePath,
+      worktreeId: worktreeId,
     }),
     enabled: open,
   });
@@ -109,22 +110,15 @@ export function SpawnAgentDialog({
       });
 
       // Build and send initial prompt if provided
-      const parts: string[] = [];
-      if (resumeFromDocs && detectedDocs.length > 0) {
-        parts.push(
-          "Here are documents from the previous session for context:\n\n" +
-            detectedDocs
-              .map((d) => `--- ${d.path} ---\n${d.content}`)
-              .join("\n\n"),
-        );
-      }
-      if (initialPrompt.trim()) {
-        parts.push(initialPrompt.trim());
-      }
-      if (parts.length > 0) {
+      const message = buildInitialMessage(
+        detectedDocs,
+        resumeFromDocs,
+        initialPrompt,
+      );
+      if (message) {
         await sendMessageMutation.mutateAsync({
           sessionId: session.id,
-          message: parts.join("\n\n---\n\n"),
+          message,
         });
       }
 

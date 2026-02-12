@@ -162,10 +162,13 @@ export const worktreesRouter = createTRPCRouter({
     }),
 
   detectDocuments: publicProcedure
-    .input(z.object({ worktreePath: z.string() }))
+    .input(z.object({ worktreeId: z.string() }))
     .query(async ({ input }) => {
+      const manager = getProjectManager();
+      const worktree = manager.getWorktree(input.worktreeId);
+      if (!worktree) throw new Error(`Worktree not found: ${input.worktreeId}`);
       const { expandPath } = await import("../../lib/utils/expand-path.js");
-      const absPath = expandPath(input.worktreePath);
+      const absPath = expandPath(worktree.path);
       const patterns = [
         { dir: "docs", match: /^(handoff|learnings|summary)/i },
         { dir: ".", match: /^HANDOFF\.md$/i },
@@ -198,7 +201,10 @@ export const worktreesRouter = createTRPCRouter({
               modifiedAt: s.mtime.toISOString(),
               content: content.slice(0, 10000),
             });
-          } catch {}
+          } catch (err) {
+            const code = (err as NodeJS.ErrnoException).code;
+            if (code !== "ENOENT" && code !== "EACCES") throw err;
+          }
         }
       }
 

@@ -72,3 +72,42 @@ export function buildCustomDocumentPrompt(instruction: string): string {
 
 Save the output as a markdown file under the docs/ directory in this project, following any existing documentation conventions you see.`;
 }
+
+/** Max total chars for resume-from-docs content to avoid exceeding context windows. */
+const MAX_RESUME_CONTENT_SIZE = 30_000;
+
+/**
+ * Build the initial message for a newly spawned agent session,
+ * combining resume-from-docs content and user-provided prompt.
+ * Returns null if there's nothing to send.
+ */
+export function buildInitialMessage(
+  detectedDocs: Array<{ path: string; content: string }>,
+  resumeFromDocs: boolean,
+  initialPrompt: string,
+): string | null {
+  const parts: string[] = [];
+  if (resumeFromDocs && detectedDocs.length > 0) {
+    let totalSize = 0;
+    const truncatedDocs: string[] = [];
+    for (const d of detectedDocs) {
+      const entry = `--- ${d.path} ---\n${d.content}`;
+      if (totalSize + entry.length > MAX_RESUME_CONTENT_SIZE) {
+        truncatedDocs.push(
+          `--- ${d.path} ---\n[truncated — ${d.content.length} chars]`,
+        );
+        continue;
+      }
+      truncatedDocs.push(entry);
+      totalSize += entry.length;
+    }
+    parts.push(
+      "Here are documents from the previous session for context:\n\n" +
+        truncatedDocs.join("\n\n"),
+    );
+  }
+  if (initialPrompt.trim()) {
+    parts.push(initialPrompt.trim());
+  }
+  return parts.length > 0 ? parts.join("\n\n---\n\n") : null;
+}
