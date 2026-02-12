@@ -8,6 +8,7 @@ export { CommandPalette } from "./CommandPalette";
 export { ContextMeter } from "./ContextMeter";
 export { DashboardLayout } from "./DashboardLayout";
 export { ErrorDisplay } from "./ErrorDisplay";
+export { GitActionsGrid } from "./GitActionsGrid";
 export { GitInfoPanel } from "./GitInfoPanel";
 export { LogEntry } from "./LogEntry";
 export { MarkdownContent } from "./MarkdownContent";

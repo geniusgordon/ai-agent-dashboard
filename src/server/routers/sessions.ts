@@ -24,6 +24,7 @@ import {
   hasUncommittedChanges,
   isGitRepo,
   pushToRemote,
+  validateBranchName,
 } from "../../lib/projects/index.js";
 import {
   buildCommitPrompt,
@@ -497,6 +498,8 @@ export const sessionsRouter = createTRPCRouter({
     .input(z.object({ sessionId: z.string() }))
     .mutation(({ input }) => {
       const manager = getAgentManager();
+      const session = manager.getSession(input.sessionId);
+      if (!session) throw new Error("Session not found");
       manager.sendMessage(input.sessionId, buildCommitPrompt());
       return { success: true };
     }),
@@ -512,7 +515,10 @@ export const sessionsRouter = createTRPCRouter({
       }),
     )
     .mutation(({ input }) => {
+      validateBranchName(input.targetBranch);
       const manager = getAgentManager();
+      const session = manager.getSession(input.sessionId);
+      if (!session) throw new Error("Session not found");
       manager.sendMessage(
         input.sessionId,
         buildMergePrompt(input.targetBranch),
@@ -531,6 +537,7 @@ export const sessionsRouter = createTRPCRouter({
       }),
     )
     .mutation(({ input }) => {
+      validateBranchName(input.baseBranch);
       const manager = getAgentManager();
       const session = manager.getSession(input.sessionId);
       if (!session?.worktreeBranch) {
