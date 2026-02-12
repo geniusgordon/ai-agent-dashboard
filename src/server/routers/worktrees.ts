@@ -15,9 +15,11 @@ import {
   getDefaultBranch,
   getProjectManager,
   getRecentCommits,
+  pullFromRemote,
+  pushToRemote,
 } from "../../lib/projects/index.js";
 import type { Worktree } from "../../lib/projects/types.js";
-import { collapsePath } from "../../lib/utils/expand-path.js";
+import { collapsePath, expandPath } from "../../lib/utils/expand-path.js";
 
 function collapseWorktree(w: Worktree): Worktree {
   return { ...w, path: collapsePath(w.path) };
@@ -209,5 +211,44 @@ export const worktreesRouter = createTRPCRouter({
       }
 
       return results;
+    }),
+
+  pushToOrigin: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getProjectManager();
+      const worktree = manager.getWorktree(input.id);
+      if (!worktree) throw new Error(`Worktree not found: ${input.id}`);
+
+      const result = await pushToRemote(
+        expandPath(worktree.path),
+        worktree.branch,
+        true,
+      );
+
+      if (!result.success) {
+        throw new Error(result.error ?? "Push failed");
+      }
+
+      return { success: true };
+    }),
+
+  pullFromOrigin: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      const manager = getProjectManager();
+      const worktree = manager.getWorktree(input.id);
+      if (!worktree) throw new Error(`Worktree not found: ${input.id}`);
+
+      const result = await pullFromRemote(
+        expandPath(worktree.path),
+        worktree.branch,
+      );
+
+      if (!result.success) {
+        throw new Error(result.error ?? "Pull failed");
+      }
+
+      return { success: true };
     }),
 });
