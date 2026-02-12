@@ -23,7 +23,6 @@ import {
   getRecentCommits,
   hasUncommittedChanges,
   isGitRepo,
-  pushToRemote,
   validateBranchName,
 } from "../../lib/projects/index.js";
 import {
@@ -460,36 +459,6 @@ export const sessionsRouter = createTRPCRouter({
   // ---------------------------------------------------------------------------
   // Session Git Actions
   // ---------------------------------------------------------------------------
-
-  /**
-   * Push the session's branch to origin.
-   * Direct git operation — no agent involved.
-   */
-  pushToOrigin: publicProcedure
-    .input(
-      z.object({
-        sessionId: z.string(),
-        setUpstream: z.boolean().optional(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const manager = getAgentManager();
-      const session = manager.getSession(input.sessionId);
-      if (!session) throw new Error("Session not found");
-
-      const branch = session.worktreeBranch ?? undefined;
-      const result = await pushToRemote(
-        expandPath(session.cwd),
-        branch,
-        input.setUpstream ?? true,
-      );
-
-      if (!result.success) {
-        throw new Error(result.error ?? "Push failed");
-      }
-
-      return { success: true };
-    }),
 
   /**
    * Send a commit prompt to the session's agent.

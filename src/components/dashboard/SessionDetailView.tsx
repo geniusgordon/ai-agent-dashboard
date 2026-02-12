@@ -107,7 +107,6 @@ export function SessionDetailView({
     isSettingThoughtLevel,
     isReconnecting,
     isDeleting,
-    isPushing,
     isSendingCommit,
     isSendingMerge,
     isSendingPR,
@@ -123,7 +122,6 @@ export function SessionDetailView({
     setThoughtLevel,
     reconnect,
     deleteSession,
-    pushToOrigin,
     sendCommitPrompt,
     sendMergePrompt,
     sendPRPrompt,
@@ -293,8 +291,6 @@ export function SessionDetailView({
             {showInput && branch && (
               <QuickActionsBar
                 actions={{
-                  onPushToOrigin: pushToOrigin,
-                  isPushing,
                   onCommit: sendCommitPrompt,
                   isSendingCommit,
                   onMerge: sendMergePrompt,
