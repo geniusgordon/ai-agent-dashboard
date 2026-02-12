@@ -20,12 +20,21 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -44,10 +53,20 @@ import {
   DOCUMENT_ACTIONS,
   getDocumentPrompt,
 } from "@/lib/documents/prompts";
-import type { SessionActions } from "./SessionInfoContent";
+
+export interface QuickActions {
+  onPushToOrigin?: () => void;
+  isPushing?: boolean;
+  onCommit?: () => void;
+  isSendingCommit?: boolean;
+  onMerge?: (targetBranch: string) => void;
+  isSendingMerge?: boolean;
+  onCreatePR?: (baseBranch: string) => void;
+  isSendingPR?: boolean;
+}
 
 interface QuickActionsBarProps {
-  actions: SessionActions;
+  actions: QuickActions;
   agentBusy: boolean;
   branch: string;
   projectId?: string;
@@ -287,66 +306,97 @@ function DocumentDropdown({
   onSendMessage: (message: string) => void;
   disabled: boolean;
 }) {
-  const [sending, setSending] = useState(false);
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [customInstruction, setCustomInstruction] = useState("");
 
   const handlePreset = (type: Parameters<typeof getDocumentPrompt>[0]) => {
-    setSending(true);
     onSendMessage(getDocumentPrompt(type));
-    setTimeout(() => setSending(false), 500);
   };
 
-  const handleCustom = () => {
-    // For custom, send a generic prompt — user can type their own in the input
-    const instruction = window.prompt("What should the agent document?");
-    if (instruction?.trim()) {
-      onSendMessage(buildCustomDocumentPrompt(instruction.trim()));
+  const handleCustomConfirm = () => {
+    if (customInstruction.trim()) {
+      onSendMessage(buildCustomDocumentPrompt(customInstruction.trim()));
     }
+    setCustomDialogOpen(false);
+    setCustomInstruction("");
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="xs"
-          className="text-xs gap-1"
-          disabled={disabled || sending}
-        >
-          {sending ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <FileText className="size-3" />
-          )}
-          Doc
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-52">
-        {DOCUMENT_ACTIONS.map((action) => (
-          <DropdownMenuItem
-            key={action.type}
-            onClick={() => handlePreset(action.type)}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="xs"
+            className="text-xs gap-1"
+            disabled={disabled}
           >
-            <div>
-              <div className="font-medium text-xs">{action.label}</div>
-              <div className="text-[11px] text-muted-foreground">
-                {action.description}
+            <FileText className="size-3" />
+            Doc
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-52">
+          {DOCUMENT_ACTIONS.map((action) => (
+            <DropdownMenuItem
+              key={action.type}
+              onClick={() => handlePreset(action.type)}
+            >
+              <div>
+                <div className="font-medium text-xs">{action.label}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {action.description}
+                </div>
+              </div>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setCustomDialogOpen(true)}>
+            <div className="flex items-center gap-2">
+              <Pen className="size-3" />
+              <div>
+                <div className="font-medium text-xs">Custom</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Write your own instruction
+                </div>
               </div>
             </div>
           </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleCustom}>
-          <div className="flex items-center gap-2">
-            <Pen className="size-3" />
-            <div>
-              <div className="font-medium text-xs">Custom</div>
-              <div className="text-[11px] text-muted-foreground">
-                Write your own instruction
-              </div>
-            </div>
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={customDialogOpen} onOpenChange={setCustomDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Custom Document</DialogTitle>
+            <DialogDescription>
+              What should the agent document?
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={customInstruction}
+            onChange={(e) => setCustomInstruction(e.target.value)}
+            placeholder="e.g. Add JSDoc to all exported functions"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCustomConfirm();
+            }}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCustomDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCustomConfirm}
+              disabled={!customInstruction.trim()}
+            >
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

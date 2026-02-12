@@ -41,15 +41,6 @@ export interface SessionActions {
   isDeleting: boolean;
   onReconnect: () => void;
   isReconnecting: boolean;
-  // Git actions
-  onPushToOrigin?: () => void;
-  isPushing?: boolean;
-  onCommit?: () => void;
-  isSendingCommit?: boolean;
-  onMerge?: (targetBranch: string) => void;
-  isSendingMerge?: boolean;
-  onCreatePR?: (baseBranch: string) => void;
-  isSendingPR?: boolean;
 }
 
 export interface SessionInfoContentProps {
@@ -57,12 +48,9 @@ export interface SessionInfoContentProps {
   connected: boolean;
   branch?: string;
   worktreeId?: string;
-  projectId?: string;
   projectName?: string;
   actions: SessionActions;
   usageInfo?: UsageUpdatePayload;
-  onStartReview?: () => void;
-  onSendMessage?: (message: string) => void;
 }
 
 // ---------------------------------------------------------------------------

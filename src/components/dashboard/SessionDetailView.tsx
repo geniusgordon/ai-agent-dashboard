@@ -293,14 +293,6 @@ export function SessionDetailView({
             {showInput && branch && (
               <QuickActionsBar
                 actions={{
-                  onKillSession: killSession,
-                  isKilling,
-                  onCompleteSession: completeSession,
-                  isCompleting,
-                  onDeleteSession: handleDelete,
-                  isDeleting,
-                  onReconnect: reconnect,
-                  isReconnecting,
                   onPushToOrigin: pushToOrigin,
                   isPushing,
                   onCommit: sendCommitPrompt,

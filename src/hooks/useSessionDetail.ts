@@ -5,6 +5,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { ImageAttachment } from "@/components/dashboard";
 import type { SessionLogScrollHandle } from "@/components/dashboard/SessionLog";
 import { useTRPC } from "@/integrations/trpc/react";
@@ -456,6 +457,12 @@ export function useSessionDetail(sessionId: string) {
       onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: [["sessions", "getGitInfo"]],
+        });
+        toast.success("Pushed to origin");
+      },
+      onError: (error) => {
+        toast.error("Push failed", {
+          description: error.message,
         });
       },
     }),
