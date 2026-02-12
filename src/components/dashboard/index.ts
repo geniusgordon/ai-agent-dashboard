@@ -7,6 +7,7 @@ export { CodeReviewDialog } from "./CodeReviewDialog";
 export { CommandPalette } from "./CommandPalette";
 export { ContextMeter } from "./ContextMeter";
 export { DashboardLayout } from "./DashboardLayout";
+export { DocumentActionMenu } from "./DocumentActionMenu";
 export { ErrorDisplay } from "./ErrorDisplay";
 export { GitInfoPanel } from "./GitInfoPanel";
 export { LogEntry } from "./LogEntry";
