@@ -155,7 +155,6 @@ export function QuickActionsBar({
       {onSendMessage && (
         <DocumentDropdown onSendMessage={onSendMessage} disabled={agentBusy} />
       )}
-
     </div>
   );
 }
