@@ -141,7 +141,7 @@ function ProjectSessionsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search sessions..."
-              className="pl-9 pr-4 py-2 rounded-lg w-full bg-card border border-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
+              className="pl-9 pr-4 py-2 rounded-lg w-full bg-card border border-input text-base md:text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
             />
           </div>
 

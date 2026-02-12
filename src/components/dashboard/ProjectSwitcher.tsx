@@ -95,7 +95,7 @@ export function ProjectSwitcher({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search projects..."
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent text-base md:text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
 

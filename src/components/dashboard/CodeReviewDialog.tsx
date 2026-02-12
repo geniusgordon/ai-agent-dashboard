@@ -198,7 +198,7 @@ export function CodeReviewDialog({
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   placeholder="Filter branches..."
-                  className="w-full pl-8 pr-3 py-2 rounded-lg bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full pl-8 pr-3 py-2 rounded-lg bg-background border border-input text-foreground text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
             )}

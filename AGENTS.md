@@ -31,6 +31,7 @@ pnpm validate         # typecheck + check:ci + test (full CI pipeline)
 - **Static imports only**: No lazy `import()` for modules already loaded by the server process. Use static imports at the top of the file.
 - **Barrel exports**: New components in `src/components/dashboard/` must be added to `index.ts` or imports from `@/components/dashboard` will fail at build time.
 - **Mobile-first RWD**: Always design UI mobile-first. Ensure all components and layouts are fully responsive — test small viewports first, then scale up with breakpoints.
+- **Input font size (iOS zoom prevention)**: All `<input>`, `<textarea>`, and `<select>` elements must use `text-base md:text-sm` (16px on mobile, 14px on desktop). iOS Safari auto-zooms when focusing inputs with font-size below 16px. The shadcn `Input` and `Textarea` components already follow this pattern — raw HTML inputs must do the same.
 - Biome ignores `src/routeTree.gen.ts` and `src/styles.css` (auto-generated files).
 
 ## Architecture
