@@ -18,12 +18,9 @@ export interface SessionRightPanelProps {
   connected: boolean;
   branch?: string;
   worktreeId?: string;
-  projectId?: string;
   projectName?: string;
   actions: SessionActions;
   usageInfo?: UsageUpdatePayload;
-  onStartReview?: () => void;
-  onSendMessage?: (message: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -36,12 +33,9 @@ export function SessionRightPanel({
   connected,
   branch,
   worktreeId,
-  projectId,
   projectName,
   actions,
   usageInfo,
-  onStartReview,
-  onSendMessage,
 }: SessionRightPanelProps) {
   return (
     <aside
@@ -72,14 +66,7 @@ export function SessionRightPanel({
 
         {/* Sticky action footer */}
         <div className="px-4 py-3 border-t border-border shrink-0 space-y-2">
-          <SessionInfoActions
-            session={session}
-            branch={branch}
-            projectId={projectId}
-            actions={actions}
-            onStartReview={onStartReview}
-            onSendMessage={onSendMessage}
-          />
+          <SessionInfoActions session={session} actions={actions} />
         </div>
       </div>
     </aside>

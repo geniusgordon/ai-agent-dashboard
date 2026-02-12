@@ -21,8 +21,6 @@ import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { ContextMeter } from "@/components/dashboard/ContextMeter";
-import { DocumentActionMenu } from "@/components/dashboard/DocumentActionMenu";
-import { GitActionsGrid } from "@/components/dashboard/GitActionsGrid";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
@@ -182,28 +180,14 @@ export function SessionInfoBody({
 
 export function SessionInfoActions({
   session,
-  branch,
-  projectId,
   actions,
-  onStartReview,
-  onSendMessage,
-}: Pick<
-  SessionInfoContentProps,
-  | "session"
-  | "branch"
-  | "projectId"
-  | "actions"
-  | "onStartReview"
-  | "onSendMessage"
->) {
+}: Pick<SessionInfoContentProps, "session" | "actions">) {
   const [killConfirmOpen, setKillConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const isTerminal =
     session.status === "completed" || session.status === "killed";
   const isActiveSession = !isTerminal && session.isActive !== false;
-  const hasGitActions =
-    branch && !isTerminal && (actions.onPushToOrigin || actions.onCommit);
 
   return (
     <>
@@ -258,36 +242,6 @@ export function SessionInfoActions({
             </Button>
           )}
         </div>
-      )}
-
-      {/* Git actions */}
-      {hasGitActions && (
-        <GitActionsGrid
-          actions={actions}
-          agentBusy={session.status === "running"}
-          branch={branch}
-          projectId={projectId}
-        />
-      )}
-
-      {/* Document actions */}
-      {isActiveSession && onSendMessage && (
-        <DocumentActionMenu
-          onSendMessage={onSendMessage}
-          disabled={session.status === "running"}
-        />
-      )}
-
-      {/* Code review */}
-      {onStartReview && branch && (
-        <Button
-          variant="outline"
-          onClick={onStartReview}
-          className="w-full justify-center"
-        >
-          <GitMerge />
-          Code Review
-        </Button>
       )}
 
       {/* Confirmation dialogs */}

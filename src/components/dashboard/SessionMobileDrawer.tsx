@@ -21,11 +21,8 @@ export interface SessionMobileDrawerProps {
   branch?: string;
   worktreeId?: string;
   projectName?: string;
-  projectId?: string;
   actions: SessionActions;
   usageInfo?: UsageUpdatePayload;
-  onStartReview?: () => void;
-  onSendMessage?: (message: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,11 +37,8 @@ export function SessionMobileDrawer({
   branch,
   worktreeId,
   projectName,
-  projectId,
   actions,
   usageInfo,
-  onStartReview,
-  onSendMessage,
 }: SessionMobileDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -74,14 +68,7 @@ export function SessionMobileDrawer({
 
         {/* Action footer */}
         <DrawerFooter className="border-t border-border pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <SessionInfoActions
-            session={session}
-            branch={branch}
-            projectId={projectId}
-            actions={actions}
-            onStartReview={onStartReview}
-            onSendMessage={onSendMessage}
-          />
+          <SessionInfoActions session={session} actions={actions} />
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

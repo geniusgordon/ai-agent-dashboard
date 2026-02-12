@@ -20,6 +20,7 @@ export { PanelSection } from "./PanelSection";
 export { PlanDocumentViewer } from "./PlanDocumentViewer";
 export { ProjectCard } from "./ProjectCard";
 export { ProjectSpawnFlow } from "./ProjectSpawnFlow";
+export { QuickActionsBar } from "./QuickActionsBar";
 export { ReconnectBanner } from "./ReconnectBanner";
 export { SessionCard } from "./SessionCard";
 export { SessionContextHeader } from "./SessionContextHeader";

@@ -7,6 +7,7 @@ import {
   ApprovalBanner,
   MessageInput,
   PlanDocumentViewer,
+  QuickActionsBar,
   ReconnectBanner,
   SessionContextHeader,
   SessionLog,
@@ -289,6 +290,35 @@ export function SessionDetailView({
           )}
 
           <div className="shrink-0">
+            {showInput && branch && (
+              <QuickActionsBar
+                actions={{
+                  onKillSession: killSession,
+                  isKilling,
+                  onCompleteSession: completeSession,
+                  isCompleting,
+                  onDeleteSession: handleDelete,
+                  isDeleting,
+                  onReconnect: reconnect,
+                  isReconnecting,
+                  onPushToOrigin: pushToOrigin,
+                  isPushing,
+                  onCommit: sendCommitPrompt,
+                  isSendingCommit,
+                  onMerge: sendMergePrompt,
+                  isSendingMerge,
+                  onCreatePR: sendPRPrompt,
+                  isSendingPR,
+                }}
+                agentBusy={isAgentBusy}
+                branch={branch}
+                projectId={resolvedProjectId}
+                onStartReview={
+                  canStartReview ? () => setReviewDialogOpen(true) : undefined
+                }
+                onSendMessage={(msg: string) => sendMessage(msg)}
+              />
+            )}
             {showInput && (
               <MessageInput
                 sessionId={sessionId}
@@ -332,7 +362,6 @@ export function SessionDetailView({
             connected={connected}
             branch={branch}
             worktreeId={session.worktreeId}
-            projectId={resolvedProjectId}
             projectName={projectQuery.data?.name}
             actions={{
               onKillSession: killSession,
@@ -343,20 +372,8 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
-              onPushToOrigin: branch ? pushToOrigin : undefined,
-              isPushing,
-              onCommit: branch ? sendCommitPrompt : undefined,
-              isSendingCommit,
-              onMerge: branch ? sendMergePrompt : undefined,
-              isSendingMerge,
-              onCreatePR: branch ? sendPRPrompt : undefined,
-              isSendingPR,
             }}
             usageInfo={usageInfo}
-            onStartReview={
-              canStartReview ? () => setReviewDialogOpen(true) : undefined
-            }
-            onSendMessage={(msg: string) => sendMessage(msg)}
           />
         ) : (
           <SessionMobileDrawer
@@ -366,7 +383,6 @@ export function SessionDetailView({
             connected={connected}
             branch={branch}
             worktreeId={session.worktreeId}
-            projectId={resolvedProjectId}
             projectName={projectQuery.data?.name}
             actions={{
               onKillSession: killSession,
@@ -377,20 +393,8 @@ export function SessionDetailView({
               isDeleting,
               onReconnect: reconnect,
               isReconnecting,
-              onPushToOrigin: branch ? pushToOrigin : undefined,
-              isPushing,
-              onCommit: branch ? sendCommitPrompt : undefined,
-              isSendingCommit,
-              onMerge: branch ? sendMergePrompt : undefined,
-              isSendingMerge,
-              onCreatePR: branch ? sendPRPrompt : undefined,
-              isSendingPR,
             }}
             usageInfo={usageInfo}
-            onStartReview={
-              canStartReview ? () => setReviewDialogOpen(true) : undefined
-            }
-            onSendMessage={(msg: string) => sendMessage(msg)}
           />
         )}
 
