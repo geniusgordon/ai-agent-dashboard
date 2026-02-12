@@ -34,6 +34,7 @@ import {
   SpawnAgentDialog,
   WorktreeDeleteDialog,
 } from "@/components/dashboard";
+import { Button } from "@/components/ui/button";
 import { useAgentEvents } from "@/hooks/useAgentEvents";
 import { useSessionDelete } from "@/hooks/useSessionDelete";
 import { useTRPC } from "@/integrations/trpc/react";
@@ -147,22 +148,22 @@ function WorktreeDetailPage() {
   const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
   const [pullConfirmOpen, setPullConfirmOpen] = useState(false);
 
+  const invalidateWorktreeQueries = () => {
+    queryClient.invalidateQueries({
+      queryKey: trpc.worktrees.getStatus.queryKey({ id: worktreeId }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.worktrees.getRecentCommits.queryKey({ id: worktreeId }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.worktrees.getBranchCommits.queryKey({ id: worktreeId }),
+    });
+  };
+
   const pushMutation = useMutation(
     trpc.worktrees.pushToOrigin.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.getStatus.queryKey({ id: worktreeId }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.getRecentCommits.queryKey({
-            id: worktreeId,
-          }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.getBranchCommits.queryKey({
-            id: worktreeId,
-          }),
-        });
+        invalidateWorktreeQueries();
         toast.success("Pushed to origin");
       },
       onError: (error) => {
@@ -174,19 +175,7 @@ function WorktreeDetailPage() {
   const pullMutation = useMutation(
     trpc.worktrees.pullFromOrigin.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.getStatus.queryKey({ id: worktreeId }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.getRecentCommits.queryKey({
-            id: worktreeId,
-          }),
-        });
-        queryClient.invalidateQueries({
-          queryKey: trpc.worktrees.getBranchCommits.queryKey({
-            id: worktreeId,
-          }),
-        });
+        invalidateWorktreeQueries();
         toast.success("Pulled from origin");
       },
       onError: (error) => {
@@ -292,33 +281,37 @@ function WorktreeDetailPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                disabled={pullMutation.isPending}
-                onClick={() => setPullConfirmOpen(true)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-muted text-foreground border border-border hover:bg-muted/80 transition-colors cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {pullMutation.isPending ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Download className="size-3.5" />
-                )}
-                Pull
-              </button>
+              {!worktree.isMainWorktree && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pullMutation.isPending}
+                    onClick={() => setPullConfirmOpen(true)}
+                  >
+                    {pullMutation.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Download className="size-3.5" />
+                    )}
+                    Pull
+                  </Button>
 
-              <button
-                type="button"
-                disabled={pushMutation.isPending}
-                onClick={() => setPushConfirmOpen(true)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-muted text-foreground border border-border hover:bg-muted/80 transition-colors cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {pushMutation.isPending ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Upload className="size-3.5" />
-                )}
-                Push
-              </button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pushMutation.isPending}
+                    onClick={() => setPushConfirmOpen(true)}
+                  >
+                    {pushMutation.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="size-3.5" />
+                    )}
+                    Push
+                  </Button>
+                </>
+              )}
 
               <button
                 type="button"

@@ -492,9 +492,7 @@ export async function pullFromRemote(
 
   const sg = getGit(worktreePath);
   try {
-    const args: string[] = ["origin"];
-    if (branchName) args.push(branchName);
-    await sg.pull(args);
+    await sg.pull("origin", branchName ?? undefined);
     return { success: true };
   } catch (error) {
     return { success: false, error: (error as Error).message };
