@@ -339,6 +339,7 @@ export function SessionDetailView({
             onStartReview={
               canStartReview ? () => setReviewDialogOpen(true) : undefined
             }
+            onSendMessage={(msg: string) => sendMessage(msg)}
           />
         ) : (
           <SessionMobileDrawer
@@ -362,6 +363,7 @@ export function SessionDetailView({
             onStartReview={
               canStartReview ? () => setReviewDialogOpen(true) : undefined
             }
+            onSendMessage={(msg: string) => sendMessage(msg)}
           />
         )}
 

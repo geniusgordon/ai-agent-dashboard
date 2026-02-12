@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
+import { DocumentActionMenu } from "@/components/dashboard/DocumentActionMenu";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
@@ -43,6 +44,7 @@ export interface SessionMobileDrawerProps {
     isReconnecting: boolean;
   };
   onStartReview?: () => void;
+  onSendMessage?: (message: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +61,7 @@ export function SessionMobileDrawer({
   projectName,
   actions,
   onStartReview,
+  onSendMessage,
 }: SessionMobileDrawerProps) {
   const isTerminal =
     session.status === "completed" || session.status === "killed";
@@ -199,6 +202,14 @@ export function SessionMobileDrawer({
                 </Button>
               )}
             </div>
+          )}
+
+          {/* Document actions */}
+          {isActiveSession && onSendMessage && (
+            <DocumentActionMenu
+              onSendMessage={onSendMessage}
+              disabled={session.status === "running"}
+            />
           )}
 
           {onStartReview && branch && (
