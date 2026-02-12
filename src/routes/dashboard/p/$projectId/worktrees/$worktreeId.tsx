@@ -13,15 +13,20 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDot,
+  Download,
   FolderGit2,
   GitBranch,
   GitCommitHorizontal,
+  Loader2,
   Play,
+  Upload,
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   BranchBadge,
+  ConfirmDialog,
   ErrorDisplay,
   PageContainer,
   SessionCard,
@@ -138,6 +143,58 @@ function WorktreeDetailPage() {
     deleteWorktreeMutation.mutate({ id: worktreeId, deleteBranch });
   };
 
+  // ---- Git push/pull ----
+  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
+  const [pullConfirmOpen, setPullConfirmOpen] = useState(false);
+
+  const pushMutation = useMutation(
+    trpc.worktrees.pushToOrigin.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.worktrees.getStatus.queryKey({ id: worktreeId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.worktrees.getRecentCommits.queryKey({
+            id: worktreeId,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.worktrees.getBranchCommits.queryKey({
+            id: worktreeId,
+          }),
+        });
+        toast.success("Pushed to origin");
+      },
+      onError: (error) => {
+        toast.error("Push failed", { description: error.message });
+      },
+    }),
+  );
+
+  const pullMutation = useMutation(
+    trpc.worktrees.pullFromOrigin.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.worktrees.getStatus.queryKey({ id: worktreeId }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.worktrees.getRecentCommits.queryKey({
+            id: worktreeId,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.worktrees.getBranchCommits.queryKey({
+            id: worktreeId,
+          }),
+        });
+        toast.success("Pulled from origin");
+      },
+      onError: (error) => {
+        toast.error("Pull failed", { description: error.message });
+      },
+    }),
+  );
+
   // ---- Loading / Error states ----
 
   if (worktreeQuery.isLoading) {
@@ -237,6 +294,34 @@ function WorktreeDetailPage() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
+                disabled={pullMutation.isPending}
+                onClick={() => setPullConfirmOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-muted text-foreground border border-border hover:bg-muted/80 transition-colors cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {pullMutation.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Download className="size-3.5" />
+                )}
+                Pull
+              </button>
+
+              <button
+                type="button"
+                disabled={pushMutation.isPending}
+                onClick={() => setPushConfirmOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-muted text-foreground border border-border hover:bg-muted/80 transition-colors cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {pushMutation.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Upload className="size-3.5" />
+                )}
+                Push
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowSpawnDialog(true)}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium bg-action-success/20 text-action-success-hover border border-action-success/30 hover:bg-action-success/30 transition-colors cursor-pointer inline-flex items-center gap-1.5"
               >
@@ -314,6 +399,32 @@ function WorktreeDetailPage() {
           }}
           onConfirm={sessionDelete.confirmDelete}
           isDeleting={sessionDelete.isDeleting}
+        />
+
+        {/* Push confirm */}
+        <ConfirmDialog
+          open={pushConfirmOpen}
+          onOpenChange={setPushConfirmOpen}
+          title="Push to Origin"
+          description={`Push ${worktree.branch} to origin?`}
+          confirmLabel="Push"
+          onConfirm={() => {
+            setPushConfirmOpen(false);
+            pushMutation.mutate({ id: worktreeId });
+          }}
+        />
+
+        {/* Pull confirm */}
+        <ConfirmDialog
+          open={pullConfirmOpen}
+          onOpenChange={setPullConfirmOpen}
+          title="Pull from Origin"
+          description={`Pull latest changes from origin into ${worktree.branch}?`}
+          confirmLabel="Pull"
+          onConfirm={() => {
+            setPullConfirmOpen(false);
+            pullMutation.mutate({ id: worktreeId });
+          }}
         />
       </div>
     </PageContainer>
