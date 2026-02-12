@@ -12,6 +12,7 @@ import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { ContextMeter } from "@/components/dashboard/ContextMeter";
 import { DocumentActionMenu } from "@/components/dashboard/DocumentActionMenu";
+import { GitActionsGrid } from "@/components/dashboard/GitActionsGrid";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
@@ -32,6 +33,15 @@ export interface SessionActions {
   isDeleting: boolean;
   onReconnect: () => void;
   isReconnecting: boolean;
+  // Git actions
+  onPushToOrigin?: () => void;
+  isPushing?: boolean;
+  onCommit?: () => void;
+  isSendingCommit?: boolean;
+  onMerge?: (targetBranch: string) => void;
+  isSendingMerge?: boolean;
+  onCreatePR?: (baseBranch: string) => void;
+  isSendingPR?: boolean;
 }
 
 export interface SessionRightPanelProps {
@@ -40,6 +50,7 @@ export interface SessionRightPanelProps {
   connected: boolean;
   branch?: string;
   worktreeId?: string;
+  projectId?: string;
   projectName?: string;
   actions: SessionActions;
   usageInfo?: UsageUpdatePayload;
@@ -57,6 +68,7 @@ export function SessionRightPanel({
   connected,
   branch,
   worktreeId,
+  projectId,
   projectName,
   actions,
   usageInfo,
@@ -66,6 +78,8 @@ export function SessionRightPanel({
   const isTerminal =
     session.status === "completed" || session.status === "killed";
   const isActiveSession = !isTerminal && session.isActive !== false;
+  const hasGitActions =
+    branch && !isTerminal && (actions.onPushToOrigin || actions.onCommit);
 
   return (
     <aside
@@ -224,6 +238,16 @@ export function SessionRightPanel({
                 </Button>
               )}
             </div>
+          )}
+
+          {/* Git actions */}
+          {hasGitActions && (
+            <GitActionsGrid
+              actions={actions}
+              agentBusy={session.status === "running"}
+              branch={branch}
+              projectId={projectId}
+            />
           )}
 
           {/* Document actions */}

@@ -11,6 +11,7 @@ import {
 import { AgentBadge } from "@/components/dashboard/AgentBadge";
 import { BranchBadge } from "@/components/dashboard/BranchBadge";
 import { DocumentActionMenu } from "@/components/dashboard/DocumentActionMenu";
+import { GitActionsGrid } from "@/components/dashboard/GitActionsGrid";
 import { GitInfoPanel } from "@/components/dashboard/GitInfoPanel";
 import { PanelSection } from "@/components/dashboard/PanelSection";
 import { ReconnectBanner } from "@/components/dashboard/ReconnectBanner";
@@ -24,6 +25,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import type { AgentSession } from "@/lib/agents/types";
+import type { SessionActions } from "./SessionRightPanel";
 
 export interface SessionMobileDrawerProps {
   open: boolean;
@@ -33,16 +35,8 @@ export interface SessionMobileDrawerProps {
   branch?: string;
   worktreeId?: string;
   projectName?: string;
-  actions: {
-    onKillSession: () => void;
-    isKilling: boolean;
-    onCompleteSession?: () => void;
-    isCompleting: boolean;
-    onDeleteSession?: () => void;
-    isDeleting: boolean;
-    onReconnect: () => void;
-    isReconnecting: boolean;
-  };
+  projectId?: string;
+  actions: SessionActions;
   onStartReview?: () => void;
   onSendMessage?: (message: string) => void;
 }
@@ -59,6 +53,7 @@ export function SessionMobileDrawer({
   branch,
   worktreeId,
   projectName,
+  projectId,
   actions,
   onStartReview,
   onSendMessage,
@@ -66,6 +61,8 @@ export function SessionMobileDrawer({
   const isTerminal =
     session.status === "completed" || session.status === "killed";
   const isActiveSession = !isTerminal && session.isActive !== false;
+  const hasGitActions =
+    branch && !isTerminal && (actions.onPushToOrigin || actions.onCommit);
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -202,6 +199,16 @@ export function SessionMobileDrawer({
                 </Button>
               )}
             </div>
+          )}
+
+          {/* Git actions */}
+          {hasGitActions && (
+            <GitActionsGrid
+              actions={actions}
+              agentBusy={session.status === "running"}
+              branch={branch}
+              projectId={projectId}
+            />
           )}
 
           {/* Document actions */}

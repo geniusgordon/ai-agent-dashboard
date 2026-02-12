@@ -461,3 +461,25 @@ export async function deleteBranch(
 
   await getGit(repoPath).deleteLocalBranch(branchName, force);
 }
+
+export async function pushToRemote(
+  worktreePath: string,
+  branchName?: string,
+  setUpstream = false,
+): Promise<{ success: boolean; error?: string }> {
+  if (branchName) validateBranchName(branchName);
+
+  const sg = getGit(worktreePath);
+  try {
+    const args: string[] = ["origin"];
+    if (branchName) args.push(branchName);
+    if (setUpstream) {
+      await sg.raw(["push", "--set-upstream", ...args]);
+    } else {
+      await sg.push(args);
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}

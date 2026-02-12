@@ -23,7 +23,14 @@ import {
   getRecentCommits,
   hasUncommittedChanges,
   isGitRepo,
+  pushToRemote,
+  validateBranchName,
 } from "../../lib/projects/index.js";
+import {
+  buildCommitPrompt,
+  buildMergePrompt,
+  buildPRPrompt,
+} from "../../lib/session-actions/index.js";
 import { expandPath } from "../../lib/utils/expand-path.js";
 
 const AgentTypeSchema = z.enum(["gemini", "claude-code", "codex"]);
@@ -448,5 +455,98 @@ export const sessionsRouter = createTRPCRouter({
         hasUncommitted,
         isFeatureBranch,
       };
+    }),
+
+  // ---------------------------------------------------------------------------
+  // Session Git Actions
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Push the session's branch to origin.
+   * Direct git operation — no agent involved.
+   */
+  pushToOrigin: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+        setUpstream: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const manager = getAgentManager();
+      const session = manager.getSession(input.sessionId);
+      if (!session) throw new Error("Session not found");
+
+      const branch = session.worktreeBranch ?? undefined;
+      const result = await pushToRemote(
+        expandPath(session.cwd),
+        branch,
+        input.setUpstream ?? true,
+      );
+
+      if (!result.success) {
+        throw new Error(result.error ?? "Push failed");
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Send a commit prompt to the session's agent.
+   */
+  sendCommitPrompt: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(({ input }) => {
+      const manager = getAgentManager();
+      const session = manager.getSession(input.sessionId);
+      if (!session) throw new Error("Session not found");
+      manager.sendMessage(input.sessionId, buildCommitPrompt());
+      return { success: true };
+    }),
+
+  /**
+   * Send a merge prompt to the session's agent.
+   */
+  sendMergePrompt: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+        targetBranch: z.string().min(1),
+      }),
+    )
+    .mutation(({ input }) => {
+      validateBranchName(input.targetBranch);
+      const manager = getAgentManager();
+      const session = manager.getSession(input.sessionId);
+      if (!session) throw new Error("Session not found");
+      manager.sendMessage(
+        input.sessionId,
+        buildMergePrompt(input.targetBranch),
+      );
+      return { success: true };
+    }),
+
+  /**
+   * Send a PR creation prompt to the session's agent.
+   */
+  sendPRPrompt: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+        baseBranch: z.string().min(1),
+      }),
+    )
+    .mutation(({ input }) => {
+      validateBranchName(input.baseBranch);
+      const manager = getAgentManager();
+      const session = manager.getSession(input.sessionId);
+      if (!session?.worktreeBranch) {
+        throw new Error("Session has no branch context");
+      }
+      manager.sendMessage(
+        input.sessionId,
+        buildPRPrompt(session.worktreeBranch, input.baseBranch),
+      );
+      return { success: true };
     }),
 });
