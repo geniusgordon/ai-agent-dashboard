@@ -10,11 +10,15 @@ export function buildCommitPrompt(): string {
 
 1. Review the uncommitted changes with \`git status\` and \`git diff\`
 2. Stage the appropriate changes (use \`git add -A\` or selectively stage)
-3. Write a clear, descriptive commit message following conventional commits:
+3. Run lint and typecheck before committing:
+   - \`pnpm check\` (lint and format)
+   - \`pnpm typecheck\` (TypeScript type checking)
+   If either command reports errors, fix them before proceeding. Re-stage any files changed by fixes.
+4. Write a clear, descriptive commit message following conventional commits:
    - First line: concise summary in imperative mood (50-72 chars)
    - Optionally add a blank line and detailed description
-4. Commit with \`git commit\`
-5. Confirm the result with \`git log -1 --oneline\`
+5. Commit with \`git commit\`
+6. Confirm the result with \`git log -1 --oneline\`
 
 If there are no changes to commit, let me know.`;
 }
