@@ -294,16 +294,26 @@ export class ProjectManager {
       throw new Error("Cannot delete the main worktree");
     }
 
+    const project = this.getProject(worktree.projectId);
+
     if (!force) {
-      const hasChanges = await git.hasUncommittedChanges(worktree.path);
-      if (hasChanges) {
-        throw new Error(
-          "Worktree has uncommitted changes. Use force=true to delete anyway.",
+      let skipDirtyCheck = false;
+      if (worktree.baseBranch && project) {
+        skipDirtyCheck = await git.isBranchMerged(
+          project.repoPath,
+          worktree.branch,
+          worktree.baseBranch,
         );
       }
+      if (!skipDirtyCheck) {
+        const hasChanges = await git.hasUncommittedChanges(worktree.path);
+        if (hasChanges) {
+          throw new Error(
+            "Worktree has uncommitted changes. Use force=true to delete anyway.",
+          );
+        }
+      }
     }
-
-    const project = this.getProject(worktree.projectId);
     if (project) {
       await git.removeWorktree(project.repoPath, worktree.path, force);
     }

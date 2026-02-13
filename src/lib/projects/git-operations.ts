@@ -237,6 +237,22 @@ export async function removeWorktree(
   await getGit(repoPath).raw(args);
 }
 
+export async function isBranchMerged(
+  repoPath: string,
+  branchName: string,
+  baseBranch: string,
+): Promise<boolean> {
+  validateBranchName(branchName);
+  validateBranchName(baseBranch);
+
+  const output = await getGit(repoPath).raw(["branch", "--merged", baseBranch]);
+  const merged = output
+    .split("\n")
+    .map((line) => line.replace(/^[* ]+/, "").trim())
+    .filter(Boolean);
+  return merged.includes(branchName);
+}
+
 export async function hasUncommittedChanges(
   worktreePath: string,
 ): Promise<boolean> {
