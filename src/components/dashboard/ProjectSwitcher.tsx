@@ -84,9 +84,10 @@ export function ProjectSwitcher({
             </SidebarMenuButton>
           </PopoverTrigger>
           <PopoverContent
-            className="w-72 p-0"
+            className="flex max-h-[min(70dvh,28rem)] w-72 flex-col overflow-hidden p-0"
             align="start"
             side={isMobile ? "bottom" : "right"}
+            portalled={!isMobile}
           >
             {/* Search */}
             <div className="flex items-center gap-2 border-b px-3 py-2">
@@ -100,7 +101,7 @@ export function ProjectSwitcher({
             </div>
 
             {/* Project list */}
-            <div className="max-h-64 overflow-y-auto overscroll-contain p-1 [overscroll-behavior:contain] [-webkit-overflow-scrolling:touch]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-1 overscroll-contain touch-pan-y">
               {filtered.length === 0 ? (
                 <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                   {search ? "No projects found" : "No projects yet"}
