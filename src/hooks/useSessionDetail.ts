@@ -11,6 +11,7 @@ import { useTRPC } from "@/integrations/trpc/react";
 import { extractContent, extractPlanFilePath } from "@/lib/agents/event-utils";
 import type {
   AgentEvent,
+  AgentSession,
   ApprovalRequest,
   CommandsUpdatePayload,
   PlanPayload,
@@ -27,6 +28,7 @@ export function useSessionDetail(sessionId: string) {
   const logContainerRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
   const isNearBottomRef = useRef(true);
+  const lastSessionRef = useRef<AgentSession | undefined>(undefined);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const eventsRef = useRef(events);
@@ -46,7 +48,10 @@ export function useSessionDetail(sessionId: string) {
   const sessionQuery = useQuery(
     trpc.sessions.getSession.queryOptions({ sessionId }),
   );
-  const session = sessionQuery.data;
+  if (sessionQuery.data) {
+    lastSessionRef.current = sessionQuery.data;
+  }
+  const session = sessionQuery.data ?? lastSessionRef.current;
 
   // Get client to check capabilities
   const clientQuery = useQuery({
@@ -490,6 +495,7 @@ export function useSessionDetail(sessionId: string) {
   useEffect(() => {
     if (prevSessionIdRef.current !== sessionId) {
       prevSessionIdRef.current = sessionId;
+      lastSessionRef.current = undefined;
       setEvents([]);
       setOptimisticApproval(null);
       autoScrollRef.current = true;
@@ -639,7 +645,7 @@ export function useSessionDetail(sessionId: string) {
     logContainerRef: logContainerCallbackRef,
 
     // Loading states
-    isLoading: sessionQuery.isLoading,
+    isLoading: sessionQuery.isLoading && !session,
     isAgentBusy: session?.status === "running",
     isCancelling: cancelSessionMutation.isPending,
     isKilling: killSessionMutation.isPending,
