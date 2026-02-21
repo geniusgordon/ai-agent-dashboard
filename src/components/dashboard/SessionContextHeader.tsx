@@ -114,7 +114,7 @@ export function SessionContextHeader({
             <Input
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="h-6 text-xs font-mono max-w-48"
+              className="h-6 font-mono max-w-48"
               autoFocus
             />
             <Button type="submit" variant="success" size="xs">

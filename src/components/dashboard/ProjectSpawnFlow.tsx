@@ -211,7 +211,7 @@ export function ProjectSpawnFlow({
             value={initialPrompt}
             onChange={(e) => setInitialPrompt(e.target.value)}
             placeholder="Optional first message to send after spawning..."
-            className="min-h-[80px] text-sm"
+            className="min-h-[80px]"
           />
         )}
       </div>
