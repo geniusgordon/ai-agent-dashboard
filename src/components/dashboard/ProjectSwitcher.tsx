@@ -100,7 +100,7 @@ export function ProjectSwitcher({
             </div>
 
             {/* Project list */}
-            <div className="max-h-64 overflow-y-auto p-1">
+            <div className="max-h-64 overflow-y-auto overscroll-contain p-1">
               {filtered.length === 0 ? (
                 <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                   {search ? "No projects found" : "No projects yet"}

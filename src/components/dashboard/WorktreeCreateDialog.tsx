@@ -272,7 +272,7 @@ export function WorktreeCreateDialog({
                     }
                     placeholder="my-feature"
                     required
-                    className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-base focus:outline-none focus:ring-2 focus:ring-primary/50 md:text-sm"
                   />
                 </div>
               ) : (

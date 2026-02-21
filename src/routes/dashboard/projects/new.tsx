@@ -86,7 +86,7 @@ function AddProjectPage() {
                 onChange={(e) => setDirPath(e.target.value)}
                 placeholder="/path/to/your/repo"
                 required
-                className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground font-mono text-base focus:outline-none focus:ring-2 focus:ring-primary/50 md:text-sm"
               />
               <p className="mt-1.5 text-xs text-muted-foreground">
                 Any path inside a git repository — the repo root is detected
@@ -111,7 +111,7 @@ function AddProjectPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Defaults to directory name"
-                className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50 md:text-sm"
               />
             </div>
 
@@ -132,7 +132,7 @@ function AddProjectPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Brief description of this project..."
                 rows={3}
-                className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                className="w-full px-4 py-2 rounded-lg bg-background border border-input text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none md:text-sm"
               />
             </div>
           </div>
