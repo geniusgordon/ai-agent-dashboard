@@ -188,6 +188,7 @@ export function Sidebar() {
           <ProjectSwitcher
             currentProjectId={projectId}
             currentProject={projectQuery.data ?? null}
+            sessions={allSessions}
           />
         ) : (
           <SidebarMenu>

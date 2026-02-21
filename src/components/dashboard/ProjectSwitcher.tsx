@@ -22,16 +22,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useTRPC } from "@/integrations/trpc/react";
+import { type AgentSession, isSessionActive } from "@/lib/agents/types";
 import type { Project } from "@/lib/projects/types";
 
 interface ProjectSwitcherProps {
   currentProjectId: string;
   currentProject: Project | null;
+  sessions: AgentSession[];
 }
 
 export function ProjectSwitcher({
   currentProjectId,
   currentProject,
+  sessions,
 }: ProjectSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -42,13 +45,29 @@ export function ProjectSwitcher({
   const projectsQuery = useQuery(trpc.projects.list.queryOptions());
   const projects = projectsQuery.data ?? [];
 
-  const filtered = search
-    ? projects.filter(
-        (p) =>
-          p.name.toLowerCase().includes(search.toLowerCase()) ||
-          p.repoPath.toLowerCase().includes(search.toLowerCase()),
-      )
-    : projects;
+  const activeAgentCountByProject = new Map<string, number>();
+  for (const session of sessions) {
+    if (!session.projectId || !isSessionActive(session.status)) continue;
+    activeAgentCountByProject.set(
+      session.projectId,
+      (activeAgentCountByProject.get(session.projectId) ?? 0) + 1,
+    );
+  }
+
+  const filtered = (
+    search
+      ? projects.filter(
+          (p) =>
+            p.name.toLowerCase().includes(search.toLowerCase()) ||
+            p.repoPath.toLowerCase().includes(search.toLowerCase()),
+        )
+      : projects
+  ).sort((a, b) => {
+    const aCount = activeAgentCountByProject.get(a.id) ?? 0;
+    const bCount = activeAgentCountByProject.get(b.id) ?? 0;
+    if (aCount !== bCount) return bCount - aCount;
+    return a.name.localeCompare(b.name);
+  });
 
   const handleSelect = (project: Project) => {
     setOpen(false);
@@ -119,12 +138,15 @@ export function ProjectSwitcher({
                     }`}
                   >
                     <FolderGit2 className="size-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">{project.name}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {project.repoPath}
                       </div>
                     </div>
+                    <span className="shrink-0 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                      {activeAgentCountByProject.get(project.id) ?? 0}
+                    </span>
                   </button>
                 ))
               )}
