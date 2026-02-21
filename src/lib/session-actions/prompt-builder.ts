@@ -58,11 +58,15 @@ export function buildPRPrompt(
 2. Write a clear PR title and description:
    - Title: concise summary of the changes
    - Description: what changed, why, and any relevant context
-3. Create the PR:
+3. Push the branch to origin:
+   \`\`\`
+   git push -u origin ${currentBranch}
+   \`\`\`
+4. Create the PR:
    \`\`\`
    gh pr create --base ${baseBranch} --head ${currentBranch} --title "..." --body "..."
    \`\`\`
-4. Share the PR URL
+5. Share the PR URL
 
 If there are no commits to create a PR from, let me know.`;
 }
