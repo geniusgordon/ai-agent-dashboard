@@ -145,6 +145,7 @@ export function QuickActionsBar({
           variant="outline"
           size="xs"
           onClick={onStartReview}
+          disabled={agentBusy}
           className="text-xs gap-1"
         >
           <GitMerge className="size-3" />
