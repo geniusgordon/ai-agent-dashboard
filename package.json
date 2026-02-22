@@ -6,6 +6,8 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "start": "./scripts/start-prod.sh",
+    "stop": "./scripts/stop-prod.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

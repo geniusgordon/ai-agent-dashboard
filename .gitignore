@@ -12,3 +12,6 @@ count.txt
 .vinxi
 todos.json
 .agent-store/
+
+# PM2
+.pm2/

@@ -1,64 +1,108 @@
 # AI Agent Dashboard
 
-A web dashboard for managing AI coding agents (Gemini CLI, Claude Code, Codex) through the [Agent Client Protocol (ACP)](https://agentclientprotocol.com). Spawn agents, stream logs in real-time, approve file edits and shell commands remotely, and run multiple agents in parallel across git worktrees.
+A dashboard for managing AI coding agents (Gemini CLI, Claude Code, Codex) through the Agent Client Protocol (ACP). Built with TanStack Start (SSR React framework) + tRPC + Tailwind CSS v4.
 
-## Features
-
-- **Multi-agent support** — Gemini CLI (ACP mode), Claude Code, Codex
-- **Real-time streaming** — Live session logs via Server-Sent Events
-- **Remote approvals** — Approve/deny file edits and commands from the browser
-- **Project management** — Group sessions around git repos with worktree-per-branch isolation
-- **Session persistence** — History survives server restarts
-
-## Quick Start
+## Development
 
 ```bash
 pnpm install
-pnpm dev        # http://localhost:3000
+pnpm dev              # Start dev server on port 3000
 ```
 
-## Commands
+## Production
+
+### Setup (one-time)
+
+Install PM2 globally:
 
 ```bash
-pnpm dev          # Dev server
-pnpm build        # Production build
-pnpm test         # Run tests (vitest)
-pnpm typecheck    # TypeScript check
-pnpm check        # Biome lint + format (auto-fix)
-pnpm validate     # typecheck + lint + test (full CI)
+pnpm add -g pm2
 ```
 
-## Stack
+### Start Production Server
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | [TanStack Start](https://tanstack.com/start) (SSR React on Nitro) |
-| Routing | TanStack Router (file-based) |
-| Server API | tRPC + superjson |
-| Data fetching | TanStack Query |
-| Styling | Tailwind CSS v4 + shadcn/ui |
-| Agent protocol | ACP (`@agentclientprotocol/sdk`) |
-| Persistence | SQLite (projects) + JSON files (sessions) |
+```bash
+pnpm build            # Build for production
+pnpm start            # Start PM2 process manager
+```
+
+The server will:
+- Run on port 3000 (configure in `ecosystem.config.cjs`)
+- Auto-restart on crashes
+- Be accessible via Tailscale from other devices
+- Automatically rebuild and restart when you merge to main (via git hook)
+
+### Production Commands
+
+```bash
+pnpm start            # Start/restart production server
+pnpm stop             # Stop production server
+pm2 logs agent-dashboard    # View logs
+pm2 monit             # Monitor processes
+pm2 restart agent-dashboard # Manual restart
+```
+
+### Auto-Rebuild on Merge
+
+A git `post-merge` hook automatically rebuilds and restarts the server when you merge to main:
+
+1. Develop in a worktree: `git worktree add ../feature-name feature-name`
+2. Make changes, commit
+3. Merge to main: `git checkout main && git merge feature-name`
+4. **The hook automatically runs**: `pnpm build` + `pm2 restart agent-dashboard`
+
+No manual rebuild needed!
+
+## Testing
+
+```bash
+pnpm test             # Run tests
+pnpm test:watch       # Watch mode
+pnpm typecheck        # Type check
+pnpm check            # Lint + format
+pnpm validate         # Full CI pipeline
+```
 
 ## Architecture
 
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
+
+## Project Structure
+
 ```
-Browser ──SSE──> /api/events ──> AgentManager ──> ACPClient ──> Agent Process
-Browser ──tRPC─> Nitro Server ─> AgentManager / ProjectManager
+src/
+├── routes/              # File-based routing (TanStack Router)
+├── components/
+│   ├── ui/             # shadcn/ui components
+│   └── dashboard/      # Dashboard-specific components
+├── server/
+│   └── routers/        # tRPC routers
+├── lib/
+│   ├── acp/            # ACP protocol layer
+│   ├── agents/         # Agent manager (high-level)
+│   └── projects/       # Project & worktree manager
+├── hooks/              # React hooks
+└── integrations/
+    └── trpc/           # tRPC setup
+
+.agent-store/           # Persistent data (SQLite + JSON)
+└── sessions/           # Agent session history
 ```
 
-Agents are spawned as child processes communicating over stdin/stdout. Events flow through `AgentManager` (singleton) which normalizes protocol-specific messages into unified `AgentEvent` objects, then streams them to the browser via SSE.
+## Tech Stack
 
-Projects and worktrees are managed by `ProjectManager` (singleton) backed by SQLite, enabling multiple agents to work on the same repo in parallel via git worktrees.
+- **Framework**: TanStack Start (SSR React)
+- **API**: tRPC
+- **Database**: SQLite (better-sqlite3)
+- **Styling**: Tailwind CSS v4
+- **UI Components**: shadcn/ui (new-york style)
+- **Git**: simple-git + native git operations
+- **Process Manager**: PM2 (production)
+- **ACP**: @agentclientprotocol/sdk
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture reference.
+## Configuration
 
-## Docs
-
-| File | Description |
-|------|-------------|
-| [CLAUDE.md](CLAUDE.md) | Agent-facing project guide (code style, patterns, commands) |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed architecture, directory structure, data model |
-| `docs/done/YYYY-MM-DD-*.md` | Completed feature specs |
-| `docs/learnings/YYYY-MM-DD-*.md` | Research notes and learnings |
-| `docs/issues/` | Known issues and bugs |
+- `CLAUDE.md` - Project instructions for Claude Code
+- `ecosystem.config.cjs` - PM2 production config
+- `vite.config.ts` - Vite/TanStack Start config
+- `.git/hooks/post-merge` - Auto-rebuild hook
