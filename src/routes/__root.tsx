@@ -7,8 +7,8 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import { Button } from "@/components/ui/button";
 import { UpdateNotification } from "@/components/UpdateNotification";
+import { Button } from "@/components/ui/button";
 import type { TRPCRouter } from "@/integrations/trpc/router";
 import { Provider } from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
