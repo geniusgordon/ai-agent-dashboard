@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { Button } from "@/components/ui/button";
+import { UpdateNotification } from "@/components/UpdateNotification";
 import type { TRPCRouter } from "@/integrations/trpc/router";
 import { Provider } from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
@@ -61,7 +62,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   ),
 });
 
-// Inline script to prevent FOUC (Flash of Unstyled Content) and register SW
+// Inline script to prevent FOUC (Flash of Unstyled Content)
 const headScript = `
 (function() {
   var theme = localStorage.getItem('theme');
@@ -69,10 +70,6 @@ const headScript = `
     theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
   document.documentElement.classList.add(theme);
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
-  }
 })();
 `;
 
@@ -89,6 +86,7 @@ function RootComponent() {
       <body className="bg-background text-foreground">
         <Provider queryClient={queryClient}>
           <Outlet />
+          <UpdateNotification />
         </Provider>
         <Scripts />
       </body>
